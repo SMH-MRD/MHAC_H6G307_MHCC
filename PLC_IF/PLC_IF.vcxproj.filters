@@ -36,7 +36,10 @@
     <ClInclude Include="CPushButton.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="PLC_IO_DEF.h">
+    <ClInclude Include="PLC_IO_DEF_MELNET.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PLC_IO_DEF_MC.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

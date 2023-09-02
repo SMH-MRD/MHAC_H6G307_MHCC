@@ -1,6 +1,13 @@
 #include "CWorkWindow_PLC.h"
+#include "PLC_IF.h"
 #include "resource.h"
-#include "PLC_IO_DEF.h"
+
+#ifdef _TYPE_MCPROTOCOL
+#include "PLC_IO_DEF_MC.h"
+#else
+#include "PLC_IO_DEF_MELNET.h"
+#endif
+
 #include "CPLC_IF.h"
 
 #include <iostream>
@@ -659,10 +666,12 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 	case WM_COMMAND: {
 		switch (LOWORD(wp)) {
 		case ID_PLCIO_PB_PLUS: {
+
 			int n = GetDlgItemText(hwnd, ID_PLCIO_EDIT_OFFSET, (LPTSTR)wc, 5);
 			int offset = _wtoi(wc);
 			int id;
 			switch (stIOCheckObj.IO_selected) {
+#ifdef _TYPE_MELSECNET
 			case ID_PLCIO_RADIO_BI: {
 				id = stIOCheckObj.bi_addr - DEVICE_TOP_B_IN + offset;
 				if (id >= N_PLC_B_OUT_WORD - PLCIO_IO_DISP_NUM) stIOCheckObj.bi_addr = DEVICE_TOP_B_IN + N_PLC_B_OUT_WORD - PLCIO_IO_DISP_NUM;
@@ -687,7 +696,9 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 				else stIOCheckObj.wo_addr += offset;
 				break;
 			}
+#endif
 			}
+
 		}break;
 		case ID_PLCIO_PB_MINUS: {
 			int n = GetDlgItemText(hwnd, ID_PLCIO_EDIT_OFFSET, (LPTSTR)wc, 5);
@@ -721,11 +732,13 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			}
 		}break;
 		case ID_PLCIO_PB_RESET: {
+#ifdef _TYPE_MELSECNET
 			stIOCheckObj.bi_addr = DEVICE_TOP_B_IN;
 			stIOCheckObj.bo_addr = DEVICE_TOP_B_OUT;
 			stIOCheckObj.wi_addr = DEVICE_TOP_W_IN;
 			stIOCheckObj.wo_addr = DEVICE_TOP_W_OUT;
 			pProcObj->mel_set_force(MEL_FORCE_RESET, false, 0, 0);
+#endif
 		}break;
 		case ID_PLCIO_PB_DEC:
 		case ID_PLCIO_PB_HEX:
@@ -765,6 +778,7 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			else stIOCheckObj.IO_selected = ID_PLCIO_RADIO_WI;
 
 		}break;
+#ifdef _TYPE_MELSECNET
 		case ID_PLCIO_CHK_FORCE: {
 			GetDlgItemText(hwnd, ID_PLCIO_EDIT_VALUE, (LPTSTR)wc, 5);
 			unsigned __int64 value = _wcstoui64(wc, NULL, 16);
@@ -812,8 +826,10 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_PLCIO_CHK_PAUSE), BM_GETCHECK, 0, 0)) stIOCheckObj.is_pause_update = true;
 			else stIOCheckObj.is_pause_update = false;
 		}break;
+#endif
 		}
 	}break;
+
 	default:
 		return DefWindowProc(hwnd, msg, wp, lp);
 	}
@@ -847,6 +863,7 @@ int CWorkWindow_PLC::update_all_controls(HWND hDlg) {
 /*　　                 パネル上のランプ表示更新（TIMERイベントで呼び出し）　　　　　　　　　　　　　　*/
 /******************************************************************************************************/
 int CWorkWindow_PLC::update_Work(HWND hwnd) {
+#ifdef _TYPE_MELSECNET
 
 	//振れ止め
 	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_as_on[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_as_on[ID_BPOS]) {
@@ -934,13 +951,15 @@ int CWorkWindow_PLC::update_Work(HWND hwnd) {
 	}
 	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L3_LAMP), L"○");
 
-
+#endif
 	return 0;
 }
 int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 
 	WCHAR wc[16];
 	WORD source_w;
+
+#ifdef _TYPE_MELSECNET
 	LPST_MELSEC_NET pmel = pProcObj->get_melnet();
 	WORD buf_id;
 	std::wostringstream wos;
@@ -1093,6 +1112,7 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 	else
 		SendMessage(stIOCheckObj.hwnd_chk_plc_emulate, BM_SETCHECK, BST_UNCHECKED, 0);
 
+#endif
 
 	return 0;
 }

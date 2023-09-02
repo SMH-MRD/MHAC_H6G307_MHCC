@@ -1,14 +1,23 @@
+#include "framework.h"
 #include "CPLC_IF.h"
 #include "PLC_IF.h"
-#include "PLC_IO_DEF.h"
+#ifdef _TYPE_MCPROTOCOL
+#include "PLC_IO_DEF_MC.h"
+#else
+#include "PLC_IO_DEF_MELNET.h"
+#endif
 #include "CWorkWindow_PLC.h"
-#include <windows.h>
+#include <windowsx.h>
 #include "Mdfunc.h"
 
 extern ST_SPEC def_spec;
 extern ST_KNL_MANAGE_SET    knl_manage_set;
 
-CPLC_IF::CPLC_IF() {
+CMCProtocol* pMCProtocol;  //MCプロトコルオブジェクト:
+
+CPLC_IF::CPLC_IF(HWND _hWnd_parent) {
+
+    hWnd_parent = _hWnd_parent;
     // 共有メモリオブジェクトのインスタンス化
     pPLCioObj = new CSharedMem;
     pCraneStatusObj = new CSharedMem;
@@ -17,9 +26,10 @@ CPLC_IF::CPLC_IF() {
     pCSInfObj = new CSharedMem;
 
     out_size = 0;
+
+#ifdef _TYPE_MELSECNET
     memset(&melnet,0,sizeof(ST_MELSEC_NET)) ;      //PLCリンク構造体
     memset(&plc_io_workbuf,0,sizeof(ST_PLC_IO));   //共有メモリへの出力セット作業用バッファ
-
     melnet.chan = MELSEC_NET_CH;
     melnet.mode = 0;
     melnet.path = NULL;
@@ -30,6 +40,7 @@ CPLC_IF::CPLC_IF() {
     melnet.read_size_w = sizeof(ST_PLC_READ_W);
     melnet.write_size_b = sizeof(ST_PLC_WRITE_B);
     melnet.write_size_w = sizeof(ST_PLC_WRITE_W);
+#endif
 
 };
 CPLC_IF::~CPLC_IF() {
@@ -81,6 +92,7 @@ int CPLC_IF::init_proc() {
 
     pCSInf = (LPST_CS_INFO)pCSInfObj->get_pMap();                                           //CS共有メモリ
 
+#ifdef _TYPE_MELSECNET
     for (int i = 0;i < 4;i++) {
         this->melnet.is_force_set_active[i] = false;
         this->melnet.forced_dat[i] = 0;
@@ -96,6 +108,28 @@ int CPLC_IF::init_proc() {
     melnet.pc_b_map = pc_out_b_map;
     ST_PC_OUT_WMAP pc_out_w_map;
     melnet.pc_w_map = pc_out_w_map;
+#endif 
+    //MCプロトコルオブジェクトインスタンス化
+    pMCProtocol = new CMCProtocol;
+
+    //MCプロトコル通信用アドレス設定
+    //# クライアント（受信）ソケットアドレス
+    memset(&addrinc, 0, sizeof(addrinc));
+    addrinc.sin_port = htons(PORT_MC_CLIENT);
+    addrinc.sin_family = AF_INET;
+    inet_pton(AF_INET, IP_ADDR_MC_CLIENT, &addrinc.sin_addr.s_addr);
+
+    //# サーバー（送信先）ソケットアドレス
+    memset(&addrins, 0, sizeof(addrins));
+    addrins.sin_port = htons(PORT_MC_SERVER);
+    addrins.sin_family = AF_INET;
+    inet_pton(AF_INET, IP_ADDR_MC_SERVER, &addrins.sin_addr.s_addr);
+
+    //MCプロトコルオブジェクト初期化
+    pMCProtocol->Initialize(hWnd_parent, &addrinc, &addrins, MC_ADDR_D_READ, MC_SIZE_D_READ, MC_ADDR_D_WRITE, MC_SIZE_D_WRITE);
+
+    lp_PLCread = (LPST_PLC_READ)(pMCProtocol->mc_res_msg_r.res_data);
+    lp_PLCwrite = (LPST_PLC_WRITE)(pMCProtocol->mc_req_msg_w.req_data);
 
 #if 0
     //CraneStat立ち上がり待ち
@@ -112,9 +146,11 @@ int CPLC_IF::init_proc() {
 int CPLC_IF::input() {
     
     plc_io_workbuf.helthy_cnt++;
+#ifdef _TYPE_MCPROTOCOL
 
-        //PLC 入力処理
-        //MELSECNET回線確認
+#else _TYPE_MELSECNET
+    //PLC 入力処理
+    //MELSECNET回線確認
     if ((!melnet.status) && (!(plc_io_workbuf.helthy_cnt % melnet.retry_cnt))) {
         if (!(melnet.err = mdOpen(melnet.chan, melnet.chan, &melnet.path)))
             melnet.status = MELSEC_NET_OK;
@@ -145,9 +181,11 @@ int CPLC_IF::input() {
     //強制セット
     if (melnet.is_force_set_active[MEL_FORCE_PLC_B])melnet.plc_b_out[melnet.forced_index[MEL_FORCE_PLC_B]] = melnet.forced_dat[MEL_FORCE_PLC_B];
     if (melnet.is_force_set_active[MEL_FORCE_PLC_W])melnet.plc_w_out[melnet.forced_index[MEL_FORCE_PLC_W]] = melnet.forced_dat[MEL_FORCE_PLC_W];
-      
+#endif    
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCrane->env_act_count;
+
+    UINT16 plc_helthy = lp_PLCread->D[IR_PLC_HELTHY_CNT];
 
      return 0;
 }
@@ -195,16 +233,25 @@ int CPLC_IF::parse() {
 //*********************************************************************************************
 // output()
 //*********************************************************************************************
+
+static UINT16 mhcc_helthy_cnt = 0;
 int CPLC_IF::output() { 
  
+    
+    lp_PLCwrite->D[IW_MHCC_HELTHY_CNT]= mhcc_helthy_cnt++;
+
     plc_io_workbuf.mode = this->mode;                   //モードセット
     plc_io_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
     
+
+
     //共有メモリ出力処理
     if(out_size) { 
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
     }
- 
+
+#ifdef _TYPE_MELSECNET
+
     //強制セット
     if (melnet.is_force_set_active[MEL_FORCE_PC_B])melnet.pc_b_out[melnet.forced_index[MEL_FORCE_PC_B]] = melnet.forced_dat[MEL_FORCE_PC_B];
     if (melnet.is_force_set_active[MEL_FORCE_PC_W])melnet.pc_w_out[melnet.forced_index[MEL_FORCE_PC_W]] = melnet.forced_dat[MEL_FORCE_PC_W];
@@ -237,7 +284,7 @@ int CPLC_IF::output() {
 
         if (melnet.err < 0)melnet.status = MELSEC_NET_SEND_ERR;
     }
-
+#endif
     return 0;
 }
 //*********************************************************************************************
@@ -304,10 +351,11 @@ int CPLC_IF::set_debug_status() {
 // closeIF()
 //*********************************************************************************************
 int CPLC_IF::closeIF() {
-
+#ifdef _TYPE_MELSECNET
    //MELSECNET回線クローズ
         melnet.err = mdClose(melnet.path);
         melnet.status = MELSEC_NET_CLOSE;
+#endif
    return 0;
 }
 
@@ -316,7 +364,7 @@ int CPLC_IF::closeIF() {
 // AGENTタスクの速度指令をノッチ位置指令に変換してIO出力を設定
 //*********************************************************************************************
 int CPLC_IF::set_notch_ref() {
-
+#ifdef _TYPE_MELSECNET
     //巻ノッチ
     //ノッチクリア
     melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_0[ID_WPOS]] &= NOTCH_PTN0_CLR;
@@ -558,7 +606,7 @@ int CPLC_IF::set_notch_ref() {
         melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_0[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_0[ID_BPOS];
         plc_io_workbuf.status.notch_ref[ID_SLEW] = 0;
     }
-     
+#endif     
     return 0;
 }
 
@@ -568,7 +616,8 @@ int CPLC_IF::set_notch_ref() {
 //*********************************************************************************************
 int CPLC_IF::set_bit_coms() {
     CWorkWindow_PLC* pWorkWindow;
-    
+ 
+#ifdef _TYPE_MELSECNET
     //正常クロック システムカウンタを利用 25msec counter 64*0.025=1.6
     if (knl_manage_set.sys_counter& 0x40) melnet.pc_b_out[melnet.pc_b_map.healty[ID_WPOS]] |= melnet.pc_b_map.healty[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.healty[ID_WPOS]] &= ~melnet.pc_b_map.healty[ID_BPOS];
@@ -710,7 +759,7 @@ int CPLC_IF::set_bit_coms() {
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_park[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_park[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_park[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_park[ID_BPOS];
-   
+#endif 
     return 0;
 }
 
@@ -719,7 +768,8 @@ int CPLC_IF::set_bit_coms() {
 // AGENTタスクのアナログ指令、ヘルシー信号等の出力セット
 //*********************************************************************************************
 int CPLC_IF::set_ao_coms() {
- 
+
+#ifdef _TYPE_MELSECNET
     melnet.pc_w_out[melnet.pc_w_map.helthy[ID_WPOS]] = helthy_cnt;
 
     //速度指令アナログ　0.1%単位）
@@ -729,7 +779,7 @@ int CPLC_IF::set_ao_coms() {
     melnet.pc_w_out[melnet.pc_w_map.spd_ref_slw[ID_WPOS]] = (INT16)(-1000 * pAgentInf->v_ref[ID_SLEW] / pCrane->spec.notch_spd_f[ID_SLEW][NOTCH_5]);
     melnet.pc_w_out[melnet.pc_w_map.spd_ref_hst[ID_WPOS]] = (INT16)(1000 * pAgentInf->v_ref[ID_HOIST] / pCrane->spec.notch_spd_f[ID_HOIST][NOTCH_5]);
     melnet.pc_w_out[melnet.pc_w_map.spd_ref_gnt[ID_WPOS]] = (INT16)(1000 * pAgentInf->v_ref[ID_GANTRY] / pCrane->spec.notch_spd_f[ID_GANTRY][NOTCH_5]);
-
+#endif
     return 0;
 }
 
@@ -740,7 +790,7 @@ int CPLC_IF::set_ao_coms() {
 int CPLC_IF::parse_notch_com() {
     
     INT16 check_i;
- 
+#ifdef _TYPE_MELSECNET
     //巻きノッチ
     //巻に対応するbitを抽出
     check_i = melnet.plc_w_out[melnet.plc_w_map.com_hst_notch_0[ID_WPOS]] & NOTCH_PTN0_ALL;
@@ -821,7 +871,7 @@ int CPLC_IF::parse_notch_com() {
         else plc_io_workbuf.ui.notch_pos[ID_SLEW] = -NOTCH_1;
     }
     else plc_io_workbuf.ui.notch_pos[ID_SLEW] = NOTCH_0;
-    
+#endif
     return 0;
 
 }
@@ -833,7 +883,7 @@ int CPLC_IF::parse_notch_com() {
 int CPLC_IF::parse_ope_com() {
 
     //PB取り込みはOFF Delay ON検出でカウント値セット→0まで減算
-    
+#ifdef _TYPE_MELSECNET   
     //既設PB類はWレジスタより
     if (melnet.plc_w_out[melnet.plc_w_map.com_estop[ID_WPOS]] & melnet.plc_w_map.com_estop[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_ESTOP] = PLC_IO_OFF_DELAY_COUNT;
     else if (plc_io_workbuf.ui.PB[ID_PB_ESTOP] > 0) plc_io_workbuf.ui.PB[ID_PB_ESTOP]--;
@@ -913,7 +963,7 @@ int CPLC_IF::parse_ope_com() {
     //遠隔モード
     if (melnet.plc_b_out[melnet.plc_b_map.PB_mode_remote[ID_WPOS]] & melnet.plc_b_map.PB_mode_remote[ID_BPOS]) plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE] = L_ON;
     else  plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE] = L_OFF;
-
+#endif
     return 0;
 }
 
@@ -980,7 +1030,7 @@ int CPLC_IF::set_sim_status() {
 // センサ信号取り込み
 //*********************************************************************************************
 int CPLC_IF::parse_sensor_fb() {
-
+#ifdef _TYPE_MELSECNET
     plc_io_workbuf.status.v_fb[ID_HOIST] = def_spec.notch_spd_f[ID_HOIST][5] * (double)melnet.plc_w_out[melnet.plc_w_map.spd_hst_fb[ID_WPOS]] / 1000.0;
     plc_io_workbuf.status.v_fb[ID_GANTRY] = def_spec.notch_spd_f[ID_GANTRY][5] * (double)melnet.plc_w_out[melnet.plc_w_map.spd_gnt_fb[ID_WPOS]] / 1000.0;
     //引込は入が＋出が-で入ってくる
@@ -995,9 +1045,10 @@ int CPLC_IF::parse_sensor_fb() {
   
     plc_io_workbuf.status.pos[ID_BOOM_H] =(double)melnet.plc_w_out[melnet.plc_w_map.pos_bh_fb[ID_WPOS]] / 10.0;   //m　PLCからは0.1m単位）
     plc_io_workbuf.status.pos[ID_SLEW] = (3600.0-(double)melnet.plc_w_out[melnet.plc_w_map.pos_slw_fb[ID_WPOS]]) * PI1DEG/10.0;  //rad PLCからは0.1deg単位）
+#endif
     return 0;
 }
-
+#ifdef _TYPE_MELSECNET
 int CPLC_IF::mel_set_force(int id, bool bset, int index, WORD value) {
 
     if (id < 0 || id >4) return 0;
@@ -1021,3 +1072,4 @@ int CPLC_IF::mel_set_force(int id, bool bset, int index, WORD value) {
     }
     return 1;
 }
+#endif

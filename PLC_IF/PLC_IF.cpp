@@ -7,6 +7,7 @@
 #include "CWorkWindow_PLC.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
+
 #include <windowsx.h>       //# コモンコントロール用
 #include <commctrl.h>       //# コモンコントロール用
 
@@ -131,14 +132,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    }
    
   // メイン処理オブジェクトインスタンス化
-   pProcObj = new CPLC_IF;                              // メイン処理クラスのインスタンス化
-   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
+   pProcObj = new CPLC_IF(hWnd);                        // メイン処理クラスのインスタンス化
    pProcObj->init_proc();                               // メイン処理クラスの初期化
 
+   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用（ヘルシーカウント）
    //Workウィンドウオブジェクトインスタンス化
    pWorkWnd = new CWorkWindow_PLC;
 
- 
+  
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);

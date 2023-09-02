@@ -2,7 +2,9 @@
 #include "COMMON_DEF.H"
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include "CPushButton.h"
-#include "PLC_IO_DEF.h"
+
+#include "PLC_IO_DEF_MELNET.h"
+#include "PLC_IO_DEF_MC.h"
 
 #define PLC_IF_PLC_IO_MEM_NG        0x8000
 #define PLC_IF_CRANE_MEM_NG         0x4000
@@ -10,6 +12,7 @@
 #define PLC_IF_AGENT_MEM_NG         0x1000
 #define PLC_IF_CS_MEM_NG            0x0800
 
+#ifdef _TYPE_MELSECNET
 typedef struct st_PLCreadB_tag {                //今回未使用
     INT16 spare[PLC_IF_SPARE_B_BUFSIZE];
     INT16 PB[PLC_IF_PB_B_BUFSIZE];
@@ -110,14 +113,24 @@ typedef struct st_MelsecNet_tag {
     BOOL is_forced_emulate;						//強制出力有効フラグ
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;
+#endif
+
+typedef struct st_PLCread_tag { 
+    UINT16 D[MC_SIZE_D_READ];
+}ST_PLC_READ, * LPST_PLC_READ;
+
+typedef struct st_PLCwrite_tag {
+    UINT16 D[MC_SIZE_D_READ];
+}ST_PLC_WRITE, * LPST_PLC_WRITE;
 
 class CPLC_IF :    public CBasicControl
 {
 public:
-    CPLC_IF();
+    CPLC_IF(HWND hWnd_parent);
     ~CPLC_IF();
  
     WORD helthy_cnt=0;
+    HWND hWnd_parent;       //親ウィンドウのハンドル
 
     //オーバーライド
     int set_outbuf(LPVOID); //出力バッファセット
@@ -130,17 +143,21 @@ public:
     int set_debug_status(); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
     int set_sim_status();   //デバッグモード時にSimulatorからの入力で出力内容を上書き
     int closeIF();
- 
+#ifdef _TYPE_MELSECNET
     ST_MELSEC_NET   melnet;
-
     LPST_MELSEC_NET get_melnet() { return &melnet; }
+#endif
+    LPST_PLC_WRITE lp_PLCwrite;
+    LPST_PLC_READ  lp_PLCread;
+
+    SOCKADDR_IN addrinc, addrins, addrfrom;         //MCプロトコル用ソケットアドレス
 
     void set_debug_mode(int id) {
         if (id) mode |= PLC_IF_PC_DBG_MODE;
         else    mode &= ~PLC_IF_PC_DBG_MODE;
         return;
     }
-
+#ifdef _TYPE_MELSECNET
     void set_pc_ctrl_forced(bool b) {
         if (b) melnet.is_forced_pc_ctrl = true;
         else melnet.is_forced_pc_ctrl = false;
@@ -150,6 +167,13 @@ public:
         if (b) melnet.is_forced_emulate = true;
         else melnet.is_forced_emulate = false;
         return;
+    }
+#endif
+    void set_pc_ctrl_forced(bool b) {
+        return;
+    }
+    void set_plc_emu_forced(bool b) {
+         return;
     }
 
     int is_debug_mode() { return(mode & PLC_IF_PC_DBG_MODE); }

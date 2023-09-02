@@ -2,6 +2,9 @@
 
 #include "resource.h"
 
+//#define _TYPE_MELSECNET
+#define _TYPE_MCPROTOCOL
+
 ///# ベース設定
 
 //-タスク設定
@@ -20,6 +23,7 @@
 #define IDC_PB_EXIT					2202
 #define IDC_PB_DEBUG				2203
 #define IDC_CHK_IOCHK				2204
+
 
 
 //メインウィンドウ管理構造体
