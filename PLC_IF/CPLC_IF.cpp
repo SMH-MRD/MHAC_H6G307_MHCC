@@ -185,7 +185,7 @@ int CPLC_IF::input() {
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCrane->env_act_count;
 
-    UINT16 plc_helthy = lp_PLCread->D[IR_PLC_HELTHY_CNT];
+    UINT16 plc_helthy = lp_PLCread->helthy;
 
      return 0;
 }
@@ -238,7 +238,7 @@ static UINT16 mhcc_helthy_cnt = 0;
 int CPLC_IF::output() { 
  
     
-    lp_PLCwrite->D[IW_MHCC_HELTHY_CNT]= mhcc_helthy_cnt++;
+    lp_PLCwrite->helthy= mhcc_helthy_cnt++;
 
     plc_io_workbuf.mode = this->mode;                   //モードセット
     plc_io_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
