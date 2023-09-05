@@ -429,6 +429,7 @@ UINT CMCProtocol::rcv_msg_3E() {
 	}
 	else {
 		if (res.len == 2) {
+			memcpy(&mc_res_msg_w, &res, len);
 			return MC_RES_WRITE;
 		}
 		else {

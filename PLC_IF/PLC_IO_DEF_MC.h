@@ -20,20 +20,23 @@
 //DƒŒƒWƒXƒ^Š„•t’è‹`
 //WRITE Buffa UINT16[MC_SIZE_D_WRITE]
 #define IW_MHCC_HELTHY_CNT		0
-#define IW_CAB_AI_BH_R			1
-#define IW_CAB_AI_MH_LOAD		2
-#define IW_CAB_AI_AH_LOAD		3
-#define IW_CAB_AI_BH_ANGLE		4
-#define IW_CAB_DI_X030			5
-#define IW_CAB_DI_X040			6
-#define IW_CAB_DI_X050			7
-#define IW_CAB_DI_X060			8
-#define IW_CAB_DI_X070			9
-#define IW_CAB_DI_X080			10
-//11-29—\”õ
+#define IW_MHCC_AUTO_CTRL		1
+#define IW_CAB_AI_BH_R			2
+#define IW_CAB_AI_MH_LOAD		3
+#define IW_CAB_AI_AH_LOAD		4
+#define IW_CAB_AI_BH_ANGLE		5
+#define IW_CAB_DI_B220			6
+#define IW_CAB_DI_B230			7
+#define IW_CAB_DI_B240			8
+#define IW_CAB_DI_B250			9
+#define IW_CAB_DI_B260			10
+
+//12-39—\”õ
 #define IW_MHCC_FAULT1			40
 #define IW_MHCC_FAULT2			41
-
+//42-47—\”õ
+#define IW_ERM_HCNT1_STAT		48
+#define IW_ERM_HCNT2_STAT		49
 #define IW_ERM_HCNT_0L			50
 #define IW_ERM_HCNT_0H			51
 #define IW_ERM_HCNT_1L			52
@@ -53,7 +56,7 @@
 #define IW_ERM_DI_X0A0			66
 #define IW_ERM_DI_X0B0			67
 #define IW_ERM_DI_X0C0			68
-//59-69—\”õ
+#define IW_CC_LINK_UNIT			69
 #define IW_CC_GT_X0				70
 #define IW_CC_GT_Wr0			71
 #define IW_CC_GT_Wr1			72
@@ -84,33 +87,46 @@
 #define IW_CC_MH2_Wr1			97
 #define IW_CC_MH2_Wr2			98
 #define IW_CC_MH2_Wr3			99
-//90-99—\”õ
 
 //READ Buffa UINT16[MC_SIZE_D_READ]
 #define IR_PLC_HELTHY_CNT		0
-#define IW_CAB_AI_BH_R			1
-#define IW_CAB_AI_MH_LOAD		2
-#define IW_CAB_AI_AH_LOAD		3
-#define IW_CAB_AI_BH_ANGLE		4
-#define IW_CAB_DI_X030			5
-#define IW_CAB_DI_X040			6
-#define IW_CAB_DI_X050			7
-#define IW_CAB_DI_X060			8
-#define IW_CAB_DI_X070			9
-#define IW_CAB_DI_X080			10
-#define IR_CAB_DO_Y070			11
+#define IR_CAB_AI_BH_BK_L		1
+#define IR_CAB_AI_BH_BK_H		2
+#define IR_CAB_AI_BH_R_L		3
+#define IR_CAB_AI_BH_R_H		4
+#define IR_CAB_AI_MH_LOAD_L		5
+#define IR_CAB_AI_MH_LOAD_H		6
+#define IR_CAB_AI_AH_LOAD_L		7
+#define IR_CAB_AI_AH_LOAD_H		8
+#define IR_CAB_AI_BH_ANGLE_L	9
+#define IR_CAB_AI_BH_ANGLE_H	10
+#define IR_CAB_DI_B220			11
+#define IR_CAB_DI_B230			12
+#define IR_CAB_DI_B240			13
+#define IR_CAB_DI_B250			14
+#define IR_CAB_DI_B260			15
+#define IR_ERM_DO_B000			17
+#define IR_ERM_DO_B010			18
+#define IR_ERM_DO_B140			19
+#define IR_ERM_DO_B150			20
+#define IR_ERM_DO_B160			21
 
-//12-29—\”õ
-#define IR_POS_FB_MH			30
-#define IR_POS_FB_AH			31
-#define IR_POS_FB_BH			32
-#define IR_POS_FB_SL			33
-#define IR_POS_FB_GT			34
+//22-24—\”õ
+#define IR_POS_FB_MH_L			25
+#define IR_POS_FB_MH_H			26
+#define IR_POS_FB_AH_L			27
+#define IR_POS_FB_AH_H			28
+#define IR_POS_FB_BH_L			29
+#define IR_POS_FB_BH_H			30
+#define IR_POS_FB_SL_L			31
+#define IR_POS_FB_SL_H			32
+#define IR_POS_FB_GT_L			33
+#define IR_POS_FB_GT_H			34
 #define IR_SPD_FB_MH			35
-#define IR_SPD_FB_AH			36
-#define IR_SPD_FB_BH			37
-#define IR_SPD_FB_SL			38
-#define IR_SPD_FB_GT			39
+#define IR_SPD_FB_BH			36
+#define IR_SPD_FB_SL			37
+#define IR_SPD_FB_GT			38
+#define IR_SPD_FB_AH			39
 
 #define IR_FAULT_01				40
 #define IR_FAULT_02				41

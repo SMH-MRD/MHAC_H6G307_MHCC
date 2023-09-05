@@ -697,6 +697,7 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 				break;
 			}
 #endif
+			default:break;
 			}
 
 		}break;
