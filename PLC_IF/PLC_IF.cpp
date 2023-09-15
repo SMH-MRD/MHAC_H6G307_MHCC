@@ -4,7 +4,6 @@
 #include "framework.h"
 #include "PLC_IF.h"
 #include "CPLC_IF.h"
-#include "CWorkWindow_PLC.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 
@@ -25,8 +24,6 @@ DWORD* psource_proc_counter=NULL;               //メインプロセスのヘル
 
 
 CPLC_IF* pProcObj;          //メイン処理オブジェクト:
-CWorkWindow_PLC* pWorkWnd;  //作業ウィンドウオブジェクト:
-
 ST_SPEC def_spec;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
@@ -131,15 +128,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
    
-  // メイン処理オブジェクトインスタンス化
-   pProcObj = new CPLC_IF(hWnd);                        // メイン処理クラスのインスタンス化
-   pProcObj->init_proc();                               // メイン処理クラスの初期化
-
    psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用（ヘルシーカウント）
-   //Workウィンドウオブジェクトインスタンス化
-   pWorkWnd = new CWorkWindow_PLC;
-
-  
+    
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
@@ -195,86 +185,82 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         InitCommonControls();//コモンコントロール初期化
 
+        // メイン処理オブジェクトインスタンス化
+        pProcObj = new CPLC_IF(hWnd);                        // メイン処理クラスのインスタンス化
+        pProcObj->init_proc();                               // メイン処理クラスの初期化
+
         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
         SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
 
         //メインウィンドウにコントロール追加
-        stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0,hInst, NULL);
+        stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 5, 180, 20, hWnd, (HMENU)IDC_STATIC_0,hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT",  WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+            150, 65, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
-        stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+        stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+            5, 65, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
+        pProcObj->show_if_wnd();
 
-        stMainWnd.h_chk_IO = CreateWindow(L"BUTTON", L"IO CHECK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-            150, 40, 100, 30, hWnd, (HMENU)IDC_CHK_IOCHK, hInst, NULL);
+        stMainWnd.h_redio_remote = CreateWindow(L"BUTTON", L"RMT", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
+            5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_REMOTE, hInst, NULL);
+        stMainWnd.h_redio_mon = CreateWindow(L"BUTTON", L"MON", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
+            50, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_MON, hInst, NULL);
+        stMainWnd.h_redio_sim = CreateWindow(L"BUTTON", L"SIM", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+            95, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM, hInst, NULL);
+        pProcObj->set_mode(PLC_IF_REMOTE_MODE);
+        SendMessage(stMainWnd.h_redio_remote, BM_SETCHECK, BST_CHECKED, 0L);
+        SetWindowText(stMainWnd.h_static0, L"REMOTE MODE");
     }
     break;
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        // 選択されたメニューの解析:
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            // 選択されたメニューの解析:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-            case IDC_PB_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            case IDC_PB_DEBUG:
-                if (!(pProcObj->mode & PLC_IF_PC_DBG_MODE)) {    //現在デバッグモードでない　→　デバッグモードへ
-                    pProcObj->set_debug_mode(L_ON);
-                    SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
-                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT,0, (LPARAM)L"NORMAL->");
-                    //オペレーションウィンドウオープン
-                     if (stMainWnd.hWorkWnd == NULL) {//既にウィンドウが開いていなければ操作入力用のウィンドウオープン
-                        stMainWnd.hWorkWnd = pWorkWnd->open_WorkWnd(hWnd);
-                        ShowWindow(stMainWnd.hWorkWnd, SW_SHOW);
-                    }
-                }
-                else {                                          //現在デバッグモード　→　デバッグモードOFF
-                    pProcObj->set_debug_mode(L_OFF);
-                    SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
-                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
-                    
-                    if (stMainWnd.hWorkWnd != NULL) {           //オペレーションウィンドウクローズ
-                        pWorkWnd->close_WorkWnd();
-                        stMainWnd.hWorkWnd = NULL;
-                    }
-                  }
- 
-                TCHAR tbuf[32];
-                wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
-                SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
-                break;
- 
-            case IDC_CHK_IOCHK:
-               
-                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_IO, BM_GETCHECK, 0, 0)) {
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+        case IDC_PB_EXIT:
+            DestroyWindow(hWnd);
+            break;
 
-                    if (stMainWnd.hIOWnd == NULL){  //既にウィンドウが開いていなければIO check用のウィンドウオープン
-                        stMainWnd.hIOWnd = pWorkWnd->open_IO_Wnd(hWnd);
-                        ShowWindow(stMainWnd.hIOWnd, SW_SHOW);
-                    }
- 
-                }
-                else {                                         
-                      if (stMainWnd.hIOWnd != NULL) {           //オペレーションウィンドウクローズ
-                          DestroyWindow(stMainWnd.hIOWnd);  //ウィンドウ破棄
-                          stMainWnd.hIOWnd = NULL;
-                    }
-                }
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+        case IDC_RADIO_MON: {
+            pProcObj->set_mode(PLC_IF_MONITOR_MODE);
+            TCHAR tbuf[32];
+            wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+            SetWindowText(stMainWnd.h_static0, L"MONITOR MODE");
+        }break;
+        case IDC_RADIO_REMOTE: {
+            pProcObj->set_mode(PLC_IF_REMOTE_MODE);
+            TCHAR tbuf[32];
+            wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+            SetWindowText(stMainWnd.h_static0, L"REMOTE MODE");
+        }break;
+        case IDC_RADIO_SIM: {
+            pProcObj->set_mode(PLC_IF_SIMULATOR_MODE);
+            TCHAR tbuf[32];
+            wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+            SetWindowText(stMainWnd.h_static0, L"SIMULATOR MODE");
+        }break;
+
+        case IDC_CHK_IFCHK:
+
+            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) pProcObj->show_if_wnd();
+            else pProcObj->hide_if_wnd();
+
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        break;
+    }break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -286,13 +272,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
   
         timeKillEvent(knl_manage_set.KnlTick_TimerID);//マルチメディアタイマ停止
-        pProcObj->closeIF();
-        
+         
         Sleep(100);//100msec待機
         
         delete pProcObj;   //メイン処理オブジェクト削除
-        delete pWorkWnd;   //Workウィンドウオブジェクト削除
-
+ 
         PostQuitMessage(0);
         break;
     default:
@@ -329,7 +313,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
-    int sb_size[] = { 60,120,180,240,290,360};//ステータス区切り位置
+    int sb_size[] = { 60,90,120,180};//ステータス区切り位置
 
     InitCommonControls();
     hSBWnd = CreateWindowEx(
@@ -343,7 +327,7 @@ HWND CreateStatusbarMain(HWND hWnd)
         (HMENU)ID_STATUS,           //ウィンドウのＩＤ
         hInst,                      //インスタンスハンドル
         NULL);
-    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)6, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
+    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)4, (LPARAM)(LPINT)sb_size);//4枠で各枠の仕切り位置をパラーメータ指定
     ShowWindow(hSBWnd, SW_SHOW);
     return hSBWnd;
 }
@@ -364,10 +348,9 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
      //Statusバーにメインプロセスのカウンタ表示
      if (psource_proc_counter != NULL) {
          if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
-             wsprintf(tbuf, L"%08d", *psource_proc_counter);
-             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
+             wsprintf(tbuf, L"%08d", knl_manage_set.sys_counter);
+             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 3, (LPARAM)tbuf);
          }
      }
-
     return;
 }

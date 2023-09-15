@@ -1,58 +1,70 @@
+#include "framework.h"
 #include "COTE_IF.h"
 #include <windowsx.h>       //# ƒRƒ‚ƒ“ƒRƒ“ƒgƒ[ƒ‹
-
 #include <winsock2.h>
 
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 
-HWND COteIF::hWorkWnd = NULL;
+std::wstring COteIF::msg_ws;
+std::wostringstream COteIF::msg_wos;
 
-//Work Window•\¦—p
-HWND COteIF::hwndSTAT_U;
-HWND COteIF::hwndRCVMSG_U;
-HWND COteIF::hwndSNDMSG_U;
-HWND COteIF::hwndINFMSG_U;
+ST_OTE_IF_WND COteIF::st_work_wnd;
 
-HWND COteIF::hwndSTAT_M_TE;
-HWND COteIF::hwndRCVMSG_M_TE;
-HWND COteIF::hwndSNDMSG_M_TE;
-HWND COteIF::hwndINFMSG_M_TE;
 
-HWND COteIF::hwndSTAT_M_CR;
-HWND COteIF::hwndRCVMSG_M_CR;
-HWND COteIF::hwndSNDMSG_M_CR;
-HWND COteIF::hwndINFMSG_M_CR;
+bool COteIF::is_my_ote_active;
+HWND COteIF::hWnd_parent;		//eƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
+HWND COteIF::hWnd_if;			//’ÊMƒCƒxƒ“ƒgˆ——pƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹
+HWND COteIF::hWnd_mon;			//’ÊMƒ‚ƒjƒ^ƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹
 
-LPST_OTE_IO COteIF::pOTEio;
-LPST_CRANE_STATUS COteIF::pCraneStat;
-LPST_PLC_IO COteIF::pPLCio;
-LPST_CS_INFO COteIF::pCSInf;
-LPST_AGENT_INFO COteIF::pAgentInf;
-LPST_SWAY_IO COteIF::pSway_IO;
+CSockAlpha* COteIF::pSockOteUniCastPc;		//PCƒ†ƒjƒLƒƒƒXƒg—pƒ\ƒPƒbƒg
+CSockAlpha* COteIF::pSockPcMultiCastPc;		//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgPCóM—pƒ\ƒPƒbƒg
+CSockAlpha* COteIF::pSockOteMultiCastPc;	//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgPCóM—pƒ\ƒPƒbƒg
+CSockAlpha* COteIF::pSockPcUniCastOte;		//OTEƒ†ƒjƒLƒƒƒXƒg—pƒ\ƒPƒbƒg
+CSockAlpha* COteIF::pSockPcMultiCastOte;	//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgOTEóM—pƒ\ƒPƒbƒg
+CSockAlpha* COteIF::pSockOteMultiCastOte;	//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgOTEóM—pƒ\ƒPƒbƒg
 
-ST_OTE_IO_WORK COteIF::ote_io_workbuf;
+SOCKADDR_IN COteIF::addrin_ote_u_pc;		//PCƒ†ƒjƒLƒƒƒXƒg—pƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_pc_m_pc;			//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_ote_m_pc;		//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_pc_u_ote;		//OTEƒ†ƒjƒLƒƒƒXƒg—pƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_pc_m_ote;		//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_ote_m_ote;		//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
 
-//IF—pƒ\ƒPƒbƒg
-WSADATA COteIF::wsaData;
-SOCKET COteIF::s_u;                                         //ƒ†ƒjƒLƒƒƒXƒgóMƒ\ƒPƒbƒg
-SOCKET COteIF::s_m_te, COteIF::s_m_cr;                      //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ\ƒPƒbƒg
-SOCKET COteIF::s_m_snd, COteIF::s_m_snd_dbg;                                         //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—Mƒ\ƒPƒbƒg
-SOCKADDR_IN COteIF::addrin_u;                               //ƒ†ƒjƒLƒƒƒXƒgóMƒAƒhƒŒƒX
-SOCKADDR_IN COteIF::addrin_ote_u;                           //ƒ†ƒjƒLƒƒƒXƒg‘—MƒAƒhƒŒƒX
-SOCKADDR_IN COteIF::addrin_m_te, COteIF::addrin_m_cr;       //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
-SOCKADDR_IN COteIF::addrin_m_snd;                           //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—MƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_pc_m_pc_snd;		//PC¨PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—MƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_pc_m_ote_snd;	//PC¨OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
+SOCKADDR_IN COteIF::addrin_ote_m_ote_snd;	//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒAƒhƒŒƒX
 
-u_short COteIF::port_u = OTE_IF_IP_UNICAST_PORT_S;          //ƒ†ƒjƒLƒƒƒXƒgóMƒ|[ƒg
-u_short COteIF::port_m_te = OTE_IF_IP_MULTICAST_PORT_TE;
-u_short COteIF::port_m_cr = OTE_IF_IP_MULTICAST_PORT_CR;    //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ|[ƒg
+SOCKADDR_IN COteIF::addr_active_ote;			//‘€ìM†‚ª—LŒø‚È’[––‚ÌƒAƒhƒŒƒX
 
-std::wostringstream COteIF::woMSG;
-std::wstring COteIF::wsMSG;
+LONG COteIF::cnt_snd_pc_u, COteIF::cnt_snd_pc_m_pc, COteIF::cnt_snd_pc_m_ote, COteIF::cnt_snd_ote_u, COteIF::cnt_snd_ote_m_pc, COteIF::cnt_snd_ote_m_ote;
+LONG COteIF::cnt_rcv_pc_u, COteIF::cnt_rcv_pc_m_pc, COteIF::cnt_rcv_pc_m_ote, COteIF::cnt_rcv_ote_u, COteIF::cnt_rcv_ote_m_pc, COteIF::cnt_rcv_ote_m_ote;
 
-COteIF::COteIF() {
 
+ST_PC_U_MSG COteIF::st_msg_pc_u_snd;
+ST_PC_M_MSG COteIF::st_msg_pc_m_snd;
+
+ST_OTE_U_MSG COteIF::st_msg_ote_u_snd;
+ST_OTE_M_MSG COteIF::st_msg_ote_m_snd;
+
+ST_PC_M_MSG COteIF::st_msg_pc_m_pc_rcv;
+ST_PC_M_MSG COteIF::st_msg_pc_m_ote_rcv;
+ST_PC_U_MSG COteIF::st_msg_pc_u_rcv;
+
+ST_OTE_M_MSG COteIF::st_msg_ote_m_pc_rcv;
+ST_OTE_M_MSG COteIF::st_msg_ote_m_ote_rcv;
+ST_OTE_U_MSG COteIF::st_msg_ote_u_rcv;
+
+ST_OTE_U_MSG COteIF::st_ote_active_msg;	//‘€ìM†‚ª—LŒø‚ÈŒ»ƒƒbƒZ[ƒW
+
+/*****************************************************************************/
+/// <summary>
+/// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+/// </summary>
+/// <param name="hWnd">eƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹</param>
+COteIF::COteIF(HWND hWnd) {
+    hWnd_parent = hWnd;
     // ‹¤—Lƒƒ‚ƒŠƒIƒuƒWƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‰»
     pOteIOObj = new CSharedMem;
     pCraneStatusObj = new CSharedMem;
@@ -62,7 +74,15 @@ COteIF::COteIF() {
     pAgentInfObj = new CSharedMem;
     pSwayIO_Obj = new CSharedMem;
 
-  };
+	cnt_snd_pc_u = cnt_snd_pc_m_pc = cnt_snd_pc_m_ote = cnt_snd_ote_u = cnt_snd_ote_m_pc = cnt_snd_ote_m_ote = 0;
+	cnt_rcv_pc_u = cnt_rcv_pc_m_pc = cnt_rcv_pc_m_ote = cnt_rcv_ote_u = cnt_rcv_ote_m_pc = cnt_rcv_ote_m_ote = 0;
+
+	is_my_ote_active = true;
+ };
+/*****************************************************************************/
+/// <summary>
+/// ƒfƒXƒgƒ‰ƒNƒ^
+/// </summary>
 COteIF::~COteIF() {
     // ‹¤—Lƒƒ‚ƒŠƒIƒuƒWƒFƒNƒg‚Ì‰ğ•ú
     delete pOteIOObj;
@@ -73,364 +93,151 @@ COteIF::~COteIF() {
     delete pAgentInfObj;
     delete pSwayIO_Obj;
 };
-
+/*****************************************************************************/
+/// <summary>
+/// o—Íƒoƒbƒtƒ@‚ÌƒAƒhƒŒƒX‚ğƒZƒbƒgiƒI[ƒo[ƒ‰ƒCƒhŠÖ”j
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
 int COteIF::set_outbuf(LPVOID pbuf) { 
     poutput = pbuf;return 0;
     return 0; 
 
 }    //o—Íƒoƒbƒtƒ@ƒZƒbƒg
-
 /*****************************************************************************/
-/*‰Šú‰»ˆ—                                                                 */
-/*****************************************************************************/
+/// <summary>
+/// ‰Šú‰»ˆ—iƒI[ƒo[ƒ‰ƒCƒhŠÖ”j
+/// </summary>
+/// <returns></returns>
 int COteIF::init_proc() {
     // ‹¤—Lƒƒ‚ƒŠæ“¾
+	{
+		// o—Í—p‹¤—Lƒƒ‚ƒŠæ“¾
+		out_size = sizeof(ST_OTE_IO);
+		if (OK_SHMEM != pOteIOObj->create_smem(SMEM_OTE_IO_NAME, out_size, MUTEX_OTE_IO_NAME)) {
+			mode |= OTE_IF_OTE_IO_MEM_NG;
+		}
+		set_outbuf(pOteIOObj->get_pMap());
 
-    // o—Í—p‹¤—Lƒƒ‚ƒŠæ“¾
-    out_size = sizeof(ST_OTE_IO);
-    if (OK_SHMEM != pOteIOObj->create_smem(SMEM_OTE_IO_NAME, out_size, MUTEX_OTE_IO_NAME)) {
-        mode |= OTE_IF_OTE_IO_MEM_NG;
-    }
-    set_outbuf(pOteIOObj->get_pMap());
+		// “ü—Í—p‹¤—Lƒƒ‚ƒŠæ“¾
+		if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
+			mode |= OTE_IF_SIM_MEM_NG;
+		}
 
-    // “ü—Í—p‹¤—Lƒƒ‚ƒŠæ“¾
-    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
-        mode |= OTE_IF_SIM_MEM_NG;
-    }
+		if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME, sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) {
+			mode |= OTE_IF_CRANE_MEM_NG;
+		}
 
-    if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME, sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) {
-        mode |= OTE_IF_CRANE_MEM_NG;
-    }
+		if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) {
+			mode |= OTE_IF_PLC_MEM_NG;
+		}
 
-    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) {
-        mode |= OTE_IF_PLC_MEM_NG;
-    }
+		if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) {
+			mode |= OTE_IF_PLC_MEM_NG;
+		}
 
-    if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) {
-        mode |= OTE_IF_PLC_MEM_NG;
-    }
+		if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) {
+			mode |= OTE_IF_PLC_MEM_NG;
+		}
 
-    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) {
-        mode |= OTE_IF_PLC_MEM_NG;
-    }
-
-    pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-    pPLCio = (LPST_PLC_IO)(pPLCioObj->get_pMap());
-    pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
-    pCSInf = (LPST_CS_INFO )pCSInfObj->get_pMap();
-    pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
-    pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
+		pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+		pPLCio = (LPST_PLC_IO)(pPLCioObj->get_pMap());
+		pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
+		pCSInf = (LPST_CS_INFO)pCSInfObj->get_pMap();
+		pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
+		pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
+	}
     
-    
-    pOTEio->OTEsim_status = L_OFF;          //’[––ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“ƒ‚[ƒhOFF
+	//’ÊMƒCƒxƒ“ƒgˆ——pƒEƒBƒ“ƒhƒEƒI[ƒvƒ“
+	hWnd_if = open_work_Wnd(hWnd_parent);					//ƒCƒxƒ“ƒgˆ—ƒEƒBƒ“ƒhOPEN
 
-    ote_io_workbuf.te_connect_time_limit = TE_CONNECT_TIMEOVER_MS / ID_WORK_WND_TIMER;
-    ote_io_workbuf.te_multi_snd_cycle = MULTI_SND_SCAN_TIME_MS / ID_WORK_WND_TIMER;
+	//### ƒ\ƒPƒbƒgƒAƒhƒŒƒXƒZƒbƒg
+	memset(&addrin_ote_u_pc	, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_m_pc, 0, sizeof(SOCKADDR_IN));memset(&addrin_ote_m_pc, 0, sizeof(SOCKADDR_IN));
+	memset(&addrin_pc_u_ote, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_m_ote, 0, sizeof(SOCKADDR_IN)); memset(&addrin_ote_m_ote, 0, sizeof(SOCKADDR_IN));
+	
+	set_sock_addr(&addrin_ote_u_pc,			IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_UNICAST_PORT_PC			);
+	set_sock_addr(&addrin_pc_m_pc,			IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_PC_MULTICAST_PORT_PC	);
+	set_sock_addr(&addrin_ote_m_pc,			IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_OTE_MULTICAST_PORT_PC	);
+	set_sock_addr(&addrin_pc_u_ote,			IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_UNICAST_PORT_OTE		);
+	set_sock_addr(&addrin_pc_m_ote,			IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_PC_MULTICAST_PORT_OTE	);
+	set_sock_addr(&addrin_ote_m_ote,		IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_OTE_MULTICAST_PORT_OTE	);
 
-    //ƒfƒoƒbƒOƒ‚[ƒh@ON@»”Ô‚Å‚ÍOFF‚Å‰Šú‰»
-#ifdef _DVELOPMENT_MODE
-    set_debug_mode(L_ON);
-#else
-    set_debug_mode(L_OFF);
-#endif
+	set_sock_addr(&addrin_pc_m_pc_snd , IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_PC_MULTICAST_PORT_PC);
+	set_sock_addr(&addrin_pc_m_ote_snd , IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_PC_MULTICAST_PORT_OTE);
+	set_sock_addr(&addrin_ote_m_ote_snd , IP_ADDR_OTE_UNI_CAST_PC, OTE_IF_OTE_MULTICAST_PORT_OTE);
 
-    return 0; 
+	//### ƒ\ƒPƒbƒgİ’è
+
+	pSockOteUniCastPc	= new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_OTE_UNI_PC);
+	pSockPcMultiCastPc	= new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_PC_MULTI_PC);
+	pSockOteMultiCastPc = new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_OTE_MULTI_PC);
+	pSockPcUniCastOte	= new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_PC_UNI_OTE);
+	pSockPcMultiCastOte = new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_PC_MULTI_OTE);
+	pSockOteMultiCastOte= new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_OTE_MULTI_OTE);
+
+	//### ƒIƒuƒWƒFƒNƒg‰Šú‰»
+	if (pSockOteUniCastPc->Initialize()		!= S_OK) { msg_wos.str() = pSockOteUniCastPc->err_msg.str();	return NULL; }
+	if (pSockPcMultiCastPc->Initialize()	!= S_OK) { msg_wos.str() = pSockPcMultiCastPc->err_msg.str();	return NULL; }
+	if (pSockOteMultiCastPc->Initialize()	!= S_OK) { msg_wos.str() = pSockOteMultiCastPc->err_msg.str();	return NULL; }
+	if (pSockPcUniCastOte->Initialize()		!= S_OK) { msg_wos.str() = pSockPcUniCastOte->err_msg.str();	return NULL; }
+	if (pSockPcMultiCastOte->Initialize()	!= S_OK) { msg_wos.str() = pSockPcMultiCastOte->err_msg.str();	return NULL; }
+	if (pSockOteMultiCastOte->Initialize()	!= S_OK) { msg_wos.str() = pSockOteMultiCastOte->err_msg.str(); return NULL; }
+
+	//### ƒ\ƒPƒbƒgİ’è
+	//ƒ†ƒjƒLƒƒƒXƒg—p
+	if (pSockOteUniCastPc->init_sock(hWnd_if,	addrin_ote_u_pc		)	!= S_OK) { msg_wos.str() = pSockOteUniCastPc->err_msg.str(); return NULL;}
+	if (pSockPcUniCastOte->init_sock(hWnd_if, addrin_pc_u_ote) != S_OK) { msg_wos.str() = pSockPcUniCastOte->err_msg.str(); return NULL; }
+	//ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg—p
+	SOCKADDR_IN addr_tmp;
+	set_sock_addr(&addr_tmp, IP_ADDR_OTE_MULTI_CAST_PC, NULL);
+	if (pSockPcMultiCastPc->init_sock_m(hWnd_if, addrin_pc_m_pc, addr_tmp) != S_OK) { msg_wos.str() = pSockPcMultiCastPc->err_msg.str(); return NULL; }
+	if (pSockOteMultiCastPc->init_sock_m(hWnd_if, addrin_ote_m_pc, addr_tmp) != S_OK) { msg_wos.str() = pSockOteMultiCastPc->err_msg.str(); return NULL; }
+	if (pSockPcMultiCastOte->init_sock_m(hWnd_if, addrin_pc_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockPcMultiCastOte->err_msg.str(); return NULL; }
+	if (pSockOteMultiCastOte->init_sock_m(hWnd_if, addrin_ote_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockOteMultiCastOte->err_msg.str(); return NULL; }
+
+	return 0; 
 }
-int COteIF::input() {                            //“ü—Íˆ—
-    ote_io_workbuf.ote_io.OTEsim_status = ((LPST_OTE_IO)poutput)->OTEsim_status;//OTE Simurator‚Ì‰Ò“­ó‘Ô
-
-    return 0; 
+/*****************************************************************************/
+/// <summary>
+/// “ü—Íˆ—iƒI[ƒo[ƒ‰ƒCƒhŠÖ”j
+/// </summary>
+/// <returns></returns>
+int COteIF::input() {
+      return 0; 
 } 
+/*****************************************************************************/
+/// <summary>
+///  ‰ğÍˆ—iƒI[ƒo[ƒ‰ƒCƒhŠÖ”j
+/// </summary>
+/// <returns></returns>
 int COteIF::parse() { 
-
+#if 0
     //”¼©“®“o˜^ƒ{ƒ^ƒ“‚Ì“ü—Íó‹µˆ—@ƒIƒtƒfƒBƒŒƒC
     for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++) {
         if (ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_PB_SEMI_AUTO_S1 + i]) ote_io_workbuf.ote_io.ui.PBsemiauto[i] = PLC_IO_OFF_DELAY_COUNT;
         else if (ote_io_workbuf.ote_io.ui.PBsemiauto[i] > 0)ote_io_workbuf.ote_io.ui.PBsemiauto[i]--;
         else;
      }
-
+#endif
     return 0;
-}               //ƒƒCƒ“ˆ—
+}    
+/*****************************************************************************/
+/// <summary>
+/// o—Í‰ğÍˆ—iƒI[ƒo[ƒ‰ƒCƒhŠÖ”j
+/// </summary>
+/// <returns></returns>
 int COteIF::output() {                          //o—Íˆ—
 
-   if (out_size) { //o—Íˆ—
-       memcpy_s(poutput, out_size, &ote_io_workbuf.ote_io, out_size);
-   }
-
+   if (out_size) memcpy_s(poutput, out_size, &ote_io_workbuf.ote_io, out_size);
    return 0; 
 }
-
-static struct ip_mreq mreq_te, mreq_cr;                     //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMİ’è—p\‘¢‘Ì
-static int serverlen, nEvent;
-static int nRtn = 0, nRcv_u = 0, nRcv_te = 0, nRcv_cr = 0, nSnd_u = 0, nSnd_m = 0;
-static int lRcv_u = 0, lRcv_te = 0, lRcv_cr = 0, lSnd_u = 0, lSnd_m = 0;
-
-
-static char szBuf[512];
-
-//*********************************************************************************************
-/*ƒ‚ƒjƒ^—pƒEƒBƒ“ƒhƒE¶¬ŠÖ”*/
-HWND COteIF::open_WorkWnd(HWND hwnd_parent) {
-    InitCommonControls();//ƒRƒ‚ƒ“ƒRƒ“ƒgƒ[ƒ‹‰Šú‰»
-
-    WNDCLASSEX wc;
-
-    hInst = GetModuleHandle(0);
-
-    ZeroMemory(&wc, sizeof(wc));
-
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = WorkWndProc;// !CALLBACK‚Åreturn‚ğ•Ô‚µ‚Ä‚¢‚È‚¢‚ÆWindowClass‚Ì“o˜^‚É¸”s‚·‚é
-    wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
-    wc.hInstance = hInst;
-    wc.hIcon = NULL;
-    wc.hCursor = LoadCursor(0, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.lpszMenuName = NULL;
-    wc.lpszClassName = TEXT("WorkWnd");
-    wc.hIconSm = NULL;
-    ATOM fb = RegisterClassExW(&wc);
-
-    hWorkWnd = CreateWindow(TEXT("WorkWnd"),
-        TEXT("OTE IF COMM_CHK"),
-        WS_POPUPWINDOW | WS_VISIBLE | WS_CAPTION, WORK_WND_X, WORK_WND_Y, WORK_WND_W, WORK_WND_H,
-        hwnd_parent,
-        0,
-        hInst,
-        NULL);
-
-    ShowWindow(hWorkWnd, SW_SHOW);
-    UpdateWindow(hWorkWnd);
-
-    return hWorkWnd;
-}
-//*********************************************************************************************
-int COteIF::close_WorkWnd() {
-    closesocket(s_u);
-    closesocket(s_m_te);
-    closesocket(s_m_cr);
-    WSACleanup();
-    DestroyWindow(hWorkWnd);  //ƒEƒBƒ“ƒhƒE”jŠü
-    hWorkWnd = NULL;
-    return 0;
-}
-/*********************************************************************************************/
-/*   ƒ\ƒPƒbƒg,‘—MƒAƒhƒŒƒX‚Ì‰Šú‰»@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-/*********************************************************************************************/
-/************ ƒNƒŒ[ƒ“ƒ†ƒjƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‰Šú‰»@*************/
-int COteIF::init_sock_u(HWND hwnd) {    //ƒ†ƒjƒLƒƒƒXƒg
-    if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {    //WinSock‚Ì‰Šú‰»
-        perror("WSAStartup Error\n");
-        return -1;
-    }
-
- //# óMƒ\ƒPƒbƒgˆ—
-    s_u = socket(AF_INET, SOCK_DGRAM, 0);                  //SocketƒI[ƒvƒ“
-    if (s_u < 0) {
-        perror("socket¸”s\n");
-        return -2;
-    }
-    memset(&addrin_u, 0, sizeof(addrin_u));
-    addrin_u.sin_port = htons(OTE_IF_IP_UNICAST_PORT_S);
-    addrin_u.sin_family = AF_INET;
-    inet_pton(AF_INET, CTRL_PC_IP_ADDR_OTE, &addrin_u.sin_addr.s_addr);
-
-    nRtn = bind(s_u, (LPSOCKADDR)&addrin_u, (int)sizeof(addrin_u)); //ƒ\ƒPƒbƒg‚É–¼‘O‚ğ•t‚¯‚é
-    if (nRtn == SOCKET_ERROR) {
-        perror("bindƒGƒ‰[‚Å‚·\n");
-        closesocket(s_u);
-        WSACleanup();
-        return -3;
-    }
-
-    nRtn = WSAAsyncSelect(s_u, hwnd, ID_UDP_EVENT_U, FD_READ | FD_WRITE | FD_CLOSE);
-
-    if (nRtn == SOCKET_ERROR) {
-        woMSG << L"”ñ“¯Šú‰»¸”s";
-        closesocket(s_u);
-        WSACleanup();
-        return -4;
-    }
-
-
-    //# ‘—Mæ’[––iƒNƒ‰ƒCƒAƒ“ƒgjƒAƒhƒŒƒXdefaultİ’è
-    memset(&addrin_ote_u, 0, sizeof(addrin_ote_u));
-    addrin_ote_u.sin_port = htons(OTE_IF_IP_UNICAST_PORT_C);
-    addrin_ote_u.sin_family = AF_INET;
-    inet_pton(AF_INET, CTRL_PC_IP_ADDR_OTE, &addrin_ote_u.sin_addr.s_addr);
-  
-
-    //‘—MƒƒbƒZ[ƒW‰Šú‰»
-    set_msg_u(ID_MSG_SET_MODE_INIT,ID_OTE_EVENT_CODE_CONNECTED);
- 
-    return 0;
- }
-
-/************ ’[––ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—Mƒ\ƒPƒbƒg‰Šú‰»@***************/
-int COteIF::init_sock_m_te(HWND hwnd) {
- 
-    //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg—póMƒ\ƒPƒbƒgi‘€ì’[––ƒOƒ‹[ƒvj
-    //ƒ^[ƒ~ƒiƒ‹î•ñóM—p
-    s_m_te = socket(AF_INET, SOCK_DGRAM, 0);                  //SocketƒI[ƒvƒ“
-    if (s_m_te < 0) {
-        perror("socket¸”s\n");
-        return -5;
-    }
-    memset(&addrin_m_te, 0, sizeof(addrin_m_te));
-    addrin_m_te.sin_port = htons(OTE_IF_IP_MULTICAST_PORT_TE);
-    addrin_m_te.sin_family = AF_INET;
-    inet_pton(AF_INET, CTRL_PC_IP_ADDR_OTE, &addrin_m_te.sin_addr.s_addr);
-
-    nRtn = bind(s_m_te, (LPSOCKADDR)&addrin_m_te, (int)sizeof(addrin_m_te)); //ƒ\ƒPƒbƒg‚É–¼‘O‚ğ•t‚¯‚é
-    if (nRtn == SOCKET_ERROR) {
-        perror("bindƒGƒ‰[‚Å‚·\n");
-        closesocket(s_m_te);
-        WSACleanup();
-        return -6;
-    }
-
-    nRtn = WSAAsyncSelect(s_m_te, hwnd, ID_UDP_EVENT_M_TE, FD_READ | FD_WRITE | FD_CLOSE);
-
-    if (nRtn == SOCKET_ERROR) {
-        woMSG << L"”ñ“¯Šú‰»¸”s";
-        closesocket(s_m_te);
-        WSACleanup();
-        return -7;
-    }
-
-    //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒOƒ‹[ƒvQ‰Á“o˜^
-    memset(&mreq_te, 0, sizeof(mreq_te));
-    mreq_te.imr_interface.S_un.S_addr = inet_addr(CTRL_PC_IP_ADDR_OTE);     //ƒpƒPƒbƒgo—ÍŒ³IPƒAƒhƒŒƒX
-    mreq_te.imr_multiaddr.S_un.S_addr = inet_addr(OTE_MULTI_IP_ADDR);       //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgIPƒAƒhƒŒƒX
-    if (setsockopt(s_m_te, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq_te, sizeof(mreq_te)) != 0) {
-        perror("setoptóMİ’è¸”s\n");
-        return -8;
-    }
-    return 0;
-}
-
-/************ ƒNƒŒ[ƒ“ŠÔƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‰Šú‰»@***********/
-int COteIF::init_sock_m_cr(HWND hwnd) {
- 
-    //ƒ}ƒ‹ƒ`ƒLƒƒƒXóM—pƒ\ƒPƒbƒgiƒNƒŒ[ƒ“ƒOƒ‹[ƒvj
-    //§ŒäPCî•ñóM—p
-    s_m_cr = socket(AF_INET, SOCK_DGRAM, 0);                  //SocketƒI[ƒvƒ“
-    if (s_m_cr < 0) {
-        perror("socket¸”s\n");
-        return -9;
-    }
-    memset(&addrin_m_cr, 0, sizeof(addrin_m_cr));
-    addrin_m_cr.sin_port = htons(OTE_IF_IP_MULTICAST_PORT_CR);
-    addrin_m_cr.sin_family = AF_INET;
-    inet_pton(AF_INET, CTRL_PC_IP_ADDR_OTE, &addrin_m_cr.sin_addr.s_addr);
-
-    nRtn = bind(s_m_cr, (LPSOCKADDR)&addrin_m_cr, (int)sizeof(addrin_m_cr)); //ƒ\ƒPƒbƒg‚É–¼‘O‚ğ•t‚¯‚é
-    if (nRtn == SOCKET_ERROR) {
-        perror("bindƒGƒ‰[‚Å‚·\n");
-        closesocket(s_m_cr);
-        WSACleanup();
-        return -10;
-    }
-
-    nRtn = WSAAsyncSelect(s_m_cr, hwnd, ID_UDP_EVENT_M_CR, FD_READ | FD_WRITE | FD_CLOSE);
-
-    if (nRtn == SOCKET_ERROR) {
-        woMSG << L"”ñ“¯Šú‰»¸”s";
-        closesocket(s_m_cr);
-        WSACleanup();
-        return -11;
-    }
-
-    //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒOƒ‹[ƒvQ‰Á“o˜^
-    memset(&mreq_cr, 0, sizeof(mreq_cr));
-    mreq_cr.imr_interface.S_un.S_addr = inet_addr(CTRL_PC_IP_ADDR_OTE);     //—˜—pƒlƒbƒgƒ[ƒN
-    mreq_cr.imr_multiaddr.S_un.S_addr = inet_addr(OTE_MULTI_IP_ADDR);       //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgIPƒAƒhƒŒƒX
-    if (setsockopt(s_m_cr, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq_cr, sizeof(mreq_cr)) != 0) {
-        perror("setoptóMİ’è¸”s\n");
-        return -12;
-    }
-
-     
-    //# ‘—MæƒAƒhƒŒƒXİ’è
-    memset(&addrin_m_snd, 0, sizeof(addrin_m_snd));
-    addrin_m_snd.sin_port = htons(OTE_IF_IP_MULTICAST_PORT_CR);
-    addrin_m_snd.sin_family = AF_INET;
-    inet_pton(AF_INET, OTE_MULTI_IP_ADDR, &addrin_m_snd.sin_addr.s_addr);
-
-    //# ‘—Mƒ\ƒPƒbƒgİ’è
-    s_m_snd = socket(AF_INET, SOCK_DGRAM, 0);                  //SocketƒI[ƒvƒ“
-    if (s_m_snd < 0) {
-        perror("socket¸”s\n");
-        return -33;
-    }
-   // DWORD ipaddr = inet_addr(CTRL_PC_IP_ADDR_OTE);
-    DWORD ipaddr = inet_addr(CTRL_PC_IP_ADDR_OTE);
-    //o—ÍƒCƒ“ƒ^[ƒtƒFƒCƒXw’è
-    if (setsockopt(s_m_snd,IPPROTO_IP,IP_MULTICAST_IF,(char*)&ipaddr, sizeof(ipaddr)) != 0) {
-        printf("setsockopt : %d\n", WSAGetLastError());
-        return -13;
-    }
-
-
-    //ƒfƒoƒbƒO—p
-    s_m_snd_dbg = socket(AF_INET, SOCK_DGRAM, 0);                  //SocketƒI[ƒvƒ“
-    if (s_m_snd_dbg < 0) {
-        perror("socket¸”s\n");
-        return -34;
-    }
-    // DWORD ipaddr = inet_addr(CTRL_PC_IP_ADDR_OTE);
-    ipaddr = inet_addr(OTE_DEFAULT_IP_ADDR);
-    //o—ÍƒCƒ“ƒ^[ƒtƒFƒCƒXw’è
-    if (setsockopt(s_m_snd_dbg, IPPROTO_IP, IP_MULTICAST_IF, (char*)&ipaddr, sizeof(ipaddr)) != 0) {
-        printf("setsockopt : %d\n", WSAGetLastError());
-        return -13;
-    }
-
-    //‘—MƒƒbƒZ[ƒW‰Šú‰»
-    set_msg_m_cr(ID_MSG_SET_MODE_INIT, ID_OTE_EVENT_CODE_CONST);
-
-    return 0;
-}
-
-/************ ƒ†ƒjƒLƒƒƒXƒg‘—M@***********************************/
-/*### ‘—MŠÖ” @@@@@@@@###*/
-int COteIF::send_msg_u() {
- 
-    int n = sizeof(ST_UOTE_SND_MSG);
-
-    nRtn = sendto(s_u, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_u), n, 0, (LPSOCKADDR)&addrin_ote_u, sizeof(addrin_ote_u));
-
-    if (nRtn == n) {
-        nSnd_u++;
-        lSnd_u = nRtn;
-        woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
-        tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-
-        woMSG << L"ID:" << ote_io_workbuf.ote_io.snd_msg_u.head.myid << L" CD:" << ote_io_workbuf.ote_io.snd_msg_u.head.code;
-        sockaddr_in* psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.snd_msg_u.head.addr;
-        woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-        woMSG << L" PORT: " << htons(psockaddr->sin_port);
-        woMSG << L" ST:" << ote_io_workbuf.ote_io.snd_msg_u.head.status << L" ID:" << ote_io_workbuf.ote_io.snd_msg_u.head.tgid;
-        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-    }
-    else if (nRtn == SOCKET_ERROR) {
-        woMSG << L" SOCKET ERROR: CODE ->   " << WSAGetLastError();
-        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-    }
-    else {
-        woMSG << L" sendto size ERROR ";
-        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-    }
- 
-    return nRtn;
-}
-
-/*### ‘—MƒƒbƒZ[ƒWƒZƒbƒgŠÖ” ###*/
-int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ†ƒjƒLƒƒƒXƒg‘—MƒƒbƒZ[ƒWƒZƒbƒg(‰Šú‰»—pj
-   
+/*****************************************************************************/
+/// <summary>
+/// PCƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒW‘—Mƒoƒbƒtƒ@ƒZƒbƒg
+/// </summary>
+/// <returns></returns>
+LPST_PC_U_MSG COteIF:: set_msg_pc_u() {
+#if 0 
    //Header•”
     if (mode) {
         ote_io_workbuf.ote_io.snd_msg_u.head.addr = addrin_u;
@@ -494,13 +301,16 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
 
     //PLCƒf[ƒ^
     for (int i = 0;i < PLC_IO_MONT_WORD_NUM;i++) ote_io_workbuf.ote_io.snd_msg_u.body.plc_data[i] = pPLCio->plc_data[i];
-    
-    return 0; 
-}                 
-
-/*********** ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—M@***********************************/
-/*### ‘—MŠÖ” @@@@@@@@###*/
-int COteIF::send_msg_m() {
+#endif  
+    return &st_msg_pc_u_snd;
+} 
+/*****************************************************************************/
+/// <summary>
+/// PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒƒbƒZ[ƒW‘—Mƒoƒbƒtƒ@ƒZƒbƒg
+/// </summary>
+/// <returns></returns>
+LPST_PC_M_MSG COteIF::set_msg_pc_m() {
+#if 0
     //‘—MƒƒbƒZ[ƒWƒZƒbƒg
     int n = sizeof(ST_MOTE_SND_MSG);
     nRtn = sendto(s_m_snd, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
@@ -528,420 +338,642 @@ int COteIF::send_msg_m() {
         woMSG << L" sendto size ERROR ";
         tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
     }
-
-    return nRtn;
+#endif
+    return &st_msg_pc_m_snd;
 }
+/*****************************************************************************/
+/// <summary>
+/// OTEƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒW‘—Mƒoƒbƒtƒ@ƒZƒbƒg
+/// </summary>
+/// <returns></returns>
+LPST_OTE_U_MSG COteIF::set_msg_ote_u() {
+#if 0 
+	//Header•”
+	if (mode) {
+		ote_io_workbuf.ote_io.snd_msg_u.head.addr = addrin_u;
+		ote_io_workbuf.ote_io.snd_msg_u.head.myid = pCraneStat->spec.device_code.no;
+	}
+	ote_io_workbuf.ote_io.snd_msg_u.head.tgid = ote_io_workbuf.id_connected_te;;
+	ote_io_workbuf.ote_io.snd_msg_u.head.code = code;
+	ote_io_workbuf.ote_io.snd_msg_u.head.status = ote_io_workbuf.status_connected_te;
 
-/*### ‘—MƒƒbƒZ[ƒWƒZƒbƒgŠÖ” ###*/
-int COteIF::set_msg_m_cr(int mode, INT32 code) {                         //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—MƒƒbƒZ[ƒWƒZƒbƒg(‰Šú‰»—pj
-    ote_io_workbuf.ote_io.snd_msg_m.head.addr = addrin_u;
-    ote_io_workbuf.ote_io.snd_msg_m.head.myid = pCraneStat->spec.device_code.no;
-    ote_io_workbuf.ote_io.snd_msg_m.head.tgid = ote_io_workbuf.id_connected_te;
-   
-    ote_io_workbuf.ote_io.snd_msg_m.head.code = code;
-    ote_io_workbuf.ote_io.snd_msg_m.head.status = ote_io_workbuf.status_connected_te;
-    ote_io_workbuf.ote_io.snd_msg_m.head.status = pCraneStat->OTE_req_status;
+	//Body•”
+	//ƒ‰ƒ“ƒv
+	for (int i = 0; i < N_UI_LAMP; i++) ote_io_workbuf.ote_io.snd_msg_u.body.lamp[i] = pCSInf->ui_lamp[i];
+	//ƒmƒbƒ`w—ß
+	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[i] = pPLCio->status.notch_ref[i];
+	//Še²ˆÊ’u
+	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.pos[i] = (INT32)(pPLCio->status.pos[i] * 1000.0);
+	//Še²‘¬“xFB
+	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[i] = (INT32)(pPLCio->status.v_fb[i] * 1000.0);
+	//Še²‘¬“xw—ß
+	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_ref[i] = (INT32)(pPLCio->status.v_ref[i] * 1000.0);
 
-    return 0;
-}   
+	//’İ“_ˆÊ’u
+	ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[0] = pCSInf->hunging_point_for_view[0];
+	ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[1] = pCSInf->hunging_point_for_view[1];
+	ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[2] = pCSInf->hunging_point_for_view[2];
 
-static int ote_req_last;
+	//’İ‰×ˆÊ’u(’İ“_‚Æ‚Ì‘Š‘ÎˆÊ’uj
+	ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pSway_IO->th[ID_SLEW] * 1000.0);
+	ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[1] = (INT32)(pSway_IO->th[ID_BOOM_H] * 1000.0);
+	ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[2] = (INT32)(pCraneStat->mh_l * 1000.0);
+
+	//’İ‰×‘¬“x
+	ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[0] = (INT32)(pSway_IO->dth[ID_SLEW] * 1000.0);
+	ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[1] = (INT32)(pSway_IO->dth[ID_BOOM_H] * 1000.0);
+	ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = (INT32)(pPLCio->status.v_fb[ID_HOIST] * 1000.0);
+
+	//©“®–Ú•WˆÊ’u
+	double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m, h;
+
+	h = pCSInf->ote_camera_height_m;
+	tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
+	tg_x_rad = tg_x_m / h;
+	tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
+	tg_y_rad = tg_y_m / h;
+
+	ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
+	ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
+	ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pCSInf->semi_auto_selected_target.pos[ID_HOIST] * 1000.0);
+
+	//”¼©“®–Ú•WˆÊ’u
+	for (int i = 0; i < 6; i++) {
+		ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][0] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_BOOM_H] * 1000.0);
+		ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][1] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_SLEW] * 1000.0);
+		ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][2] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_HOIST] * 1000.0);
+	}
+
+	//VIEWƒJƒƒ‰ƒZƒbƒg‚‚³
+	ote_io_workbuf.ote_io.snd_msg_u.body.cam_inf[ID_OTE_CAMERA_HEIGHT] = (INT16)(pCraneStat->spec.boom_high * 1000.0);
+
+	ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_LAMP_OTE_NOTCH_MODE] = ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
+
+	//PLCƒf[ƒ^
+	for (int i = 0; i < PLC_IO_MONT_WORD_NUM; i++) ote_io_workbuf.ote_io.snd_msg_u.body.plc_data[i] = pPLCio->plc_data[i];
+#endif  
+	return &st_msg_ote_u_snd;
+}
+/*****************************************************************************/
+/// <summary>
+/// OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒƒbƒZ[ƒW‘—Mƒoƒbƒtƒ@ƒZƒbƒg
+/// </summary>
+/// <returns></returns>
+LPST_OTE_M_MSG COteIF::set_msg_ote_m() {
+#if 0
+	//‘—MƒƒbƒZ[ƒWƒZƒbƒg
+	int n = sizeof(ST_MOTE_SND_MSG);
+	nRtn = sendto(s_m_snd, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
+	nRtn = sendto(s_m_snd_dbg, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
+	woMSG.str(L"");
+	if (nRtn == n) {
+		nSnd_m++;
+		lSnd_m = nRtn;
+		woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
+		tweet2infMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
+
+		woMSG << L"ID:" << ote_io_workbuf.ote_io.snd_msg_m.head.myid << L" CD:" << ote_io_workbuf.ote_io.snd_msg_m.head.code;
+		sockaddr_in* psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.snd_msg_m.head.addr;
+		woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+		woMSG << L" PORT: " << htons(psockaddr->sin_port);
+		woMSG << L" ST:" << ote_io_workbuf.ote_io.snd_msg_m.head.status << L" ID:" << ote_io_workbuf.ote_io.snd_msg_m.head.tgid;
+		tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
+
+	}
+	else if (nRtn == SOCKET_ERROR) {
+		woMSG << L"ERR CODE ->" << WSAGetLastError();
+		tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
+	}
+	else {
+		woMSG << L" sendto size ERROR ";
+		tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
+	}
+#endif
+	return &st_msg_ote_m_snd;
+}
+//****************************************************************************@
+/// <summary>
+/// ƒNƒ[ƒYˆ—
+/// </summary>
+/// <returns></returns>
+HRESULT COteIF::close() {
+	delete  pSockOteUniCastPc;		//PCƒ†ƒjƒLƒƒƒXƒg—pƒ\ƒPƒbƒg
+	delete  pSockPcMultiCastPc;		//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgPCóM—pƒ\ƒPƒbƒg
+	delete  pSockOteMultiCastPc;	//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgPCóM—pƒ\ƒPƒbƒg
+	delete  pSockPcUniCastOte;		//OTEƒ†ƒjƒLƒƒƒXƒg—pƒ\ƒPƒbƒg
+	delete  pSockPcMultiCastOte;	//PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgOTEóM—pƒ\ƒPƒbƒg
+	delete  pSockOteMultiCastOte;	//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgOTEóM—pƒ\ƒPƒbƒgƒg
+	return S_OK;
+}
+//****************************************************************************
+/// <summary>
+/// óMˆ——pƒEƒBƒ“ƒhƒEƒI[ƒvƒ“
+/// </summary>
+/// <param name="hwnd"></param>
+/// <returns></returns>
+HWND COteIF::open_work_Wnd(HWND hwnd) {
+
+	InitCommonControls();//ƒRƒ‚ƒ“ƒRƒ“ƒgƒ[ƒ‹‰Šú‰»
+	HINSTANCE hInst = GetModuleHandle(0);
+
+	WNDCLASSEXW wcex;
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = (HINSTANCE)GetModuleHandle(0);;
+	wcex.hIcon = NULL;
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = TEXT("OTE IF");
+	wcex.lpszClassName = TEXT("OTE IF");
+	wcex.hIconSm = NULL;
+
+	ATOM fb = RegisterClassExW(&wcex);
+	hWnd_if = CreateWindowW(TEXT("OTE IF"), TEXT("OTE IF"), WS_OVERLAPPEDWINDOW,
+				OTE_WORK_WND_X, OTE_WORK_WND_Y, OTE_WORK_WND_W, OTE_WORK_WND_H,
+				nullptr, nullptr, hInst, nullptr);
+
+	//ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒ^ƒCƒ}‹N“®
+	SetTimer(hWnd_if, ID_OTE_MULTICAST_TIMER, OTE_MULTICAST_SCAN_MS, NULL);
+
+	RECT rc;
+	GetClientRect(hWnd_if, &rc);
+	st_work_wnd.area_w = rc.right - rc.left;
+	st_work_wnd.area_h = rc.bottom - rc.top;
+
+	//•\¦ƒtƒHƒ“ƒgİ’è
+	st_work_wnd.hfont_inftext = CreateFont(12, 0, 0, 0, 0, FALSE, FALSE, FALSE, SHIFTJIS_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FIXED_PITCH | FF_MODERN, TEXT("Arial"));
+	//ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg
+	HDC hdc = GetDC(hWnd_if);
+	st_work_wnd.hBmap_mem0 = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc_mem0 = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc_mem0, st_work_wnd.hBmap_mem0);
+	PatBlt(st_work_wnd.hdc_mem0, 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+
+	st_work_wnd.hBmap_inf = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc_mem_inf = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc_mem_inf, st_work_wnd.hBmap_inf);
+	PatBlt(st_work_wnd.hdc_mem_inf, 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	TextOutW(st_work_wnd.hdc_mem_inf, 0, 0, L"<<Information>>", 15);
+
+	ReleaseDC(hWnd_if, hdc);
+
+	InvalidateRect(hWnd_if, NULL, TRUE);//•\¦XV
+
+	ShowWindow(hWnd_if, SW_SHOW);
+	UpdateWindow(hWnd_if);
+
+	return hWnd_if;
+}
+//*********************************************************************************************
+/// <summary>
+/// ƒ[ƒNƒEƒBƒ“ƒhƒEƒR[ƒ‹ƒoƒbƒNŠÖ”
+/// </summary>
+/// <param name="hWnd"></param>
+/// <param name="message"></param>
+/// <param name="wParam"></param>
+/// <param name="lParam"></param>
+/// <returns></returns>
+LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	
+	switch (message)
+	{
+	case WM_CREATE: {
+		InitCommonControls();//ƒRƒ‚ƒ“ƒRƒ“ƒgƒ[ƒ‹‰Šú‰»
+
+		HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
+		//ƒEƒBƒ“ƒhƒE‚ÉƒRƒ“ƒgƒ[ƒ‹’Ç‰Á
+		st_work_wnd.h_static_msg_cnt = CreateWindowW(TEXT("STATIC"), L"SND CNT U: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			0, 0, 800, 20, hWnd, (HMENU)ID_STATIC_OTE_IF_COM_CNT, hInst, NULL);
+#if 0
+		st_work_wnd.h_static_rcv_cnt_u = CreateWindowW(TEXT("STATIC"), L" RCV: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			160, 35, 80, 20, hWnd, (HMENU)IDC_OTE_STATIC_RCV_CNT_U, hInst, NULL);
+		st_work_wnd.h_static_rcv_sub_cnt_u = CreateWindowW(TEXT("STATIC"), L" SUB: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			260, 35, 80, 20, hWnd, (HMENU)IDC_OTE_STATIC_RCV_SUB_CNT_U, hInst, NULL);
+
+		st_work_wnd.h_static_snd_cnt_m = CreateWindowW(TEXT("STATIC"), L"SND CNT M: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 55, 150, 20, hWnd, (HMENU)IDC_OTE_STATIC_SND_CNT_M, hInst, NULL);
+		st_work_wnd.h_static_rcv_cnt_m = CreateWindowW(TEXT("STATIC"), L" RCV: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			160, 55, 80, 20, hWnd, (HMENU)IDC_OTE_STATIC_RCV_CNT_M, hInst, NULL);
+
+		st_work_wnd.h_socket_inf = CreateWindowW(TEXT("STATIC"), L"SOCK INF", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			250, 35, 280, 100, hWnd, (HMENU)IDC_OTE_STATIC_SOCK_INF, hInst, NULL);
+
+		st_work_wnd.h_static_snd_msg_u = CreateWindowW(TEXT("STATIC"), L"SNDu >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 140, 520, 40, hWnd, (HMENU)IDC_OTE_STATIC_SND_U, hInst, NULL);
+		st_work_wnd.h_static_rcv_msg_u = CreateWindowW(TEXT("STATIC"), L"RCVu >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 185, 520, 40, hWnd, (HMENU)IDC_OTE_STATIC_RCV_U, hInst, NULL);
+		st_work_wnd.h_static_rcv_sub_msg_u = CreateWindowW(TEXT("STATIC"), L"RCVSu >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 235, 520, 40, hWnd, (HMENU)IDC_OTE_STATIC_RCV_SUB_U, hInst, NULL);
+		st_work_wnd.h_static_snd_msg_m = CreateWindowW(TEXT("STATIC"), L"SNDm >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 285, 520, 40, hWnd, (HMENU)IDC_OTE_STATIC_SND_M, hInst, NULL);
+		st_work_wnd.h_static_rcv_msg_m = CreateWindowW(TEXT("STATIC"), L"RCVm >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 335, 520, 40, hWnd, (HMENU)IDC_OTE_STATIC_RCV_M, hInst, NULL);
+
+		st_work_wnd.h_chkSlow = CreateWindow(L"BUTTON", L"Slow", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			5, 5, 60, 25, hWnd, (HMENU)IDC_CHK_IS_SLOW_MODE, hInst, NULL);
+		SendMessage(st_work_wnd.h_chkSlow, BM_SETCHECK, BST_UNCHECKED, 0L);
+
+		st_work_wnd.h_chk_inf = CreateWindow(L"BUTTON", L"Info", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			10, 325, 60, 25, hWnd, (HMENU)IDC_CHK_INF, hInst, NULL);
+		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_CHECKED, 0L);
+
+		st_work_wnd.h_chkSockinf = CreateWindow(L"BUTTON", L"Sock", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			90, 5, 60, 25, hWnd, (HMENU)IDC_CHK_DISP_SOCK, hInst, NULL);
+		SendMessage(st_work_wnd.h_chkSockinf, BM_SETCHECK, BST_UNCHECKED, 0L);
+
+		st_work_wnd.h_chk_msg = CreateWindow(L"BUTTON", L"Msg", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			170, 5, 60, 25, hWnd, (HMENU)IDC_CHK_MSG, hInst, NULL);
+		SendMessage(st_work_wnd.h_chk_msg, BM_SETCHECK, BST_UNCHECKED, 0L);
+#endif
+	}
+
+	case WM_TIMER: {
+		if (wParam == ID_OTE_MULTICAST_TIMER) {
+
+#if 0
+			if (S_OK == snd_ote_u_pc(set_msg_ote_u(), &addrin_ote_u_pc)) {//OTE->PC‚Öƒ†ƒjƒLƒƒƒXƒg‘—M
+				cnt_snd_ote_u++;
+			}
+
+			if (S_OK == snd_pc_u_ote(set_msg_pc_u(), &addrin_pc_u_ote)) {//PC->OTM‚Öƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—M
+				cnt_snd_pc_u++;
+			}
+
+			if (S_OK == snd_ote_m_pc(set_msg_ote_m())) {
+					cnt_snd_ote_m_pc++;
+			}
+
+#endif
+
+			if (S_OK == snd_pc_m_pc(set_msg_pc_m())) {//PC->OTE‚Öƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—M
+				cnt_snd_pc_m_pc++;
+			}
+
+			if (S_OK == snd_pc_m_ote(set_msg_pc_m())) {//PC->OTE‚Öƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—M
+				cnt_snd_pc_m_ote++;
+			}
+
+			if (is_my_ote_active) {
+				if (S_OK == snd_ote_u_pc(set_msg_ote_u(), &addrin_ote_u_pc)) {//OTE->PC‚Öƒ†ƒjƒLƒƒƒXƒg‘—M
+					cnt_snd_ote_u++;
+				}
+				if (S_OK == snd_ote_m_ote(set_msg_ote_m())) {
+					cnt_snd_ote_m_ote++;
+				}
+			}
+
+			disp_msg_cnt();//ƒJƒEƒ“ƒg•\¦XV
+		}
+	}break;
+
+	case WM_COMMAND:{
+		int wmId = LOWORD(wParam);
+		// ‘I‘ğ‚³‚ê‚½ƒƒjƒ…[‚Ì‰ğÍ:
+		switch (wmId)
+		{
+#if 0
+		case IDC_CHK_DISP_SOCK: {
+			if (IsDlgButtonChecked(hWnd, IDC_CHK_DISP_SOCK) == BST_CHECKED) st_work_wnd.disp_sock_info = true;
+			else  st_work_wnd.disp_sock_info = false;
+		}break;
+		case IDC_CHK_IS_SLOW_MODE: {
+			if (IsDlgButtonChecked(hWnd, IDC_CHK_IS_SLOW_MODE) == BST_CHECKED) st_work_wnd.is_slowmode = true;
+			else  st_work_wnd.is_slowmode = false;
+		}break;
+		case  IDC_CHK_INF: {
+			if (IsDlgButtonChecked(hWnd, IDC_CHK_INF) == BST_CHECKED) st_work_wnd.disp_infomation = true;
+			else  st_work_wnd.disp_infomation = false;
+		}break;
+		case  IDC_CHK_MSG: {
+			if (IsDlgButtonChecked(hWnd, IDC_CHK_MSG) == BST_CHECKED) st_work_wnd.disp_msg = true;
+			else  st_work_wnd.disp_msg = false;
+		}break;
+#endif
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}break;
+
+	case ID_SOCK_EVENT_OTE_UNI_PC: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//PC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒWóM
+				cnt_rcv_ote_u++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_PC_MULTI_PC: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_pc_m_pc(&st_msg_pc_m_pc_rcv) == S_OK) {				//PC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒWóM
+				cnt_rcv_pc_m_pc++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_OTE_MULTI_PC: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_ote_m_pc(&st_msg_ote_m_pc_rcv) == S_OK) {				//PC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒWóM
+				cnt_rcv_ote_m_pc++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_PC_UNI_OTE: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_pc_u_ote(&st_msg_pc_u_rcv) == S_OK) {				//PC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒWóM
+				cnt_rcv_pc_u++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_PC_MULTI_OTE: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_pc_m_ote(&st_msg_pc_m_ote_rcv) == S_OK) {				//PC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒWóM
+				cnt_rcv_pc_m_ote++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_OTE_MULTI_OTE: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_ote_m_ote(&st_msg_ote_m_ote_rcv) == S_OK) {				//PC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒWóM
+				cnt_rcv_ote_m_ote++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_m_ote()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case WM_PAINT:{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+
+		BOOL brtn = TransparentBlt(	st_work_wnd.hdc_mem0, 0, 0, OTE_WORK_WND_W, OTE_WORK_WND_H,		//DST
+									st_work_wnd.hdc_mem_inf, 0, 0, OTE_WORK_WND_W, OTE_WORK_WND_H,	//SORCE
+									RGB(255, 255, 255));
+
+		BitBlt(hdc, 0, 0, OTE_WORK_WND_W, OTE_WORK_WND_H, st_work_wnd.hdc_mem0, 0, 0, SRCCOPY);
+		EndPaint(hWnd, &ps);
+	}break;
+
+	case WM_DESTROY:{
+		close();
+		PostQuitMessage(0);
+	}break;
+
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// 
+/// </summary>
+/// <param name="srcw"></param>
+void COteIF::wstr_out_inf(const std::wstring& srcw) {
+	return;
+}
+//****************************************************************************
+/// <summary>
+/// 
+/// </summary>
+void COteIF::disp_msg_cnt() {
+	msg_wos.str(L"");
+	msg_wos << L"CNT PC#U[ª:" << std::dec << cnt_snd_pc_u << L" «:" << cnt_rcv_pc_u
+		<< L"]  #M[ªO:" << cnt_snd_pc_m_ote << L" «:" << cnt_rcv_pc_m_ote
+		<< L"]  #M[ªP:" << cnt_snd_pc_m_pc << L" «:" << cnt_rcv_pc_m_pc
+		<< L"]  OTE #U[ª:" << std::dec << cnt_snd_ote_u << L" «:" << cnt_rcv_ote_u 
+	//	<< L"]  #M[ªP:" << cnt_snd_ote_m_pc << L" «:" << cnt_rcv_ote_m_pc
+		<< L"]  #M[ªO:" << cnt_snd_ote_m_ote << L" «:" << cnt_rcv_ote_m_ote << L"]";
+
+	SetWindowText(st_work_wnd.h_static_msg_cnt, msg_wos.str().c_str());
+}
+//*********************************************************************************************
+/// <summary>
+///  OTE¨PC@Unicast@yOTE‚ÌPC‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‚Å‘—Mz
+/// </summary>
+/// <param name="pbuf"></param>
+/// <param name="pto_addrin"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_ote_u_pc(LPST_OTE_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
+	if (pSockPcUniCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_U_MSG), *p_addrin_to) == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcUniCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
 
 //*********************************************************************************************
-LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+/// <summary>
+/// PC¨OTE@Unicast@yPC‚ÌOTE‚©‚ç‚Ìƒ†ƒjƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‚Å‘—Mz
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_pc_u_ote(LPST_PC_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
+	if (pSockOteUniCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), *p_addrin_to) == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// PC->PC ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg@yPC‚ÌPC‚©‚ç‚Ìƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‚Å‘—Mz
+/// </summary>
+/// <param name="pbuf"></param>
+/// <param name="pto_addrin"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_pc_m_pc(LPST_PC_M_MSG pbuf) {
+	if (pSockPcMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_pc_snd) == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcMultiCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// OTE->PC ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg@yOTE‚ÌPC‚©‚ç‚Ìƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‚Å‘—Mz
+/// </summary>
+/// <param name="pbuf"></param>
+/// <param name="pto_addrin"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_ote_m_pc(LPST_OTE_M_MSG pbuf) {
+	if (pSockPcMultiCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG), addrin_ote_m_pc) == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcMultiCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}//OTEƒ†ƒjƒLƒƒƒXƒg‘—Mˆ—
+//*********************************************************************************************
+/// <summary>
+/// OTE->OTE ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg@yOTE‚ÌOTE‚©‚ç‚Ìƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‚Å‘—Mz
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_ote_m_ote(LPST_OTE_M_MSG pbuf) {
+	if (pSockOteMultiCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG), addrin_ote_m_ote_snd) == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteMultiCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—Mˆ—
+//*********************************************************************************************
+/// <summary>
+/// PC->OTE ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg@yPC‚ÌOTE‚©‚ç‚Ìƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMƒ\ƒPƒbƒg‚Å‘—Mz
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_pc_m_ote(LPST_PC_M_MSG pbuf) {
+	if (pSockOteMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_ote_snd) == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteMultiCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}//OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—Mˆ—
 
-    HDC hdc;
-    switch (msg) {
-    case WM_DESTROY: {
-        hWorkWnd = NULL;
-        closesocket(s_u);
-        closesocket(s_m_te);
-        closesocket(s_m_cr);
-        closesocket(s_m_snd);
-        closesocket(s_m_snd_dbg);
-    }return 0;
-    case WM_CREATE: {
-
-        InitCommonControls();//ƒRƒ‚ƒ“ƒRƒ“ƒgƒ[ƒ‹‰Šú‰»
-        HINSTANCE hInst = GetModuleHandle(0);
- 
-        CreateWindowW(TEXT("STATIC"), L"UNI", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 5, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndSTAT_U = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 5, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_STAT_U, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"RCV  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 30, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndRCVMSG_U = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 30, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_RCV_U, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"SND  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 55, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndSNDMSG_U = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 55, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_SND_U, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"Info ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 80, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndINFMSG_U = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 80, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_INF_U, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"M-TE", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 110, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndSTAT_M_TE = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 110, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_STAT_TE, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"RCV  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 135, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndRCVMSG_M_TE = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 135, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_RCV_TE, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"SND  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 160, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndSNDMSG_M_TE = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 160, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_SND_TE, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"Info ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 185, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndINFMSG_M_TE = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 185, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_INF_TE, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"M-CR", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 215, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndSTAT_M_CR = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 215, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_STAT_CR, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"RCV  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 240, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndRCVMSG_M_CR = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 240, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_RCV_CR, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"SND  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 265, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndSNDMSG_M_CR = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 265, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_SND_CR, hInst, NULL);
-
-        CreateWindowW(TEXT("STATIC"), L"Info ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 290, 55, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_LABEL_COM, hInst, NULL);
-        hwndINFMSG_M_CR = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 290, 440, 20, hwnd, (HMENU)ID_STATIC_OTE_IF_VIEW_INF_CR, hInst, NULL);
-
-        if (init_sock_u(hwnd) == 0) {
-            woMSG << L"SOCK OK";
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L""); woMSG.clear();
-            wsMSG = L"No RCV MSG";
-            tweet2rcvMSG(wsMSG, ID_SOCK_CODE_U);wsMSG.clear();
-            wsMSG = L"No SND MSG";
-            tweet2sndMSG(wsMSG, ID_SOCK_CODE_U);wsMSG.clear();
-        }
-        else {
-            woMSG << L"SOCK ERR";
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L""); woMSG.clear();
-            wsMSG = L"No RCV MSG";
-            tweet2rcvMSG(wsMSG, ID_SOCK_CODE_U);wsMSG.clear();
-            wsMSG = L"No SND MSG";
-            tweet2sndMSG(wsMSG, ID_SOCK_CODE_U);wsMSG.clear();
-
-            close_WorkWnd();
-        }
-
-        if (init_sock_m_te(hwnd) == 0) {
-            woMSG << L"SOCK OK";
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L""); woMSG.clear();
-            wsMSG = L"No RCV MSG";
-            tweet2rcvMSG(wsMSG, ID_SOCK_CODE_TE);wsMSG.clear();
-            wsMSG = L"No SND MSG";
-            tweet2sndMSG(wsMSG, ID_SOCK_CODE_TE);wsMSG.clear();
-        }
-        else {
-            woMSG << L"SOCK ERR";
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L""); woMSG.clear();
-            wsMSG = L"No RCV MSG";
-            tweet2rcvMSG(wsMSG, ID_SOCK_CODE_TE);wsMSG.clear();
-            wsMSG = L"No SND MSG";
-            tweet2sndMSG(wsMSG, ID_SOCK_CODE_TE);wsMSG.clear();
-
-            close_WorkWnd();
-        }
-
-        if (init_sock_m_cr(hwnd) == 0) {
-            woMSG << L"SOCK OK";
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
-            wsMSG = L"No RCV MSG";
-            tweet2rcvMSG(wsMSG, ID_SOCK_CODE_CR);wsMSG.clear();
-            wsMSG = L"No SND MSG";
-            tweet2sndMSG(wsMSG, ID_SOCK_CODE_CR);wsMSG.clear();
-        }
-        else {
-            woMSG << L"SOCK ERR";
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
-            wsMSG = L"No RCV MSG";
-            tweet2rcvMSG(wsMSG, ID_SOCK_CODE_CR);wsMSG.clear();
-            wsMSG = L"No SND MSG";
-            tweet2sndMSG(wsMSG, ID_SOCK_CODE_CR);wsMSG.clear();
-            close_WorkWnd();
-        }
-
-
-        //U‚êƒZƒ“ƒT‘—Mƒ^ƒCƒ}‹N“®
-        SetTimer(hwnd, ID_WORK_WND_TIMER, OTE_IO_TIME_CYCLE_MS, NULL);
-
-    }break;
-    case WM_TIMER: {
-
-        if (ote_io_workbuf.te_connect_chk_counter > 0) {
-            ote_io_workbuf.te_connect_chk_counter--;
-        }
-        else {
-            ote_io_workbuf.id_connected_te = 0;                     //Ú‘±’†OTEƒNƒŠƒA
-        }
-       
-        if (ote_io_workbuf.te_connect_chk_counter > 0) {            //’èüŠú‘—M‘Ò‹@ƒ^ƒCƒ~ƒ“ƒO
-            ote_io_workbuf.te_connect_chk_counter--;
-            if (ote_req_last != pCraneStat->OTE_req_status) {       //ƒCƒxƒ“ƒg‘—MğŒ”­¶
-                set_msg_m_cr(ID_MSG_SET_MODE_CONST, ID_OTE_EVENT_CODE_STAT_REPORT);
-                send_msg_m();
-            }
-        }
-        else {                                              //’èüŠú‘—Mƒ^ƒCƒ~ƒ“ƒO
-            set_msg_m_cr(ID_MSG_SET_MODE_CONST, ID_OTE_EVENT_CODE_CONST);
-            send_msg_m();
-            ote_io_workbuf.te_connect_chk_counter = ote_io_workbuf.te_multi_snd_cycle;
-        }
-
-        //OTE‚ÌÚ‘±ƒ`ƒFƒbƒNƒJƒEƒ“ƒ^ƒfƒNƒŠƒƒ“ƒg¨0ˆÈ‰º‚ÅØ’f”»’è
-        if(ote_io_workbuf.ote_io.OTE_healty>0)ote_io_workbuf.ote_io.OTE_healty--;
-        ote_req_last = pCraneStat->OTE_req_status;
-
-    }break;
-
-    case ID_UDP_EVENT_U: {
-        nEvent = WSAGETSELECTEVENT(lp);
-        switch (nEvent) {
-        case FD_READ: {
-            nRcv_u++;
-
-            SOCKADDR from_addr;                             //‘—MŒ³ƒAƒhƒŒƒXæ‚è‚İƒoƒbƒtƒ@
-            int from_addr_size = (int)sizeof(from_addr);    //‘—MŒ³ƒAƒhƒŒƒXƒTƒCƒYƒoƒbƒtƒ@
-
-            nRtn = recvfrom(s_u, (char*)&ote_io_workbuf.ote_io.rcv_msg_u, sizeof(ST_UOTE_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
-
-            sockaddr_in* psockaddr = (sockaddr_in*)&from_addr;
-
-            if (nRtn == SOCKET_ERROR) {
-                woMSG << L"recvfrom ERROR";
-                tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-            }
-            else {
-                addrin_ote_u.sin_addr = ((sockaddr_in*)&from_addr)->sin_addr;
-                addrin_ote_u.sin_port = ote_io_workbuf.ote_io.rcv_msg_u.head.addr.sin_port;
-
-                int p = htons(addrin_ote_u.sin_port);
-                set_msg_u(0,0);
-                send_msg_u();
-
-                woMSG << L"SOCK OK";
-                woMSG << L"  From IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
- 
-                tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L""); woMSG.clear();
-
-                woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_u.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_u.head.code;
-                psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.rcv_msg_u.head.addr;
-                woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-                woMSG << L" PORT: " << htons(psockaddr->sin_port);
-                woMSG << L" ST:" << ote_io_workbuf.ote_io.rcv_msg_u.head.status << L" ID:" << ote_io_workbuf.ote_io.rcv_msg_u.head.tgid;
-                tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-
-                lRcv_u = nRtn;
-                woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
-                tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-
-                ote_io_workbuf.ote_io.OTE_healty = ote_io_workbuf.te_connect_time_limit;
-            }
-        }break;
-        case FD_WRITE: {
-
-        }break;
-        case FD_CLOSE: {
-            ;
-        }break;
-        }
-    }break;
-    case ID_UDP_EVENT_M_TE: {
-            nEvent = WSAGETSELECTEVENT(lp);
-            switch (nEvent) {
-            case FD_READ: {
-                nRcv_te++;
-                SOCKADDR from_addr;                             //‘—MŒ³ƒAƒhƒŒƒXæ‚è‚İƒoƒbƒtƒ@
-                int from_addr_size = (int)sizeof(from_addr);    //‘—MŒ³ƒAƒhƒŒƒXƒTƒCƒYƒoƒbƒtƒ@
-
-                nRtn = recvfrom(s_m_te, (char*)&ote_io_workbuf.ote_io.rcv_msg_m_te, sizeof(ST_MOTE_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
-
-                sockaddr_in* psockaddr = (sockaddr_in*)&from_addr;
-
-                woMSG << L"SOCK OK";
-                woMSG << L"  From IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-
-                tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L""); woMSG.clear();
-                
-                
-                if (nRtn == SOCKET_ERROR) {
-                    woMSG << L"recvfrom ERROR";
-                    tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
-                }
-                else {
-
-                    lRcv_te = nRtn;
-                    woMSG << L"Rcv n:" << nRcv_te << L" l:" << lRcv_te ;
-                    tweet2infMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
-
-                    woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.code;
-                    psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.rcv_msg_m_te.head.addr;
-                    woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-                    woMSG << L" PORT: " << htons(psockaddr->sin_port);
-                    woMSG << L" ST:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.status << L" ID:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.tgid;
-                    tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
-
-
-                }
-
-            }break;
-            case FD_WRITE: {
-
-            }break;
-            case FD_CLOSE: {
-                ;
-            }break;
-            }
-    }break;
-    case ID_UDP_EVENT_M_CR: {
-        nEvent = WSAGETSELECTEVENT(lp);
-        switch (nEvent) {
-        case FD_READ: {
-            nRcv_cr++;
-            SOCKADDR from_addr;                             //‘—MŒ³ƒAƒhƒŒƒXæ‚è‚İƒoƒbƒtƒ@
-            int from_addr_size = (int)sizeof(from_addr);    //‘—MŒ³ƒAƒhƒŒƒXƒTƒCƒYƒoƒbƒtƒ@
-
-            nRtn = recvfrom(s_m_cr, (char*)&ote_io_workbuf.ote_io.rcv_msg_m_cr, sizeof(ST_MOTE_SND_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
-
-            sockaddr_in* psockaddr = (sockaddr_in*)&from_addr;
-
-            woMSG << L"SOCK OK";
-            woMSG << L"  From IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-           // woMSG << L" PORT: " << htons(psockaddr->sin_port);
-            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
-  
-            if (nRtn == SOCKET_ERROR) {
-                woMSG << L"recvfrom ERROR";
-                tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
-            }
-            else {
- 
-                woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.code;
-                psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.rcv_msg_m_cr.head.addr;
-                woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-                woMSG << L" PORT: " << htons(psockaddr->sin_port);
-                woMSG << L" ST:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.status << L" ID:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.tgid;
-                tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
-
-                lRcv_cr = nRtn;
-                woMSG << L"Rcv n:" << nRcv_cr << L" l:" << lRcv_cr << L"  Snd n:" << nSnd_m << L"  l:" << lSnd_m;
-                tweet2infMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
-            }
-        }break;
-        case FD_WRITE: {
-
-        }break;
-        case FD_CLOSE: {
-            ;
-        }break;
-
-        }
-     }break;
-
-    case SWAY_SENSOR__MSG_SEND_COM:
-        break;
-
-    case WM_PAINT: {
-        PAINTSTRUCT ps;
-        hdc = BeginPaint(hwnd, &ps);
-        EndPaint(hwnd, &ps);
-    }break;
-    case WM_COMMAND: {
-        int wmId = LOWORD(wp);
-        // ‘I‘ğ‚³‚ê‚½ƒƒjƒ…[‚Ì‰ğÍ:
-        switch (wmId)
-        {
-        case 0: break;
-        default: break;
-
-        }
-    }break;
-
-    default:
-        return DefWindowProc(hwnd, msg, wp, lp);
-    }
-
-    return 0;
+//óMˆ——p
+//*********************************************************************************************
+/// <summary>
+///PCƒ†ƒjƒLƒƒƒXƒg“d•¶óMˆ— (OTEƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒW‚ğóMj
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_ote_u_pc(LPST_OTE_U_MSG pbuf) {
+	int nRtn = pSockOteUniCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_OTE_U_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+///PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒg“d•¶óMˆ—  (PCƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒƒbƒZ[ƒW‚ğóMj
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_pc_m_pc(LPST_PC_M_MSG pbuf) {
+	int nRtn = pSockPcMultiCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcMultiCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// OTEƒ†ƒjƒLƒƒƒXƒg“d•¶óMˆ—(PCƒ†ƒjƒLƒƒƒXƒgƒƒbƒZ[ƒW‚ğóMj
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_ote_m_pc(LPST_OTE_M_MSG pbuf) {
+	int nRtn = pSockOteMultiCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒg“d•¶óMˆ—iOTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒƒbƒZ[ƒW‚ğóMj
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_pc_u_ote(LPST_PC_U_MSG pbuf) {
+	int nRtn = pSockPcUniCastOte->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcUniCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
 }
 
-//# ƒEƒBƒ“ƒhƒE‚Ö‚ÌƒƒbƒZ[ƒW•\¦@wstring
-void COteIF::tweet2statusMSG(const std::wstring& srcw, int code) {
-    switch (code) {
-    case ID_SOCK_CODE_U:
-        SetWindowText(hwndSTAT_U, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_TE:
-        SetWindowText(hwndSTAT_M_TE, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_CR:
-        SetWindowText(hwndSTAT_M_CR, srcw.c_str());
-        break;
-    default: break;
-    }
-    return;
-};
-void COteIF::tweet2rcvMSG(const std::wstring& srcw, int code) {
-    switch (code) {
-    case ID_SOCK_CODE_U:
-        SetWindowText(hwndRCVMSG_U, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_TE:
-        SetWindowText(hwndRCVMSG_M_TE, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_CR:
-        SetWindowText(hwndRCVMSG_M_CR, srcw.c_str());
-        break;
-    default: break;
-    }
-    return;
-};
-void COteIF::tweet2sndMSG(const std::wstring& srcw, int code) {
-    switch (code) {
-    case ID_SOCK_CODE_U:
-        SetWindowText(hwndSNDMSG_U, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_TE:
-        SetWindowText(hwndSNDMSG_M_TE, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_CR:
-        SetWindowText(hwndSNDMSG_M_CR, srcw.c_str());
-        break;
-    default: break;
-    }
-    return;
-};
-void COteIF::tweet2infMSG(const std::wstring& srcw, int code) {
-    switch (code) {
-    case ID_SOCK_CODE_U:
-        SetWindowText(hwndINFMSG_U, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_TE:
-        SetWindowText(hwndINFMSG_M_TE, srcw.c_str());
-        break;
-    case ID_SOCK_CODE_CR:
-        SetWindowText(hwndINFMSG_M_CR, srcw.c_str());
-        break;
-    default: break;
-    }
-    return;
-};
+//*********************************************************************************************
+/// <summary>
+/// OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒg“d•¶óMˆ—iOTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒƒbƒZ[ƒW‚ğóMj
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_ote_m_ote(LPST_OTE_M_MSG pbuf) {
+	int nRtn = pSockOteMultiCastOte->rcv_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteMultiCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// OTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒg“d•¶óMˆ—iOTEƒ}ƒ‹ƒ`ƒLƒƒƒXƒgƒƒbƒZ[ƒW‚ğóMj
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_pc_m_ote(LPST_PC_M_MSG pbuf) {
+	int nRtn = pSockPcMultiCastOte->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcMultiCastOte->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+
+
+

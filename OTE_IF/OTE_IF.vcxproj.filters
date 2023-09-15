@@ -30,9 +30,6 @@
     <ClInclude Include="COTE_IF.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="CSimOTE.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="OTEmsglist.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -45,9 +42,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\CSharedMem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="CSimOTE.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

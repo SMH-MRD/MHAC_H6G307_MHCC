@@ -20,7 +20,8 @@ CSockAlpha::CSockAlpha(INT32 _protocol, INT32 _access, INT32 _eventID)
 	addr_in_rcv.sin_port = htons(DEFAULT_MY_PORT);
 	addr_in_rcv.sin_family = AF_INET;
 	inet_pton(AF_INET, DEFAULT_MY_IP, &addr_in_rcv.sin_addr.s_addr);
-	addr_in_dst = addr_in_from = addr_in_rcv ;
+	addr_in_dst = addr_in_from = addr_in_rcv;
+	for (int i = 0; i < MAX_N_MULTICAST; i++) addr_in_multi[i] = addr_in_rcv;
 
 	eventID = _eventID;
 	protocol = _protocol;
@@ -38,11 +39,13 @@ CSockAlpha::CSockAlpha()
 	addr_in_rcv.sin_port = htons(DEFAULT_MY_PORT);
 	addr_in_rcv.sin_family = AF_INET;
 	inet_pton(AF_INET, DEFAULT_MY_IP, &addr_in_rcv.sin_addr.s_addr);
-	addr_in_dst = addr_in_from = addr_in_rcv;
+	addr_in_dst = addr_in_from  = addr_in_rcv;
+	for(int i=0;i<MAX_N_MULTICAST;i++) addr_in_multi[i] = addr_in_rcv;
 
 	eventID		= ID_MC_DEFAULT_EVENT;
 	protocol	= UDP_PROTOCOL;
 	access		= ACCESS_TYPE_CLIENT;		//準備するソケットの接続タイプ
+	n_multicast = 0;
 
 	InitializeCriticalSection(&csSck);
 	s = -1;
@@ -213,7 +216,89 @@ HRESULT CSockAlpha::init_sock_udp(HWND hwnd, SOCKADDR_IN addr_in) {
 
 	return S_OK;
 }
+/******************************************************************************/
+/// <summary>
+/// ソケット（受信）の初期化　マルチキャスト
+/// </summary>
+/// <param name="hwnd">非同期受信イベントを受け取るウィンドウハンドル</param>
+/// <param name="addr_in">ソケット（受信）のアドレス/ポート</param>
+/// <returns></returns>
+HRESULT CSockAlpha::init_sock_udp_m(HWND hwnd, SOCKADDR_IN addr_in, SOCKADDR_IN addr_in_m) {
 
+	//Socketオープン
+	s = socket(AF_INET, protocol, 0);
+	if (s < 0) {
+		SetSockErr(WSAGetLastError());
+		return E_FAIL;
+	}
+
+	//ソケットに名前を付ける bind
+	addr_in_rcv = addr_in;
+	addr_in_multi[0] = addr_in_m;
+	int nRtn = bind(s, (LPSOCKADDR)&addr_in_rcv, (int)sizeof(addr_in_rcv));
+	if (nRtn == SOCKET_ERROR) {
+		SetSockErr(WSAGetLastError());
+		closesocket(s);
+		WSACleanup();
+		return E_FAIL;
+	}
+
+	//非同期化
+	nRtn = WSAAsyncSelect(s, hwnd, eventID, FD_READ | FD_WRITE | FD_CLOSE);
+	if (nRtn == SOCKET_ERROR) {
+		SetSockErr(WSAGetLastError());
+		closesocket(s);
+		WSACleanup();
+		return E_FAIL;
+	}
+
+	//TTL設定
+	int ttl = 10;
+	if (setsockopt(s,IPPROTO_IP,IP_MULTICAST_TTL,(char *)&ttl,sizeof(ttl) !=0)) {
+		SetSockErr(WSAGetLastError());
+		closesocket(s);
+		WSACleanup();
+		return E_FAIL;
+	}
+
+	addr_in_multi[0]=addr_in_m;						//マルチキャスト送信先アドレス設定
+	static struct ip_mreq mreq;                     //マルチキャスト受信設定用構造体
+	//マルチキャストグループ参加登録
+	memset(&mreq, 0, sizeof(mreq));
+	mreq.imr_interface.S_un.S_addr = addr_in_rcv.sin_addr.S_un.S_addr;       //利用ネットワーク
+	mreq.imr_multiaddr.S_un.S_addr = addr_in_multi[0].sin_addr.S_un.S_addr; 	//マルチキャストIPアドレス
+	if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) != 0) {
+		perror("setopt受信設定失敗\n");
+		return E_FAIL;
+	}
+	n_multicast++;
+	return S_OK;
+}
+
+/******************************************************************************/
+/// <summary>
+/// ソケット（受信）の初期化　マルチキャスト
+/// </summary>
+/// <param name="hwnd">非同期受信イベントを受け取るウィンドウハンドル</param>
+/// <param name="addr_in">ソケット（受信）のアドレス/ポート</param>
+/// <returns></returns>
+HRESULT CSockAlpha::add_multi_to_sock(SOCKADDR_IN addr_in_m) {
+	
+	if (n_multicast > MAX_N_MULTICAST) return E_FAIL;
+	
+	addr_in_multi[n_multicast] = addr_in_m;						//マルチキャスト送信先アドレス設定
+	static struct ip_mreq mreq;                     //マルチキャスト受信設定用構造体
+	//マルチキャストグループ参加登録
+	memset(&mreq, 0, sizeof(mreq));
+	mreq.imr_interface.S_un.S_addr = addr_in_rcv.sin_addr.S_un.S_addr;       //利用ネットワーク
+	mreq.imr_multiaddr.S_un.S_addr = addr_in_multi[n_multicast].sin_addr.S_un.S_addr; 	//マルチキャストIPアドレス
+	if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) != 0) {
+		perror("setopt受信設定失敗\n");
+		return E_FAIL;
+	}
+	n_multicast++;
+	return S_OK;
+}
 /******************************************************************************/
 /// <summary>
 /// メッセージ送信

@@ -21,3 +21,6 @@
 
 //マルチメディアタイマー用
 #include <mmsystem.h>
+
+//OTECプロトコル用
+#include "CSockAlpha.h"

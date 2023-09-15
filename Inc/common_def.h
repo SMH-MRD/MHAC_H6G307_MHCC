@@ -70,7 +70,8 @@
 #define ID_TROLLY       2   //横行        ID
 #define ID_BOOM_H       3   //引込        ID
 #define ID_SLEW         4   //旋回        ID
-#define ID_OP_ROOM      5   //運転室移動　ID
+#define ID_OP_ROOM      5   //運転室移動　ID LLC
+#define ID_AHOIST       5   //補巻　      ID JC
 #define ID_H_ASSY       6   //吊具        ID
 #define ID_COMMON       7   //共通        ID
 
@@ -79,7 +80,8 @@
 #define BIT_SEL_TRY         0x00000004
 #define BIT_SEL_BH          0x00000008
 #define BIT_SEL_SLW         0x00000010
-#define BIT_SEL_OPR         0x00000020
+#define BIT_SEL_OPR         0x00000020  //LLC
+#define BIT_SEL_AH          0x00000020  //JC
 #define BIT_SEL_ASS         0x00000040
 #define BIT_SEL_COM         0x00000080
 #define BIT_SEL_ALL_0NOTCH  0x10000000
@@ -123,12 +125,31 @@
 #define ID_OK            1       //有り
 #define ID_NG            -1       //特になし
 
+//ビット定義
+#define BITS_WORD   0xFFFF //WORDデータ
+#define BIT0        0x0001
+#define BIT1        0x0002
+#define BIT2        0x0004
+#define BIT3        0x0008
+#define BIT4        0x0010
+#define BIT5        0x0020
+#define BIT6        0x0040
+#define BIT7        0x0080
+#define BIT8        0x0100
+#define BIT9        0x0200
+#define BIT10       0x0400
+#define BIT11       0x0800
+#define BIT12       0x1000
+#define BIT13       0x2000
+#define BIT14       0x4000
+#define BIT15       0x8000
+
 class CBasicControl //基本制御クラス
 {
 public:
     LPVOID poutput = NULL;      //結果出力メモリ
-    DWORD out_size = 0;        //出力バッファのサイズ
-    DWORD  mode;                //結果出力モード
+    DWORD  out_size = 0;        //出力バッファのサイズ
+    DWORD  mode;               //PLCへの書き込みモード
     DWORD  source_counter;      //メインプロセスのヘルシーカウンタ
     DWORD  my_helthy_counter=0; //自スレッドのヘルシーカウンタ
 
@@ -142,7 +163,7 @@ public:
 };
 
 typedef struct DeviceCode {
-    char    order[2];       //製番
+    char    order[2];   //製番
     char    system[2];  //機械、システムコード    :クレーン番号等
     char    type[2];    //デバイス種別　          :制御PC,端末等
     INT16   no;         //シリアル番号

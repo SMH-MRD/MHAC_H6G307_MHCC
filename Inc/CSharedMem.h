@@ -5,7 +5,8 @@
 #include "spec.h"
 #include "CVector3.h"
 #include "Swaysensor.h"
-#include "Opeterminal.h"
+#include "OTE_DEF.h"
+#include "PLC_DEF.h"
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
@@ -60,11 +61,12 @@
 #define SMEM_DATA_SIZE_MAX				1000000	//共有メモリ割り当て最大サイズ　1Mbyte	
 
 using namespace std;
-
 /****************************************************************************/
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 /****************************************************************************/
+#pragma region PLC IO
+/*
 #define N_UI_PB					64 //運転操作PB数
 #define N_UI_LAMP				64 //BIT STATUS数
 
@@ -143,65 +145,50 @@ using namespace std;
 #define SEMI_AUTO_TG_CLR				6
 #define SEMI_AUTO_TOUCH_POS				7
 #define SEMI_AUTO_TOUCH_DIST			8
-
 #define PLC_IO_OFF_DELAY_COUNT	 4	//PB操作オフディレイカウント値
 
+*/
 
-// PLC_User IF信号構造体（機上運転室IO)
-// IO割付内容は、PLC_IO_DEF.hに定義
-typedef struct StPLCUI {
-	INT16 notch_pos[MOTION_ID_MAX];
-	INT16 PB[N_PLC_PB];
-	INT16 PBsemiauto[SEMI_AUTO_TARGET_MAX];
-	INT16 LAMP[N_PLC_LAMP];
-}ST_PLC_UI, * LPST_PLC_UI;
+#define PLC_IF_PC_DBG_MODE		0x00000001		//PCデバッグパネル、SIM出力からIO情報生成
+#define PLC_IF_MONITOR_MODE		0x00000001
+#define PLC_IF_REMOTE_MODE		0x00000002
+#define PLC_IF_SIMULATOR_MODE	0x00000004
 
+// IO割付内容は、PLC_DEF.hに定義
 // PLC_状態信号構造体（機上センサ信号)
-typedef struct StPLCStatus {
-	UINT16 ctrl[N_PLC_CTRL_WORDS];		//制御用信号　LS,MC状態等
+typedef struct StPLC_IO {
+	INT32 mode;
 	double v_fb[MOTION_ID_MAX];
 	double v_ref[MOTION_ID_MAX];
 	double trq_fb_01per[MOTION_ID_MAX];
 	double pos[MOTION_ID_MAX];
 	double weight;
+	double weight_ah;
 	INT16 brk[MOTION_ID_MAX];
 	INT16 notch_ref[MOTION_ID_MAX];
-}ST_PLC_STATUS, * LPST_PLC_STATUS;
-
-// PLC_IO構造体
-#define PLC_IF_PC_DBG_MODE  0x00000001		//PCデバッグパネル、SIM出力からIO情報生成
-typedef struct StPLCIO {
-	DWORD mode;
-	DWORD helthy_cnt;
-	ST_PLC_UI ui;
-	ST_PLC_STATUS status;
-	CHAR faultPLC[N_PLC_FAULTS];
-	INT16 plc_data[PLC_IO_MONT_WORD_NUM];
+	PLC_READ_BUF		input;
+	PLC_WRITE_BUF		output;
 }ST_PLC_IO, * LPST_PLC_IO;
 
+#pragma endregion PLC IO定義構造体
 /****************************************************************************/
 /*   操作端末卓信号定義構造体                                  　         　*/
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
 /****************************************************************************/
-
+#pragma region OTE
 typedef struct StOTE_IO {
-	ST_UOTE_SND_MSG snd_msg_u;
-	ST_UOTE_RCV_MSG rcv_msg_u;
-	ST_MOTE_SND_MSG snd_msg_m;
-	ST_MOTE_SND_MSG rcv_msg_m_cr;
-	ST_MOTE_RCV_MSG rcv_msg_m_te;
+
 	INT32 OTEsim_status;
 	INT32 OTEactive;				//接続中の端末ID　接続断の時0
 	INT32 OTE_healty;				//OTEのヘルシー信号
 
-	ST_PLC_UI ui;
 }ST_OTE_IO, * LPST_OTE_IO;
-
+#pragma endregion 操作端末卓信号定義構造体
 /****************************************************************************/
 /*   振れセンサ信号定義構造体                                  　         　*/
 /* 　SWAY_PC_IFがセットする共有メモリ上の情報　      　　　　　　           */
 /****************************************************************************/
-
+#pragma region SWAY SENSOR
 #define SENSOR_TARGET_MAX            4//検出ターゲット最大数
 #define SID_TG1                      0//ターゲットID
 #define SID_TG2                      1
@@ -231,40 +218,39 @@ typedef struct StSwayIO {
 	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
 	double tilt_rad[MOTION_ID_MAX];							//傾斜角
 
-	double th[MOTION_ID_MAX];		//振角			rad
-	double dth[MOTION_ID_MAX];		//振角速度		rad/s
-	double dthw[MOTION_ID_MAX];		//振角速度/ω　	rad
-	double ph[MOTION_ID_MAX];		//位相平面位相	rad
-	double rad_amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
+	double th[MOTION_ID_MAX];								//振角			rad
+	double dth[MOTION_ID_MAX];								//振角速度		rad/s
+	double dthw[MOTION_ID_MAX];								//振角速度/ω　	rad
+	double ph[MOTION_ID_MAX];								//位相平面位相	rad
+	double rad_amp2[MOTION_ID_MAX];							//振幅の2乗		rad2
 
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
-
+#pragma endregion 振れセンサ信号定義構造体
 /****************************************************************************/
 /*   シミュレーション信号定義構造体                                  　   　*/
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
 /****************************************************************************/
-#define SIM_ACTIVE_MODE  0x00000100			//シミュレーション実行モード
-#define SIM_SWAY_PACKET_MODE 0x00000010		//振れセンサパケット送信モード
+#pragma region SIMULATOR
+#define SIM_ACTIVE_MODE			0x00000100					//シミュレーション実行モード
+#define SIM_SWAY_PACKET_MODE	0x00000010					//振れセンサパケット送信モード
 typedef struct StSimulationStatus {
 	DWORD mode;
 	DWORD helthy_cnt;
-	ST_PLC_STATUS status;
+	PLC_WRITE_BUF plc_w;
 	ST_SWAY_IO sway_io;
-	Vector3 L, vL;//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
+	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角
-
-	double kbh; //引込半径に依存する速度、加速度補正係数
-
+	double kbh;												//引込半径に依存する速度、加速度補正係数
 	ST_SWAY_RCV_MSG rcv_msg;
 	ST_SWAY_SND_MSG snd_msg;
-
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
-
+#pragma endregion シミュレーション信号定義構造体
 /****************************************************************************/
 /*   クレーン状態定義構造体                                          　   　*/
 /* 　Environmentタスクがセットする共有メモリ上の情報　　　　　　　 　    　 */
 /****************************************************************************/
+#pragma region CRANE STATUS
 #define DBG_PLC_IO				0x00000001
 #define DBG_SWAY_IO				0x00000100
 #define DBG_ROS_IO				0x00010000
@@ -293,16 +279,6 @@ typedef struct stEnvSubproc {
 #define ANTI_SWAY_MODE			1
 #define SEMI_AUTO_ACTIVE		2
 #define AUTO_ACTIVE				3
-/*
-#define BITSEL_HOIST        0x0001		//巻 　       ビット
-#define BITSEL_GANTRY       0x0002		//走行        ビット
-#define BITSEL_TROLLY       0x0004		//横行        ビット
-#define BITSEL_BOOM_H       0x0008		//引込        ビット
-#define BITSEL_SLEW         0x0010		//旋回        ビット
-#define BITSEL_OP_ROOM      0x0020		//運転室移動　ビット
-#define BITSEL_H_ASSY       0x0040		//吊具        ビット
-#define BITSEL_COMMON       0x0080		//共通        ビット
-*/
 #define BITSEL_SEMIAUTO			0x0001
 #define BITSEL_AUTO				0x0002
 
@@ -317,8 +293,6 @@ typedef struct stEnvSubproc {
 #define OTE_REQ_CODE_CONNECTED	4
 
 #define PB_TRIG_COUNT			1
-
-
 typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
 	bool is_tasks_standby_ok;							//タスクの立ち上がり確認
@@ -347,14 +321,16 @@ typedef struct StCraneStatus {
 
 	INT32 OTE_req_status;								//操作端末要求状態
 
-	INT16 pb[N_UI_PB];
-	INT16 lamp[N_UI_LAMP];
-//	bool is_notch_0[MOTION_ID_MAX];						//0ノッチ判定
 	INT32 notch0;										//0ノッチ判定総合
 	INT32 notch0_crane;									//0ノッチ判定PLC
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
-
+#pragma endregion クレーン状態定義構造体
+/****************************************************************************/
+/*   JOB COMMAND情報管理構造体                                   　   　	*/
+/* 　JOB,COMMAND生成、実行に関する情報　　　　　　　 　						*/
+/****************************************************************************/
+#pragma region JOB COMMAND
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
 /* 　加速、定速、減速等の一連の動作は、この要素の組み合わせで構成します。   */
@@ -396,7 +372,6 @@ typedef struct StCraneStatus {
 #define STEP_OPT_PHASE_FWD					0		//起動位相の配列インデックス　DOUBLE　正方向用
 #define STEP_OPT_PHASE_REV					1		//起動位相の配列インデックス　DOUBLE　逆方向用
 #define STEP_OPT_PHASE_CHK_RANGE			2		//起動位相の配列インデックス　DOUBLE　逆方向用
-
 
 typedef struct stMotionElement {	//運動要素
 	//recipe
@@ -513,10 +488,8 @@ typedef struct stCommandSet {
 /*   COMMAND:1つのJOBを、複数のコマンドで構成	PICK GRAND PARK						*/
 /* 　JOB	:From-Toの搬送作業													*/
 /************************************************************************************/
-#define JOB_REGIST_MAX			10					//　JOB登録最大数
-#define JOB_N_STEP_SEMIAUTO		1
-
-
+#define JOB_REGIST_MAX				10			//　JOB登録最大数
+#define JOB_N_STEP_SEMIAUTO			1
 #define COM_RECIPE_OPTION_N			8
 
 typedef struct stComRecipe {
@@ -529,7 +502,7 @@ typedef struct stComRecipe {
 	int option_i[COM_RECIPE_OPTION_N];
 	double option_d[COM_RECIPE_OPTION_N];
 
-	ST_COMMAND_SET comset;							//レシピを展開したコマンドセット
+	ST_COMMAND_SET comset;						//レシピを展開したコマンドセット
 	int status;
 
 	SYSTEMTIME time_start;
@@ -570,11 +543,12 @@ typedef struct stJobIO {
 	ST_JOB_LIST	job_list[N_JOB_LIST];
 }ST_JOB_IO, * LPST_JOB_IO;
 
-
+#pragma endregion 作業内容（JOB)定義構造体 
 /****************************************************************************/
 /*   Client Service	情報定義構造体                                   　   　*/
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
 /****************************************************************************/
+#pragma region CLIENT
 
 #define CS_SEMIAUTO_TG_SEL_DEFAULT      0
 #define CS_SEMIAUTO_TG_SEL_CLEAR		0
@@ -586,8 +560,6 @@ typedef struct stJobIO {
 
 typedef struct stCSInfo {
 	//UI関連
-	int ui_lamp[N_UI_LAMP];											//PLCランプ表示出力用（自動開始）
-	int ui_pb[N_UI_PB];												//PLC操作PB入力確認用（自動開始）
 	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
 	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
@@ -628,7 +600,6 @@ typedef struct stClientSndMSG {
 	int option[N_JOB_OPTION_MAX];
 }ST_CLIENT_SND_MSG, * LPST_CLIENT_SND_MSG;
 
-
 #define N_CLIENT_MSG_HOLD_MAX	10
 
 typedef struct stClientIO {
@@ -638,25 +609,24 @@ typedef struct stClientIO {
 	ST_CLIENT_SND_MSG smsg[N_CLIENT_MSG_HOLD_MAX];
 }ST_CLIENT_IO, * LPST_CLIENT_IO;
 
-
+#pragma endregion Client Service情報定義構造体
 /****************************************************************************/
 /*   Policy	情報定義構造体                                   　			  　*/
 /* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
 /****************************************************************************/
-
-
+#pragma region POLICY
 #define FAULT_MAP_W_SIZE	64	//フォルトマップサイズ
-
 typedef struct stPolicyInfo {
 
 	WORD fault_map[FAULT_MAP_W_SIZE];
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
-
+#pragma endregion Policy情報定義構造体
 /****************************************************************************/
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
+#pragma region AGENT
 
 /*** ジョブ,コマンドステータス ***/
 //auto_ongoing用
@@ -695,8 +665,6 @@ typedef struct stAgentInfo {
 	int axis_status[MOTION_ID_MAX];					//各軸の状態（fb0,異常等）
 
 	double v_ref[MOTION_ID_MAX];					//速度指令出力値
-	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
-
 	ST_COMMAND_SET st_active_com_inf;				//実行中コマンドセット情報
 
 	int as_count[MOTION_ID_MAX];					//振れ止めレシピ作成呼び出し回数
@@ -705,11 +673,11 @@ typedef struct stAgentInfo {
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 
-static char smem_dummy_buf[SMEM_DATA_SIZE_MAX];
-
+#pragma endregion AGENT情報定義構造体
 /****************************************************************************/
 /*共有メモリクラス定義														*/
 /****************************************************************************/
+static char smem_dummy_buf[SMEM_DATA_SIZE_MAX];
 class CSharedMem
 {
 public:

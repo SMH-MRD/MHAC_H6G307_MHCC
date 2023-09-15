@@ -4,7 +4,6 @@
 #include "framework.h"
 #include "CMCProtocol.h"
 
-
 UINT8 CMCProtocol::snd_buf[MAX_MC_DATA * 2];
 UINT8 CMCProtocol::read_req_snd_buf[MAX_MC_DATA * 2];//読み込み要求送信用バッファ
 UINT8 CMCProtocol::write_req_snd_buf[MAX_MC_DATA * 2];//書込み要求送信用バッファ
@@ -35,7 +34,7 @@ CMCProtocol::CMCProtocol() {
 /// デストラクタ
 /// </summary>
 CMCProtocol::~CMCProtocol() {
-
+	close();
 }
 
 
@@ -51,7 +50,7 @@ CMCProtocol::~CMCProtocol() {
 /// <param name="no_w">		書き込みDデバイス先頭番号</param>
 /// <param name="num_w">	書き込みDデバイス数号</param>
 /// <returns></returns>
-HRESULT CMCProtocol::Initialize(HWND hwnd,SOCKADDR_IN* paddrinc, SOCKADDR_IN* paddrins,UINT16 no_r, UINT16 num_r, UINT16 no_w, UINT16 num_w) {
+HWND CMCProtocol::Initialize(HWND hwnd,SOCKADDR_IN* paddrinc, SOCKADDR_IN* paddrins,UINT16 no_r, UINT16 num_r, UINT16 no_w, UINT16 num_w) {
 	
 	st_work_wnd.hWnd_parent = hwnd;
 	//WorkWindow生成、初期化
@@ -79,17 +78,27 @@ HRESULT CMCProtocol::Initialize(HWND hwnd,SOCKADDR_IN* paddrinc, SOCKADDR_IN* pa
 
 	if (pMCSock->Initialize() != S_OK) {									//受信ソケット生成
 		msg_wos.str() = pMCSock->err_msg.str();
-		return S_FALSE;
+		return NULL;
 	}
 
 	if (pMCSock->init_sock(st_work_wnd.hWnd, st_work_wnd.addrinc) != S_OK) {//受信ソケット設定
 		msg_wos.str() = pMCSock->err_msg.str();
-		return S_FALSE;
+		return NULL;
 	}
 
-	return S_OK;
+	return st_work_wnd.hWnd;
 }
+//**********************************************************************************************　
+/// <summary>
+/// クローズ処理
+/// </summary>
+/// <returns></returns>
+HRESULT CMCProtocol::close() {
 
+	delete pMCSock;
+
+	return 0;
+}
 //**********************************************************************************************　
 /// <summary>
 /// 3Eフォーマット Wデバイス読み込み用送信バッファセット
@@ -142,7 +151,6 @@ HRESULT CMCProtocol::set_sndbuf_read_D_3E() {
 
 	return S_OK; 
 }							
-
 //**********************************************************************************************　
 /// <summary>
 /// //3Eフォーマット Wデバイス書き込み用送信バッファセット
@@ -233,7 +241,7 @@ HRESULT CMCProtocol::send_write_req_D_3E(void* p_data) {
 	}
 	return S_OK; 
 }
-
+//**********************************************************************************************　
 /// <summary>
 /// 3Eフォーマット Wデバイス読み込み要求送信
 /// </summary>
@@ -266,7 +274,6 @@ HRESULT CMCProtocol::send_read_req_D_3E() {
 	}
 	return S_OK;
 }
-
 //**********************************************************************************************　
 /// <summary>
 /// 3Eフォーマットでの書き込み要求送信関数
@@ -333,8 +340,6 @@ HRESULT CMCProtocol::send_write_req(UINT16 d_no, UINT16 n_write, UINT16* pdata) 
 	
 	return S_OK;
 }
-
-
 //*********************************************************************************************　
 /// <summary>
 /// Qシリーズ3Eフォーマットセット WORD読み込み用関数
@@ -521,7 +526,6 @@ HRESULT CMCProtocol::parse_snd_buf(UINT8* p8, LPST_XE_REQ pbuf) {
 
 	return S_OK;
 }
-
 //*********************************************************************************************　
 /// <summary>
 /// シミュレータ用：PLCへのコマンドへ応答を返す関数
@@ -586,8 +590,12 @@ UINT16 CMCProtocol::snd_responce(ST_XE_REQ st_com,UINT16* pdata ) {
 
 	return st_com.com;
 }
-
-
+//*********************************************************************************************　
+/// <summary>
+/// 
+/// </summary>
+/// <param name="hwnd"></param>
+/// <returns></returns>
 HWND CMCProtocol::open_work_Wnd(HWND hwnd) {
 
 	InitCommonControls();//コモンコントロール初期化
@@ -640,10 +648,6 @@ HWND CMCProtocol::open_work_Wnd(HWND hwnd) {
 
 	InvalidateRect(st_work_wnd.hWnd, NULL, TRUE);//表示更新
 
-
-
-
-
 	ShowWindow(st_work_wnd.hWnd, SW_SHOW);
 	UpdateWindow(st_work_wnd.hWnd);
 
@@ -665,7 +669,6 @@ void CMCProtocol::wstr_out_inf(const std::wstring& srcw) {
 	InvalidateRect(st_work_wnd.hWnd, NULL, TRUE);
 	return;
 }
-
 //
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -676,7 +679,6 @@ void CMCProtocol::wstr_out_inf(const std::wstring& srcw) {
 //  WM_DESTROY  - 中止メッセージを表示して戻る
 //
 //
-
 static bool				is_next_write_req = true;
 static bool				is_slowmode = false, disp_sock_info = false, disp_msg = false, disp_infomation = true;
 static wostringstream	wos;
@@ -707,42 +709,43 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		st_work_wnd.h_static_rcv_cnt_r = CreateWindowW(TEXT("STATIC"), L" R: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			160, 55, 80, 20, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
 		st_work_wnd.h_static_rcv_cnt_err = CreateWindowW(TEXT("STATIC"), L" ERR: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			160, 5, 80, 20, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
+			10, 110, 80, 20, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
 		st_work_wnd.h_static_res_w = CreateWindowW(TEXT("STATIC"), L"RES TIME W: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			10, 80, 150, 20, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
 		st_work_wnd.h_static_res_r = CreateWindowW(TEXT("STATIC"), L" R: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			160, 80, 80, 20, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
 
 		st_work_wnd.h_socket_inf = CreateWindowW(TEXT("STATIC"), L"SOCK INF", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			260, 35, 320, 100, hWnd, (HMENU)IDC_MC_STATIC_SOCK_INF, hInst, NULL);
+			250, 35, 280, 100, hWnd, (HMENU)IDC_MC_STATIC_SOCK_INF, hInst, NULL);
 
 		st_work_wnd.h_static_snd_msg_w = CreateWindowW(TEXT("STATIC"), L"SNDw >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			260, 140, 500, 40, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
+			10, 140, 520, 40, hWnd, (HMENU)IDC_MC_STATIC_SND0, hInst, NULL);
 		st_work_wnd.h_static_rcv_msg_w = CreateWindowW(TEXT("STATIC"), L"RCVw >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			260, 185, 500, 40, hWnd, (HMENU)IDC_MC_STATIC_SND, hInst, NULL);
+			10, 185, 520, 40, hWnd, (HMENU)IDC_MC_STATIC_SND, hInst, NULL);
 		st_work_wnd.h_static_snd_msg_r = CreateWindowW(TEXT("STATIC"), L"SNDr >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			260, 235, 500, 40, hWnd, (HMENU)IDC_MC_STATIC_RCV0, hInst, NULL);
+			10, 235, 520, 40, hWnd, (HMENU)IDC_MC_STATIC_RCV0, hInst, NULL);
 		st_work_wnd.h_static_rcv_msg_r = CreateWindowW(TEXT("STATIC"), L"RCVr >> -", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			260, 280, 500, 40, hWnd, (HMENU)IDC_MC_STATIC_SND, hInst, NULL);
+			10, 280, 520, 40, hWnd, (HMENU)IDC_MC_STATIC_SND, hInst, NULL);
 
 		st_work_wnd.h_chkSlow = CreateWindow(L"BUTTON", L"Slow", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			5, 5, 60, 25, hWnd, (HMENU)IDC_CHK_IS_SLOW_MODE, hInst, NULL);
 		SendMessage(st_work_wnd.h_chkSlow, BM_SETCHECK, BST_UNCHECKED, 0L);
 
+		st_work_wnd.h_chk_inf = CreateWindow(L"BUTTON", L"Info", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			10, 325, 60, 25, hWnd, (HMENU)IDC_CHK_INF, hInst, NULL);
+		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_CHECKED, 0L);
+
 		st_work_wnd.h_chkSockinf = CreateWindow(L"BUTTON", L"Sock", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-			280, 5, 60, 25, hWnd, (HMENU)IDC_CHK_DISP_SOCK, hInst, NULL);
+			90, 5, 60, 25, hWnd, (HMENU)IDC_CHK_DISP_SOCK, hInst, NULL);
 		SendMessage(st_work_wnd.h_chkSockinf, BM_SETCHECK, BST_UNCHECKED, 0L);
 
 		st_work_wnd.h_chk_msg = CreateWindow(L"BUTTON", L"Msg", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-			360, 5, 60, 25, hWnd, (HMENU)IDC_CHK_MSG, hInst, NULL);
+			170, 5, 60, 25, hWnd, (HMENU)IDC_CHK_MSG, hInst, NULL);
 		SendMessage(st_work_wnd.h_chk_msg, BM_SETCHECK, BST_UNCHECKED, 0L);
 		
-		st_work_wnd.h_chk_inf = CreateWindow(L"BUTTON", L"Info", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-			10, 110, 60, 25, hWnd, (HMENU)IDC_CHK_INF, hInst, NULL);
-		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_CHECKED, 0L);
+
 
 	}
-
 	case WM_TIMER: {
 		
 		if (is_slowmode) {
@@ -813,7 +816,7 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 			else  is_slowmode = false;
 		}break;
 		case  IDC_CHK_INF: {
-			if (IsDlgButtonChecked(hWnd, IDC_CHK_MSG) == BST_CHECKED) disp_msg = disp_infomation;
+			if (IsDlgButtonChecked(hWnd, IDC_CHK_INF) == BST_CHECKED) disp_infomation=true;
 			else  disp_infomation = false;
 		}break;
 		case  IDC_CHK_MSG: {
@@ -823,9 +826,7 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
-	}
-	break;
-
+	}break;
 	case ID_SOCK_MC_SERVER:
 	{
 		int nEvent = WSAGETSELECTEVENT(lParam);
@@ -851,7 +852,6 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		case FD_CLOSE: break;
 		}
 	}break;
-
 	case ID_SOCK_MC_CLIENT:
 	{
 		int nEvent = WSAGETSELECTEVENT(lParam);
@@ -934,7 +934,6 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		case FD_CLOSE: break;
 		}
 	}break;
-
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
@@ -949,10 +948,10 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		EndPaint(hWnd, &ps);
 	}
 	break;
-	case WM_DESTROY:
+	case WM_DESTROY: {
 		delete pMCSock;
 		PostQuitMessage(0);
-		break;
+	}break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

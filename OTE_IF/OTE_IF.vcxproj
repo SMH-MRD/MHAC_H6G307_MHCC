@@ -125,7 +125,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;LibOTEProtocol.lib;LibSockAlpha.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\Lib\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,12 +144,12 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;LibOTEProtocol.lib;LibSockAlpha.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\Lib\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="COTE_IF.h" />
-    <ClInclude Include="CSimOTE.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="OTEmsglist.h" />
     <ClInclude Include="OTE_IF.h" />
@@ -158,7 +159,6 @@
   <ItemGroup>
     <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="COTE_IF.cpp" />
-    <ClCompile Include="CSimOTE.cpp" />
     <ClCompile Include="OTE_IF.cpp" />
   </ItemGroup>
   <ItemGroup>

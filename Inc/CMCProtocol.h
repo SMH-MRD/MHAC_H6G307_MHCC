@@ -90,7 +90,7 @@ typedef struct _stXEMsgRes {
 #define ID_UPDATE_TIMER				10800	//TIMER ID
 #define MC_TIMER_PERIOD				25		//要求送信周期
 
-#define WORK_WND_INIT_SIZE_W		800		//-Main Windowの初期サイズ　W
+#define WORK_WND_INIT_SIZE_W		530		//-Main Windowの初期サイズ　W
 #define WORK_WND_INIT_SIZE_H		600		//-Main Windowの初期サイズ　H
 #define WORK_WND_INIT_POS_X			20		//-Main Windowの初期位置設定　X
 #define WORK_WND_INIT_POS_Y			20		//-Main Windowの初期位置設定　Y
@@ -150,7 +150,7 @@ typedef struct _stMCwnd {
 	int disp_item = 0;                                                      //表示項目
 	int area_x = 0, area_y = 0, area_w = 0, area_h = 0;                     //メインウィンドウ上の表示エリア
 	int inf_area_x = 0, inf_area_y = 0, inf_area_w = 0, inf_area_h = 0;     //メインウィンドウ上の表示エリア
-	int bmp_w = 0, bmp_h = 0;                               //グラフィックビットマップサイズ
+	int bmp_w = 0, bmp_h = 0;												//グラフィックビットマップサイズ
 
 	int w_ptr = MC_PRM_MEM0TXT_ORG_Y, w_ptr_inf = MC_PRM_INFTXT_ORG_Y;
 	int x_org = 0;
@@ -201,7 +201,8 @@ public:
 
 	static void wstr_out_inf(const std::wstring& srcw);
 
-	HRESULT Initialize(HWND hwnd,SOCKADDR_IN *paddrinc, SOCKADDR_IN *paddrins, UINT16 no_r, UINT16 num_r, UINT16 no_w, UINT16 num_w);
+	HWND Initialize(HWND hwnd,SOCKADDR_IN *paddrinc, SOCKADDR_IN *paddrins, UINT16 no_r, UINT16 num_r, UINT16 no_w, UINT16 num_w);
+	HRESULT close();
 
 	HRESULT set_sndbuf_read_D_3E();				//3E　Dデバイス読み込み用送信フォーマットセット
 	HRESULT set_sndbuf_write_D_3E();			//3E　Dデバイス書き込み用送信フォーマットセット

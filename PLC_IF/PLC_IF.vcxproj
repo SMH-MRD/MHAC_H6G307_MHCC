@@ -156,20 +156,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CPLC_IF.h" />
-    <ClInclude Include="CPushButton.h" />
-    <ClInclude Include="CWorkWindow_PLC.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="PLC_IF.h" />
-    <ClInclude Include="PLC_IO_DEF_MC.h" />
-    <ClInclude Include="PLC_IO_DEF_MELNET.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="CPLC_IF.cpp" />
-    <ClCompile Include="CPushButton.cpp" />
-    <ClCompile Include="CWorkWindow_PLC.cpp" />
     <ClCompile Include="PLC_IF.cpp" />
   </ItemGroup>
   <ItemGroup>

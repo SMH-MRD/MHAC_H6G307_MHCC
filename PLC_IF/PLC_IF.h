@@ -12,31 +12,34 @@
 #define SYSTEM_TICK_ms				25		//メインスレッド周期 msec
 
 //-Main Windowの配置設定
-#define MAIN_WND_INIT_SIZE_W		380		//-Main Windowの初期サイズ　W
-#define MAIN_WND_INIT_SIZE_H		192		//-Main Windowの初期サイズ　H
-#define MAIN_WND_INIT_POS_X			670		//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			207		//-Main Windowの初期位置設定　Y
+#define MAIN_WND_INIT_SIZE_W		220		//-Main Windowの初期サイズ　W
+#define MAIN_WND_INIT_SIZE_H		180		//-Main Windowの初期サイズ　H
+#define MAIN_WND_INIT_POS_X			1150	//-Main Windowの初期位置設定　X
+#define MAIN_WND_INIT_POS_Y			20		//-Main Windowの初期位置設定　Y
 
 //-ID定義 Mainスレッド用　2000 + 200 +α
 #define ID_STATUS					2200
 #define IDC_STATIC_0				2201
 #define IDC_PB_EXIT					2202
 #define IDC_PB_DEBUG				2203
-#define IDC_CHK_IOCHK				2204
-
-
+#define IDC_CHK_IFCHK				2204
+#define IDC_RADIO_MON				2205	//モニタのみ　PLC書き込み無し
+#define IDC_RADIO_REMOTE			2206	//遠隔モード　運転室操作関連のみ書き込み
+#define IDC_RADIO_SIM				2207	//シミュレータモード　PLC書き込みフルモード
 
 //メインウィンドウ管理構造体
 typedef struct stMainWndTag {
 	HWND hWnd_status_bar = NULL;	//ステータスバーのハンドル
 	HWND h_static0 = NULL;			//スタティックオブジェクトのハンドル
 	HWND h_pb_exit = NULL;			//ボタンオブジェクトのハンドル
-	HWND h_pb_debug = NULL;			//ボタンオブジェクトのハンドル
-	HWND h_chk_IO = NULL;			//ボタンオブジェクトのハンドル
+
+	HWND h_redio_mon = NULL;		//ラジオボタンオブジェクトのハンドル
+	HWND h_redio_remote = NULL;		//ラジオボタンオブジェクトのハンドル
+	HWND h_redio_sim = NULL;		//ラジオボタンオブジェクトのハンドル
+	HWND h_chk_if = NULL;			//チェックボックスブジェクトのハンドル
 
 	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
 	HWND hIOWnd = NULL;				//IO Checkウィンドウのハンドル
-
 }ST_MAIN_WND, * LPST_MAIN_WND;
 
 //マルチメディアタイマー管理構造体
