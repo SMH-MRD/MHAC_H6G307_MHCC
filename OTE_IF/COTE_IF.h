@@ -10,7 +10,6 @@
 #include <commctrl.h>
 #include <time.h>
 #include <string>
-
 #include "OTE_DEF.h"
 
 //IPアドレス
@@ -22,7 +21,9 @@
 
 //タイマー
 #define ID_OTE_MULTICAST_TIMER				199
+#define ID_OTE_UNICAST_TIMER				198
 #define OTE_MULTICAST_SCAN_MS				1000	    // マルチキャスト IF送信周期
+#define OTE_UNICAST_SCAN_MS					100			// ユニキャスト IF送信周期
 
 #define OTE_IF_OTE_IO_MEM_NG				0x8000
 #define OTE_IF_CRANE_MEM_NG					0x4000
@@ -147,7 +148,7 @@ public:
     COteIF(HWND hWnd);
    ~COteIF();
 
-   ST_OTE_IO_WORK ote_io_workbuf;
+   static ST_OTE_IO ote_io_workbuf;
 
    static bool is_my_ote_active;
    static HWND hWnd_parent;		//親ウィンドウのハンドル
@@ -257,6 +258,8 @@ public:
    static HRESULT rcv_pc_m_ote(LPST_PC_M_MSG pbuf);								//PC->OTE	マルチキャスト受信処理
 
    static void disp_msg_cnt();
+
+   static void set_OTE_panel_objects(HWND hWnd);
 
    void set_sock_addr(SOCKADDR_IN *paddr, PCSTR ip,USHORT port){
 	   paddr->sin_family = AF_INET;

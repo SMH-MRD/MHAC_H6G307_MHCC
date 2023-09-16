@@ -176,8 +176,20 @@ typedef struct StPLC_IO {
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
 /****************************************************************************/
 #pragma region OTE
-typedef struct StOTE_IO {
+typedef struct StOTEinput {
 
+	INT32 OTEnotch_sel[MOTION_ID_MAX];
+
+}ST_OTE_IN, * LPST_OTE_IN;
+typedef struct StOTEoutput {
+
+	INT32 OTEnotch_sel[MOTION_ID_MAX];
+
+}ST_OTE_OUT, * LPST_OTE_OUT;
+
+typedef struct StOTE_IO {
+	ST_OTE_IN ote_in;
+	ST_OTE_IN ote_out;
 	INT32 OTEsim_status;
 	INT32 OTEactive;				//接続中の端末ID　接続断の時0
 	INT32 OTE_healty;				//OTEのヘルシー信号

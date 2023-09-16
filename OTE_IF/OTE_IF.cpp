@@ -200,9 +200,6 @@ HBITMAP hOldBmp = 0;
 // For tracking dwId to points
 int index;
 
-POINT touch_pos;
-//Touch Point
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     
@@ -234,9 +231,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
  
         //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
-
-        //IF Window起動
-//        if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
     }
     break;
     case WM_COMMAND:
@@ -266,8 +260,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
         RECT client;
         GetClientRect(hWnd, &client);
-
-        // start double buffering
+         
         if (!memDC) {
             memDC = CreateCompatibleDC(hdc);
         }
