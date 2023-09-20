@@ -65,8 +65,6 @@ private:
     LPST_AGENT_INFO pAgentInf;
     LPST_CS_INFO pCSInf;
 
-    int set_sim();
-    int set_ote();
     int clear_plc_write();
 
     int parse_data_in();

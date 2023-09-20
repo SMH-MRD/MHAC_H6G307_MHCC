@@ -338,7 +338,7 @@ int CSockAlpha::rcv_udp_msg(char* pbuf, int len) {
 /// <returns></returns>
 HRESULT CSockAlpha::Close()
 {
-	if (s > 0)closesocket(s);
+	closesocket(s);
 	s = NULL;
 	DeleteCriticalSection(&csSck);
 	return (S_OK);

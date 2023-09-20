@@ -81,17 +81,22 @@
 #define CMON_MAZENDA_PEN            5 
 #define CMON_MAZENDA_PEN2           6
 
-#define OTE_WORK_WND_X						10		//メンテパネル表示位置X
-#define OTE_WORK_WND_Y						10		//メンテパネル表示位置Y
-#define OTE_WORK_WND_W						800	    //メンテパネルWINDOW幅
-#define OTE_WORK_WND_H						600		//メンテパネルWINDOW高さ
+#define OTE_WORK_WND_X						10					//OTEメインパネル表示位置X
+#define OTE_WORK_WND_Y						10					//OTEメインパネル表示位置Y
+#define OTE_WORK_WND_W						800					//OTEメインパネルWINDOW幅
+#define OTE_WORK_WND_H						600					//OTEメインパネルWINDOW高さ
 
-#define OTE_MON_WND_X						1365		//メンテパネル表示位置X
-#define OTE_MON_WND_Y						207			//メンテパネル表示位置Y
-#define OTE_MON_WND_W						540		    //メンテパネルWINDOW幅
-#define OTE_MON_WND_H						370			//メンテパネルWINDOW高さ
+#define OTE_WORK_SUB_WND_X					OTE_WORK_WND_X+10		//メンテパネル表示位置X
+#define OTE_WORK_SUB_WND_Y					OTE_WORK_WND_Y+30	//メンテパネル表示位置Y
+#define OTE_WORK_SUB_WND_W					250					//メンテパネルWINDOW幅
+#define OTE_WORK_SUB_WND_H					270					//メンテパネルWINDOW高さ
 
+#define OTE_IFCHK_WND_X						OTE_WORK_WND_X							//IF CHECK WINDOW 表示位置X
+#define OTE_IFCHK_WND_Y						OTE_WORK_WND_Y + OTE_WORK_WND_H +5		//IF CHECK WINDOW 表示位置Y
+#define OTE_IFCHK_WND_W						OTE_WORK_WND_W							//IF CHECK WINDOW WINDOW幅
+#define OTE_IFCHK_WND_H						400										//IF CHECK WINDOW WINDOW高さ
 
+#define OTE_N_SUB_WND						5
 
 #define ID_MSG_SET_MODE_INIT                1
 #define ID_MSG_SET_MODE_CONST               0
@@ -108,7 +113,7 @@ typedef struct stOteIOWork {
     INT32       te_multi_snd_chk_counter;
 }ST_OTE_IO_WORK, * LPST_OTE_IO_WORK;
 
-//通信用ウィンドウ構造体
+//操作端末ウィンドウ構造体
 typedef struct _stOTEifwnd {
 
 	UINT32 cnt_res_w = 0, cnt_res_r = 0;
@@ -129,7 +134,6 @@ typedef struct _stOTEifwnd {
 	HPEN hpen[N_CREATE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 	HBRUSH hbrush[N_CREATE_BRUSH] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 
-	HWND h_static_msg_cnt;
 	HWND h_static_snd_msg_u, h_static_snd_msg_m, h_static_rcv_msg_u, h_static_rcv_sub_msg_u, h_static_rcv_msg_m, h_socket_inf;
 	HWND h_static_snd_cnt_u, h_static_snd_cnt_m, h_static_rcv_cnt_u, h_static_rcv_sub_cnt_u, h_static_rcv_cnt_m;
 	HWND h_static_res_w, h_static_res_r;
@@ -152,8 +156,9 @@ public:
 
    static bool is_my_ote_active;
    static HWND hWnd_parent;		//親ウィンドウのハンドル
-   static HWND hWnd_if;			//通信イベント処理用ウィンドウハンドル
-   static HWND hWnd_mon;		//通信モニタウィンドウハンドル
+   static HWND hWnd_if;
+   static HWND hWnd_sub[OTE_N_SUB_WND];			//通信イベント処理用ウィンドウハンドル
+   static HWND hWnd_ifchk;		//通信モニタウィンドウハンドル
 
    WORD helthy_cnt = 0;
 
@@ -171,7 +176,14 @@ public:
    CSharedMem* pSwayIO_Obj;
 
    static HWND open_work_Wnd(HWND hwnd);
-   static HWND open_mon_Wnd(HWND hwnd);
+   static HWND open_connect_Wnd(HWND hwnd);
+   static HWND open_mode_Wnd(HWND hwnd);
+   static HWND open_fault_Wnd(HWND hwnd);
+   static HWND open_moment_Wnd(HWND hwnd);
+   static HWND open_auto_Wnd(HWND hwnd);
+
+   static HWND open_ifchk_Wnd(HWND hwnd);
+  
    static HRESULT close();
 
    //オーバーライド
@@ -233,8 +245,14 @@ public:
    static ST_OTE_U_MSG st_ote_active_msg;	//操作信号が有効な現メッセージ
 
    static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-   static LRESULT CALLBACK WndMonProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
+   static LRESULT CALLBACK WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+   static LRESULT CALLBACK WndAutoProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+   static LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+   static LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+   static LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+   
+   static LRESULT CALLBACK WndIfChkProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+  
    static void wstr_out_inf(const std::wstring& srcw);
 
    static LPST_PC_U_MSG set_msg_pc_u();
@@ -258,8 +276,11 @@ public:
    static HRESULT rcv_pc_m_ote(LPST_PC_M_MSG pbuf);								//PC->OTE	マルチキャスト受信処理
 
    static void disp_msg_cnt();
+   static void disp_ip_inf();
 
    static void set_OTE_panel_objects(HWND hWnd);
+
+   void activate_local_ote(bool is_activate_req);
 
    void set_sock_addr(SOCKADDR_IN *paddr, PCSTR ip,USHORT port){
 	   paddr->sin_family = AF_INET;

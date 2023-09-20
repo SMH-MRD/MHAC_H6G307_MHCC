@@ -64,91 +64,7 @@ using namespace std;
 /****************************************************************************/
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
-/****************************************************************************/
 #pragma region PLC IO
-/*
-#define N_UI_PB					64 //運転操作PB数
-#define N_UI_LAMP				64 //BIT STATUS数
-
-#define N_PLC_PB				N_UI_PB		//運転操作PB数
-#define N_PLC_LAMP				N_UI_LAMP	//BIT STATUS数
-#define N_PLC_CTRL_WORDS        16 //制御センサ信号WORD数
-#define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
-
-#define ID_PB_ESTOP				0
-#define ID_PB_ANTISWAY_ON		1
-#define ID_PB_ANTISWAY_OFF		2
-#define ID_PB_AUTO_START		3
-#define ID_PB_AUTO_MODE			4
-#define ID_PB_AUTO_SET_Z		5
-#define ID_PB_AUTO_SET_XY		6
-
-
-#define ID_PB_CRANE_MODE		12
-#define ID_PB_REMOTE_MODE		13
-#define ID_PB_CTRL_SOURCE_ON	14
-#define ID_PB_CTRL_SOURCE_OFF	15
-#define ID_PB_CTRL_SOURCE2_ON	16
-#define ID_PB_CTRL_SOURCE2_OFF	17
-#define ID_PB_AUTO_RESET		18
-#define ID_PB_FAULT_RESET		19
-#define ID_PB_SEMI_AUTO_S1		20
-#define ID_PB_SEMI_AUTO_S2		21
-#define ID_PB_SEMI_AUTO_S3		22
-#define ID_PB_SEMI_AUTO_L1		23
-#define ID_PB_SEMI_AUTO_L2		24
-#define ID_PB_SEMI_AUTO_L3		25
-#define ID_PB_AUTO_SET_Z_FIXED	26
-#define ID_PB_AUTO_SET_XY_FIXED	27
-
-#define ID_PB_MH_P1             30
-#define ID_PB_MH_P2             31
-#define ID_PB_MH_M1             32
-#define ID_PB_MH_M2             33
-#define ID_PB_SL_P1             34
-#define ID_PB_SL_P2             35
-#define ID_PB_SL_M1             36
-#define ID_PB_SL_M2             37
-#define ID_PB_BH_P1             38
-#define ID_PB_BH_P2             39
-#define ID_PB_BH_M1             40
-#define ID_PB_BH_M2             41
-#define ID_PB_PARK              42
-#define ID_PB_GRND              43
-#define ID_PB_PICK              44
-#define ID_LAMP_HST_BRK         45
-#define ID_LAMP_GNT_BRK         46
-#define ID_LAMP_TRY_BRK         47
-#define ID_LAMP_BH_BRK			48
-#define ID_LAMP_SLW_BRK			49
-
-#define ID_LAMP_OTE_NOTCH_MODE	53
-
-#define ID_LAMP_NOTCH_POS_HST   56
-#define ID_LAMP_NOTCH_POS_GNT   57
-#define ID_LAMP_NOTCH_POS_TRY   58
-#define ID_LAMP_NOTCH_POS_BH	59
-#define ID_LAMP_NOTCH_POS_SLW	60
-
-#define ID_OTE_CAMERA_HEIGHT	0
-#define ID_RMT_CAMERA_HEIGHT	0
-
-
-#define SEMI_AUTO_S1					0
-#define SEMI_AUTO_S2					1
-#define SEMI_AUTO_S3					2
-
-#define SEMI_AUTO_L1					3
-#define SEMI_AUTO_L2					4
-#define SEMI_AUTO_L3					5
-
-#define SEMI_AUTO_TG_CLR				6
-#define SEMI_AUTO_TOUCH_POS				7
-#define SEMI_AUTO_TOUCH_DIST			8
-#define PLC_IO_OFF_DELAY_COUNT	 4	//PB操作オフディレイカウント値
-
-*/
-
 #define PLC_IF_PC_DBG_MODE		0x00000001		//PCデバッグパネル、SIM出力からIO情報生成
 #define PLC_IF_MONITOR_MODE		0x00000001
 #define PLC_IF_REMOTE_MODE		0x00000002
@@ -174,22 +90,11 @@ typedef struct StPLC_IO {
 /****************************************************************************/
 /*   操作端末卓信号定義構造体                                  　         　*/
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
-/****************************************************************************/
 #pragma region OTE
-typedef struct StOTEinput {
-
-	INT32 OTEnotch_sel[MOTION_ID_MAX];
-
-}ST_OTE_IN, * LPST_OTE_IN;
-typedef struct StOTEoutput {
-
-	INT32 OTEnotch_sel[MOTION_ID_MAX];
-
-}ST_OTE_OUT, * LPST_OTE_OUT;
 
 typedef struct StOTE_IO {
 	ST_OTE_IN ote_in;
-	ST_OTE_IN ote_out;
+	ST_OTE_OUT ote_out;
 	INT32 OTEsim_status;
 	INT32 OTEactive;				//接続中の端末ID　接続断の時0
 	INT32 OTE_healty;				//OTEのヘルシー信号
@@ -199,7 +104,6 @@ typedef struct StOTE_IO {
 /****************************************************************************/
 /*   振れセンサ信号定義構造体                                  　         　*/
 /* 　SWAY_PC_IFがセットする共有メモリ上の情報　      　　　　　　           */
-/****************************************************************************/
 #pragma region SWAY SENSOR
 #define SENSOR_TARGET_MAX            4//検出ターゲット最大数
 #define SID_TG1                      0//ターゲットID
@@ -242,7 +146,6 @@ typedef struct StSwayIO {
 /****************************************************************************/
 /*   シミュレーション信号定義構造体                                  　   　*/
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
-/****************************************************************************/
 #pragma region SIMULATOR
 #define SIM_ACTIVE_MODE			0x00000100					//シミュレーション実行モード
 #define SIM_SWAY_PACKET_MODE	0x00000010					//振れセンサパケット送信モード
@@ -258,11 +161,12 @@ typedef struct StSimulationStatus {
 	ST_SWAY_SND_MSG snd_msg;
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 #pragma endregion シミュレーション信号定義構造体
-/****************************************************************************/
-/*   クレーン状態定義構造体                                          　   　*/
-/* 　Environmentタスクがセットする共有メモリ上の情報　　　　　　　 　    　 */
-/****************************************************************************/
-#pragma region CRANE STATUS
+//****************************************************************************
+/// <summary>
+/// クレーン状態定義構造体 
+/// Environmentタスクがセットする共有メモリ上の情報　
+/// </summary>
+#pragma region CRANE STATUS クレーン状態定義構造体
 #define DBG_PLC_IO				0x00000001
 #define DBG_SWAY_IO				0x00000100
 #define DBG_ROS_IO				0x00010000
@@ -299,12 +203,8 @@ typedef struct stEnvSubproc {
 #define STAT_ACC				0
 #define STAT_DEC				1
 
-#define OTE_REQ_CODE_NA			0
-#define OTE_REQ_CODE_ONBOAD		1
-#define OTE_REQ_CODE_REMOTE		2
-#define OTE_REQ_CODE_CONNECTED	4
-
 #define PB_TRIG_COUNT			1
+
 typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
 	bool is_tasks_standby_ok;							//タスクの立ち上がり確認
@@ -337,11 +237,10 @@ typedef struct StCraneStatus {
 	INT32 notch0_crane;									//0ノッチ判定PLC
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
-#pragma endregion クレーン状態定義構造体
+#pragma endregion 
 /****************************************************************************/
 /*   JOB COMMAND情報管理構造体                                   　   　	*/
 /* 　JOB,COMMAND生成、実行に関する情報　　　　　　　 　						*/
-/****************************************************************************/
 #pragma region JOB COMMAND
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
@@ -559,7 +458,6 @@ typedef struct stJobIO {
 /****************************************************************************/
 /*   Client Service	情報定義構造体                                   　   　*/
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
-/****************************************************************************/
 #pragma region CLIENT
 
 #define CS_SEMIAUTO_TG_SEL_DEFAULT      0
@@ -625,7 +523,6 @@ typedef struct stClientIO {
 /****************************************************************************/
 /*   Policy	情報定義構造体                                   　			  　*/
 /* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
-/****************************************************************************/
 #pragma region POLICY
 #define FAULT_MAP_W_SIZE	64	//フォルトマップサイズ
 typedef struct stPolicyInfo {
@@ -637,7 +534,6 @@ typedef struct stPolicyInfo {
 /****************************************************************************/
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
-/****************************************************************************/
 #pragma region AGENT
 
 /*** ジョブ,コマンドステータス ***/
@@ -688,7 +584,6 @@ typedef struct stAgentInfo {
 #pragma endregion AGENT情報定義構造体
 /****************************************************************************/
 /*共有メモリクラス定義														*/
-/****************************************************************************/
 static char smem_dummy_buf[SMEM_DATA_SIZE_MAX];
 class CSharedMem
 {

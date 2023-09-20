@@ -47,12 +47,9 @@ CPLC_IF::~CPLC_IF() {
     delete pAgentInfObj;
     delete pCSInfObj;
 };
-
 int CPLC_IF::set_outbuf(LPVOID pbuf) {
     poutput = pbuf;return 0;
 };      //出力バッファセット
-
-
 BOOL CPLC_IF::show_if_wnd() {
     return SetWindowPos(hWnd_plcif, HWND_TOP, IF_WND_INIT_POS_X, IF_WND_INIT_POS_Y, IF_WND_INIT_SIZE_W, IF_WND_INIT_SIZE_H, SWP_SHOWWINDOW);
 
@@ -62,8 +59,10 @@ BOOL CPLC_IF::hide_if_wnd() {
 }
 
 //******************************************************************************************
-// init_proc()
-//******************************************************************************************
+/// <summary>
+/// init_proc()
+/// </summary>
+/// <returns></returns>
 int CPLC_IF::init_proc() {
 
     // 共有メモリ取得
@@ -132,8 +131,10 @@ int CPLC_IF::init_proc() {
     return int(mode & 0xff00);
 }
 //*********************************************************************************************
-// input()
-//*********************************************************************************************
+/// <summary>
+/// input()
+/// </summary>
+/// <returns></returns>
 int CPLC_IF::input() {
 
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
@@ -146,8 +147,6 @@ int CPLC_IF::input() {
 //*********************************************************************************************
 // parse()
 //*********************************************************************************************
-int CPLC_IF::set_sim() { return 0; }
-int CPLC_IF::set_ote() { return 0; }
 int CPLC_IF::clear_plc_write() { 
     memset(lp_PLCwrite, 0, sizeof(ST_PLC_WRITE));
     return 0; 
@@ -190,18 +189,7 @@ int CPLC_IF::output() {
     //PLC書き込みデータセット
     lp_PLCwrite->helthy = helthy_cnt++;   //### ヘルシー信号
  
-    if (mode & PLC_IF_REMOTE_MODE) {
-        set_ote();
-    }
-    else if (mode & PLC_IF_SIMULATOR_MODE) {
-        set_ote();
-        set_sim();
-    }
-    else {
-        clear_plc_write();
-    }
- 
-    //共有メモリ出力処理
+     //共有メモリ出力処理
     if(out_size) { 
         memcpy_s(poutput, out_size, &plc_if_workbuf, out_size);
     }

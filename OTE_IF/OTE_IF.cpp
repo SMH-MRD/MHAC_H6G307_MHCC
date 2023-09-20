@@ -111,7 +111,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-//
+//******************************************************************************************
 //   関数: InitInstance(HINSTANCE, int)
 //
 //   目的: インスタンス ハンドルを保存して、メイン ウィンドウを作成します
@@ -170,36 +170,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
            return((DWORD)FALSE);
        }
    }
-   
-
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
    return TRUE;
 }
-
-//
-//  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  目的: メイン ウィンドウのメッセージを処理します。
-//
-//  WM_COMMAND  - アプリケーション メニューの処理
-//  WM_PAINT    - メイン ウィンドウを描画する
-//  WM_DESTROY  - 中止メッセージを表示して戻る
-//
-//
-
-//Touch Point
-// For double buffering
-static HDC memDC = 0;
-static HBITMAP hMemBmp = 0;
-HBITMAP hOldBmp = 0;
-
-
-
-// For tracking dwId to points
-int index;
-
+//******************************************************************************************
+/// <summary>
+/// メイン ウィンドウのメッセージを処理します。
+/// </summary>
+/// <param name="hWnd"></param>
+/// <param name="message"></param>
+/// <param name="wParam"></param>
+/// <param name="lParam"></param>
+/// <returns></returns>
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     
@@ -218,11 +202,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             5, 30, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
 
         stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-            90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
+            90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_OTE, hInst, NULL);
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
         
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             150, 65, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
@@ -239,6 +223,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
+        case IDC_CHK_IFCHK: {
+            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) {
+                if(pProcObj->hWnd_ifchk==NULL)pProcObj->open_ifchk_Wnd(pProcObj->hWnd_if);
+                else ShowWindow(pProcObj->hWnd_ifchk, SW_SHOW);
+            }
+            else {
+                DestroyWindow(pProcObj->hWnd_ifchk);
+                pProcObj->hWnd_ifchk = NULL;
+            }
+                //ShowWindow(pProcObj->hWnd_ifchk, SW_HIDE);
+
+        }break;
+        case IDC_CHK_OTE: {
+            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_local_ote, BM_GETCHECK, 0, 0))
+                pProcObj->activate_local_ote(true);
+            else
+                pProcObj->activate_local_ote(false);
+        }break;
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
@@ -260,15 +262,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
         RECT client;
         GetClientRect(hWnd, &client);
-         
-        if (!memDC) {
-            memDC = CreateCompatibleDC(hdc);
-        }
-        hMemBmp = CreateCompatibleBitmap(hdc, client.right, client.bottom);
-        hOldBmp = (HBITMAP)SelectObject(memDC, hMemBmp);
-
-         BitBlt(hdc, 0, 0, client.right, client.bottom, memDC, 0, 0, SRCCOPY);
-
         EndPaint(hWnd, &ps);
     }
     break;
@@ -280,8 +273,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return 0;
 }
-
-// バージョン情報ボックスのメッセージ ハンドラーです。
+//******************************************************************************************
+/// <summary>
+/// バージョン情報ボックスのメッセージ ハンドラーです。
+/// </summary>
+/// <param name="hDlg"></param>
+/// <param name="message"></param>
+/// <param name="wParam"></param>
+/// <param name="lParam"></param>
+/// <returns></returns>
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -300,12 +300,12 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-
-///#　******************************************************************************************
-//  関数: CreateStatusbarMain(HWND)
-//
-//  目的: メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
-//　******************************************************************************************  
+//******************************************************************************************
+/// <summary>
+/// メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
+/// </summary>
+/// <param name="hWnd"></param>
+/// <returns></returns>
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
@@ -327,12 +327,16 @@ HWND CreateStatusbarMain(HWND hWnd)
     ShowWindow(hSBWnd, SW_SHOW);
     return hSBWnd;
 }
-
-///#　****************************************************************************************
-//  関数: alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
-//  目的: アプリケーションメイン処理
-// 　マルチメディアタイマーイベント処理関数
 //  ******************************************************************************************
+/// <summary>
+/// アプリケーションメイン処理
+/// マルチメディアタイマーイベント処理関数
+/// </summary>
+/// <param name="uID"></param>
+/// <param name="uMsg"></param>
+/// <param name="dwUser"></param>
+/// <param name="dw1"></param>
+/// <param name="dw2"></param>
 VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
     knl_manage_set.sys_counter++;
