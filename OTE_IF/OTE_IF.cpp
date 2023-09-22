@@ -206,14 +206,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_OTE, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
+        SendMessage(stMainWnd.h_chk_local_ote, BM_SETCHECK, BST_UNCHECKED, 0L);
         
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             150, 65, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
-
- 
-        //表示更新タイマ起動
+         //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
     }
     break;

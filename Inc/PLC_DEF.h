@@ -17,22 +17,29 @@
 #define MC_ADDR_D_WRITE		10200
 #define MC_SIZE_D_WRITE		100
 
-typedef struct st_PLCwrite_tag {
+typedef struct ccinv_if_r_tag {
+    INT16 x;
+    INT16 Wr[4];
+}ST_CCINV_READ, * LPST_CCINV_READ;
+typedef struct ccinv_if_w_tag {
+    INT16 y;
+    INT16 Ww[4];
+}ST_CCINV_WRITE, * LPST_CCINV_WRITE;
+
+typedef struct st_PLCwrite_tag {//制御PC→PLC
     INT16 helthy;               //PCヘルシー出力信号
     INT16 auto_ctrl;            //自動制御フラグ
-    INT16 cab_ai[4];            //運転室PLC AI信号【将来用】
-    INT16 cab_di[5];            //運転室PLC→電気室PLC b出力
-    INT16 spare0[28];           //12-39予備   
+    INT32 cab_ai[5];            //運転室PLC AI信号【将来用】
+    INT16 cab_di[6];            //運転室PLC→電気室PLC b出力
+    INT16 spare0[7];            //予備 
+    INT32 hcounter[4];          //高速カウンタユニット 
+    INT32 absocoder[2];         //アブソコーダ 
+    INT16 spare1[3];            //予備
     INT16 pc_fault[2];          //PC検出異常マップ
-    INT16 spare1[6];            //42-47予備
-    //以下SIMULATORによる上書き用
-    INT16 hcnt_stat[2];         //電気室PLC 高速カウンタユニットステータス信号 
-    INT32 hcnt[2][2];           //電気室PLC 高速カウンタユニットカウント値 
-    INT32 abscnt[2];            //電気室PLC アブソコーダカウント値 
-    INT16 eroom_x[7];           //電気室PLC Xレジスタ入力値
-    INT16 cc_link_unit_stat;    //電気室PLC CC LINKユニットステータス
-    INT16 cc_link_inv_r[6][5];  //電気室PLC CC LINKインバータ入力信号
-}ST_PLC_WRITE, * LPST_PLC_WRITE;
+    INT16 spare2[20];           //予備
+    INT16 erm_x[8];             //予備
+    ST_CCINV_READ ccinv_r[6];   //予備
+ }ST_PLC_WRITE, * LPST_PLC_WRITE;
 
 union PLC_WRITE_BUF {
     INT16 D[MC_SIZE_D_WRITE];
@@ -41,18 +48,20 @@ union PLC_WRITE_BUF {
 
 typedef struct st_PLCread_tag {
     INT16 helthy;               //PLCヘルシーカウンタ
-    INT32 cab_w[5];             //運転室PLC→電気室PLC W出力
-    INT16 cab_b[5];             //運転室PLC→電気室PLC b出力
-    INT16 eroom_b[5];           //電気室PLC b出力
-    INT16 spare0[3];            //22-24予備
+    INT16 plc_ctrl;             // PLC運転モード
+    INT32 cab_ai[5];            //運転室PLC→電気室PLC W出力
+    INT16 cab_bi[6];            //運転室PLC→電気室PLC b出力
+    INT16 erm_bo[5];            //電気室PLC b出力
+    INT16 spare0[2];            //予備
     INT32 pos[5];               //各軸位置信号
     INT16 spd[5];               //各軸速度信号
     INT16 plc_fault[17];        //各軸速度信号
-    INT16 spare1[3];            //57-59予備
-     //以下SIMULATORロジック入力用
-    INT16 eroom_y[3];           //電気室PLC Y出力
-    INT16 cc_link_inv_w[6][5];
-}ST_PLC_READ, * LPST_PLC_READ;  //電気室PLC CC LINKインバータ出力信号
+    INT16 spare1[2];            //予備
+    INT16 erm_y[3];             //電気室PLC Y出力
+    INT16 erm_x[7];             //電気室PLC X入力
+    INT16 spare2[1];            //予備
+    ST_CCINV_WRITE ccinv_w[6];  //予備
+}ST_PLC_READ, * LPST_PLC_READ; 
 
 union PLC_READ_BUF {
     INT16 D[MC_SIZE_D_READ];

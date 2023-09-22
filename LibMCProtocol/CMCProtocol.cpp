@@ -751,6 +751,17 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		if (is_slowmode) {
 			break;
 		}
+
+		if (disp_sock_info) {
+	
+			
+			
+			
+			
+			break;
+		}
+
+
 		if (is_next_write_req) {//書き込み要求送信
 			//3Eフォーマット Dデバイス書き込み要求送信
 			if (send_write_req_D_3E(mc_req_msg_w.req_data) != S_OK) {
@@ -793,7 +804,6 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 
 			is_next_write_req = true;
 		}
-		
 		//カウンタ表示
 		wos.str(L""); wos << L"SND CNT W: " << std::dec << st_work_wnd.count_snd_w;
 		SetWindowText(st_work_wnd.h_static_snd_cnt_w, wos.str().c_str());
@@ -887,7 +897,6 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 				st_work_wnd.count_rcv_w++;
 				wos.str(L""); wos << L"RCV CNT W: " << std::dec << st_work_wnd.count_rcv_w;
 				SetWindowText(st_work_wnd.h_static_rcv_cnt_w, wos.str().c_str());
-
 				if (disp_msg) {
 					wos.str(L"");
 					wos << L"RCVr>>" << L"#sub:" << std::hex << mc_res_msg_w.subcode << L" #serial:" << mc_res_msg_w.serial << L" #NW:" << mc_res_msg_w.nNW << L" #PC:" << mc_res_msg_w.nPC << L" #UIO:" << mc_res_msg_w.nUIO << L" #Ucd:" << mc_res_msg_w.nUcode

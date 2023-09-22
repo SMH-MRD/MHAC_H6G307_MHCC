@@ -74,16 +74,16 @@ using namespace std;
 // PLC_状態信号構造体（機上センサ信号)
 typedef struct StPLC_IO {
 	INT32 mode;
-	double v_fb[MOTION_ID_MAX];
-	double v_ref[MOTION_ID_MAX];
-	double trq_fb_01per[MOTION_ID_MAX];
-	double pos[MOTION_ID_MAX];
-	double weight;
-	double weight_ah;
-	INT16 brk[MOTION_ID_MAX];
-	INT16 notch_ref[MOTION_ID_MAX];
-	PLC_READ_BUF		input;
-	PLC_WRITE_BUF		output;
+	double v_fb[MOTION_ID_MAX];			//速度FB
+	double v_ref[MOTION_ID_MAX];		//PLCへの速度指令出力
+	double trq_fb_01per[MOTION_ID_MAX];	//トルクFB
+	double pos[MOTION_ID_MAX];			//位置FB
+	double weight;						//主巻荷重FB
+	double weight_ah;					//補巻荷重FB
+	INT16 brk[MOTION_ID_MAX];			//ブレーキ状態FB
+	INT16 notch_ref[MOTION_ID_MAX];		//ノッチ指令入力FB（OTE入力含む）
+	PLC_READ_BUF		input;			//PLCからの読み取り信号生値
+	PLC_WRITE_BUF		output;			//PLCへの書き込み信号生値
 }ST_PLC_IO, * LPST_PLC_IO;
 
 #pragma endregion PLC IO定義構造体
@@ -93,8 +93,8 @@ typedef struct StPLC_IO {
 #pragma region OTE
 
 typedef struct StOTE_IO {
-	ST_OTE_IN ote_in;
-	ST_OTE_OUT ote_out;
+	ST_OTE_U_BODY	ote_in;
+	ST_PC_U_BODY	ote_out;
 	INT32 OTEsim_status;
 	INT32 OTEactive;				//接続中の端末ID　接続断の時0
 	INT32 OTE_healty;				//OTEのヘルシー信号

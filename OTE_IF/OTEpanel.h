@@ -31,39 +31,7 @@ POINT ote_notch_pb_loc[MOTION_ID_MAX] = {
 };
 #pragma endregion
 
-#pragma region PB
-//RADIO NOTCH ID  OTE_ID_RADIO + 100xMOTION_ID + 10 + NOTCH(-5～+5）
-#define OTE_ID_PB_CHK_RADIO             21600
-//ラジオ
-#define OTE_INDEX_RADIO_CONNECT			0
-#define OTE_INDEX_RADIO_AUTO			1
-#define OTE_INDEX_RADIO_MODE			2
-#define OTE_INDEX_RADIO_FAULT			3
-#define OTE_INDEX_RADIO_MOMENT			4
 
-#define OTE_INDEX_RADIO_IFCHK_UNI		5
-#define OTE_INDEX_RADIO_IFCHK_MPC		6
-#define OTE_INDEX_RADIO_IFCHK_MTE		7
-
-//チェックボックス
-#define OTE_INDEX_CHK_ESTOP				8
-#define OTE_INDEX_CHK_REMOTE			9
-#define OTE_INDEX_CHK_CONNECT			10
-#define OTE_INDEX_CHK_OTE_MON			11
-//PB
-#define OTE_INDEX_PB_START				12
-#define OTE_INDEX_PB_CTR_SOURCE			12
-#define OTE_INDEX_PB_END				12
-
-#define OTE_ID_STATIC                   21700
-#define OTE_INDEX_STATIC_MSG_CNT			0
-#define OTE_INDEX_STATIC_COMMON_WND			1
-#define OTE_INDEX_STATIC_CONNECT_CNT		2
-#define OTE_INDEX_STATIC_OTE_IP_INF			3
-#define OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S	4
-#define OTE_INDEX_STATIC_IFCHK_MSG_BODY_S	5
-#define OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R	6
-#define OTE_INDEX_STATIC_IFCHK_MSG_BODY_R	7
 
 HWND h_static_msg_cnt;
 HWND h_pb_ote[OTE_N_PB_CHK_RADIO];					//PBハンドル
@@ -111,4 +79,3 @@ L"MON",
 L"主幹"
 };
 
-#pragma endregion

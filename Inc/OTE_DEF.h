@@ -33,6 +33,39 @@
 #define ID_OTE_MODE_MONITOR					0x00000002
 #define ID_OTE_MODE_REMOTE_ACTIVE			0x00000010
 
+//RADIO NOTCH ID  OTE_ID_RADIO + 100xMOTION_ID + 10 + NOTCH(-5～+5）
+#define OTE_ID_PB_CHK_RADIO             21600
+//ラジオ
+#define OTE_INDEX_RADIO_CONNECT			0
+#define OTE_INDEX_RADIO_AUTO			1
+#define OTE_INDEX_RADIO_MODE			2
+#define OTE_INDEX_RADIO_FAULT			3
+#define OTE_INDEX_RADIO_MOMENT			4
+
+#define OTE_INDEX_RADIO_IFCHK_UNI		5
+#define OTE_INDEX_RADIO_IFCHK_MPC		6
+#define OTE_INDEX_RADIO_IFCHK_MTE		7
+
+//チェックボックス
+#define OTE_INDEX_CHK_ESTOP				8
+#define OTE_INDEX_CHK_REMOTE			9
+#define OTE_INDEX_CHK_CONNECT			10
+#define OTE_INDEX_CHK_OTE_MON			11
+//PB
+#define OTE_INDEX_PB_START				12	//釦オブジェクトの開始INDEX
+#define OTE_INDEX_PB_CTR_SOURCE			12
+#define OTE_INDEX_PB_END				12	//釦オブジェクトの終了INDEX
+
+#define OTE_ID_STATIC                   21700
+#define OTE_INDEX_STATIC_MSG_CNT			0
+#define OTE_INDEX_STATIC_COMMON_WND			1
+#define OTE_INDEX_STATIC_CONNECT_CNT		2
+#define OTE_INDEX_STATIC_OTE_IP_INF			3
+#define OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S	4
+#define OTE_INDEX_STATIC_IFCHK_MSG_BODY_S	5
+#define OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R	6
+#define OTE_INDEX_STATIC_IFCHK_MSG_BODY_R	7
+
 //**************************************************************************************
 //通信電文フォーマット
 //**************************************************************************************
@@ -88,27 +121,16 @@ typedef struct OteUBody {
 	INT32     tg_pos[8];			//設定目標位置
 	INT32     cam_inf[8];			//操作端カメラ情報
 	INT32     spare[16];			//予備
+	INT16	  sub_monitor_mode;		//オプションモニタ選択状態
+	INT16	  ote_mode;			//OTEの操作モード
 }ST_OTE_U_BODY, * LPST_OTE_U_BODY;
 typedef struct OteUMsg {
 	ST_OTE_HEAD         head;
 	ST_OTE_U_BODY    body;
 }ST_OTE_U_MSG, * LPST_OTE_U_MSG;
 
-//**************************************************************************************
-//共有メモリ セット要素定義
-//**************************************************************************************
+
 #define OTE_N_PB_CHK_RADIO				64
 #define OTE_N_STATIC					64
 #define OTE_PB_HOLDTIME_MASK			0x00000007
 
-typedef struct StOTEinput {						//OTEへの操作入力状態
-	INT32 OTEnotch_sel[MOTION_ID_MAX];
-	INT32 sub_monitor_mode;
-	INT32 ote_pb_stat[OTE_N_PB_CHK_RADIO];
-}ST_OTE_IN, * LPST_OTE_IN;
-
-typedef struct StOTEoutput {					//OTE出力内容（UNICAST OTE送信内容）
-	INT32 OTEnotch_stat[MOTION_ID_MAX];
-	INT32 ote_pb_stat[OTE_N_STATIC];
-	INT32 ote_mode;								//REMOTE OPERATION,MONITOR,MAINTENANCE OPERATION
-}ST_OTE_OUT, * LPST_OTE_OUT;

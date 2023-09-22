@@ -20,6 +20,7 @@ CPLC_IF::CPLC_IF(HWND _hWnd_parent) {
     pSimulationStatusObj = new CSharedMem;
     pAgentInfObj = new CSharedMem;
     pCSInfObj = new CSharedMem;
+    pOTEioObj = new CSharedMem;
 
     out_size = 0;
 
@@ -94,9 +95,14 @@ int CPLC_IF::init_proc() {
         mode |= PLC_IF_CS_MEM_NG;
     }
 
-    pCSInf = (LPST_CS_INFO)pCSInfObj->get_pMap();                                           //CS共有メモリ
-
-
+    pCSInf = (LPST_CS_INFO)pCSInfObj->get_pMap(); 
+    
+    
+    if (OK_SHMEM != pOTEioObj->create_smem(SMEM_OTE_IO_NAME, sizeof(ST_OTE_IO), MUTEX_OTE_IO_NAME)) {
+        mode |= PLC_IF_OTE_MEM_NG;
+    }
+    pOTEio = (LPST_OTE_IO)pOTEioObj->get_pMap();
+ 
     //MCプロトコルオブジェクトインスタンス化
     pMCProtocol = new CMCProtocol;
 
@@ -188,6 +194,11 @@ int CPLC_IF::parse() {
 int CPLC_IF::output() { 
     //PLC書き込みデータセット
     lp_PLCwrite->helthy = helthy_cnt++;   //### ヘルシー信号
+ 
+    if(pOTEio->ote_in.pb_ope[OTE_INDEX_PB_CTR_SOURCE])
+        lp_PLCwrite->cab_di[0] |= 0x1;
+    else
+        lp_PLCwrite->cab_di[0] &= 0x0;
  
      //共有メモリ出力処理
     if(out_size) { 

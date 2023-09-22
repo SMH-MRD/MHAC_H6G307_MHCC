@@ -236,11 +236,11 @@ public:
  
    static ST_PC_M_MSG st_msg_pc_m_pc_rcv;
    static ST_PC_M_MSG st_msg_pc_m_ote_rcv;
-   static ST_PC_U_MSG st_msg_pc_u_rcv;
+   static ST_OTE_U_MSG st_msg_pc_u_rcv;
 
    static ST_OTE_M_MSG st_msg_ote_m_pc_rcv;
    static ST_OTE_M_MSG st_msg_ote_m_ote_rcv;
-   static ST_OTE_U_MSG st_msg_ote_u_rcv;
+   static ST_PC_U_MSG st_msg_ote_u_rcv;
    
    static ST_OTE_U_MSG st_ote_active_msg;	//操作信号が有効な現メッセージ
 

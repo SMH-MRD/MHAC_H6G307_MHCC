@@ -53,11 +53,11 @@ ST_OTE_M_MSG COteIF::st_msg_ote_m_snd;
 
 ST_PC_M_MSG COteIF::st_msg_pc_m_pc_rcv;
 ST_PC_M_MSG COteIF::st_msg_pc_m_ote_rcv;
-ST_PC_U_MSG COteIF::st_msg_pc_u_rcv;
+ST_OTE_U_MSG COteIF::st_msg_pc_u_rcv;
 
 ST_OTE_M_MSG COteIF::st_msg_ote_m_pc_rcv;
 ST_OTE_M_MSG COteIF::st_msg_ote_m_ote_rcv;
-ST_OTE_U_MSG COteIF::st_msg_ote_u_rcv;
+ST_PC_U_MSG COteIF::st_msg_ote_u_rcv;
 
 ST_OTE_U_MSG COteIF::st_ote_active_msg;	//操作信号が有効な現メッセージ
 
@@ -211,6 +211,14 @@ int COteIF::init_proc() {
 	if (pSockPcMultiCastOte->init_sock_m(hWnd_if, addrin_pc_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockPcMultiCastOte->err_msg.str(); return NULL; }
 	if (pSockOteMultiCastOte->init_sock_m(hWnd_if, addrin_ote_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockOteMultiCastOte->err_msg.str(); return NULL; }
 
+	//送信メッセージヘッダ設定
+
+	st_msg_pc_u_snd.head.addr = addrin_ote_u_pc;
+	st_msg_pc_m_snd.head.addr = addrin_ote_m_pc;
+
+	st_msg_ote_u_snd.head.addr = addrin_pc_u_ote;
+	st_msg_ote_m_snd.head.addr = addrin_pc_m_ote;
+
 	return 0; 
 }
 /*****************************************************************************/
@@ -219,6 +227,7 @@ int COteIF::init_proc() {
 /// </summary>
 /// <returns></returns>
 int COteIF::input() {
+
       return 0; 
 } 
 /*****************************************************************************/
@@ -227,14 +236,9 @@ int COteIF::input() {
 /// </summary>
 /// <returns></returns>
 int COteIF::parse() { 
-#if 0
-    //半自動登録ボタンの入力状況処理　オフディレイ
-    for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++) {
-        if (ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_PB_SEMI_AUTO_S1 + i]) ote_io_workbuf.ote_io.ui.PBsemiauto[i] = PLC_IO_OFF_DELAY_COUNT;
-        else if (ote_io_workbuf.ote_io.ui.PBsemiauto[i] > 0)ote_io_workbuf.ote_io.ui.PBsemiauto[i]--;
-        else;
-     }
-#endif
+	//ユニキャスト通信データをワークエリアにコピー
+	memcpy_s(&ote_io_workbuf.ote_in, sizeof(ST_OTE_U_BODY), &st_msg_ote_u_snd.body, sizeof(ST_OTE_U_BODY));
+	memcpy_s(&ote_io_workbuf.ote_out, sizeof(ST_PC_U_BODY), &st_msg_pc_u_snd.body, sizeof(ST_PC_U_BODY));
     return 0;
 }    
 /*****************************************************************************/
@@ -562,7 +566,6 @@ HWND COteIF::open_work_Wnd(HWND hwnd) {
 
 	return hWnd_if;
 }
-
 HWND COteIF::open_connect_Wnd(HWND hwnd) {
 
 	InitCommonControls();//コモンコントロール初期化
@@ -780,8 +783,8 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		disp_msg_cnt();//カウント表示更新
 
 		for (int i = OTE_INDEX_PB_START; i <= OTE_INDEX_PB_END; i++) {
-			if (ote_io_workbuf.ote_out.ote_pb_stat[i] & OTE_PB_HOLDTIME_MASK)
-				ote_io_workbuf.ote_out.ote_pb_stat[i]--;
+			if (st_msg_ote_u_snd.body.pb_ope[i] & OTE_PB_HOLDTIME_MASK)
+				st_msg_ote_u_snd.body.pb_ope[i]--;
 			else {
 				if (Button_GetState(h_pb_ote[i]) == BST_PUSHED) {
 					Button_SetState(h_pb_ote[i], FALSE);
@@ -798,65 +801,65 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		{
 #pragma region notch
 		//主巻
-		case OTE_ID_RADIO_HST_NOTCH - 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = -5; break;
-		case OTE_ID_RADIO_HST_NOTCH - 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = -4; break;
-		case OTE_ID_RADIO_HST_NOTCH - 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = -3; break;
-		case OTE_ID_RADIO_HST_NOTCH - 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = -2; break;
-		case OTE_ID_RADIO_HST_NOTCH - 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = -1; break;
-		case OTE_ID_RADIO_HST_NOTCH + 0: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 0; break;
-		case OTE_ID_RADIO_HST_NOTCH + 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 1; break;
-		case OTE_ID_RADIO_HST_NOTCH + 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 2; break;
-		case OTE_ID_RADIO_HST_NOTCH + 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 3; break;
-		case OTE_ID_RADIO_HST_NOTCH + 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 4; break;
-		case OTE_ID_RADIO_HST_NOTCH + 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 5; break;
+		case OTE_ID_RADIO_HST_NOTCH - 5: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = -5; break;
+		case OTE_ID_RADIO_HST_NOTCH - 4: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = -4; break;
+		case OTE_ID_RADIO_HST_NOTCH - 3: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = -3; break;
+		case OTE_ID_RADIO_HST_NOTCH - 2: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = -2; break;
+		case OTE_ID_RADIO_HST_NOTCH - 1: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = -1; break;
+		case OTE_ID_RADIO_HST_NOTCH + 0: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = 0; break;
+		case OTE_ID_RADIO_HST_NOTCH + 1: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = 1; break;
+		case OTE_ID_RADIO_HST_NOTCH + 2: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = 2; break;
+		case OTE_ID_RADIO_HST_NOTCH + 3: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = 3; break;
+		case OTE_ID_RADIO_HST_NOTCH + 4: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = 4; break;
+		case OTE_ID_RADIO_HST_NOTCH + 5: st_msg_ote_u_snd.body.notch_pos[ID_HOIST] = 5; break;
 			//補巻
-		case OTE_ID_RADIO_AH_NOTCH - 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = -5; break;
-		case OTE_ID_RADIO_AH_NOTCH - 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = -4; break;
-		case OTE_ID_RADIO_AH_NOTCH - 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = -3; break;
-		case OTE_ID_RADIO_AH_NOTCH - 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = -2; break;
-		case OTE_ID_RADIO_AH_NOTCH - 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = -1; break;
-		case OTE_ID_RADIO_AH_NOTCH + 0: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 0; break;
-		case OTE_ID_RADIO_AH_NOTCH + 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 1; break;
-		case OTE_ID_RADIO_AH_NOTCH + 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 2; break;
-		case OTE_ID_RADIO_AH_NOTCH + 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 3; break;
-		case OTE_ID_RADIO_AH_NOTCH + 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 4; break;
-		case OTE_ID_RADIO_AH_NOTCH + 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 5; break;
+		case OTE_ID_RADIO_AH_NOTCH - 5: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = -5; break;
+		case OTE_ID_RADIO_AH_NOTCH - 4: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = -4; break;
+		case OTE_ID_RADIO_AH_NOTCH - 3: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = -3; break;
+		case OTE_ID_RADIO_AH_NOTCH - 2: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = -2; break;
+		case OTE_ID_RADIO_AH_NOTCH - 1: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = -1; break;
+		case OTE_ID_RADIO_AH_NOTCH + 0: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = 0; break;
+		case OTE_ID_RADIO_AH_NOTCH + 1: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = 1; break;
+		case OTE_ID_RADIO_AH_NOTCH + 2: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = 2; break;
+		case OTE_ID_RADIO_AH_NOTCH + 3: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = 3; break;
+		case OTE_ID_RADIO_AH_NOTCH + 4: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = 4; break;
+		case OTE_ID_RADIO_AH_NOTCH + 5: st_msg_ote_u_snd.body.notch_pos[ID_AHOIST] = 5; break;
 			//走行
-		case OTE_ID_RADIO_GNT_NOTCH - 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = -5; break;
-		case OTE_ID_RADIO_GNT_NOTCH - 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = -4; break;
-		case OTE_ID_RADIO_GNT_NOTCH - 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = -3; break;
-		case OTE_ID_RADIO_GNT_NOTCH - 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = -2; break;
-		case OTE_ID_RADIO_GNT_NOTCH - 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = -1; break;
-		case OTE_ID_RADIO_GNT_NOTCH + 0: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 0; break;
-		case OTE_ID_RADIO_GNT_NOTCH + 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 1; break;
-		case OTE_ID_RADIO_GNT_NOTCH + 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 2; break;
-		case OTE_ID_RADIO_GNT_NOTCH + 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 3; break;
-		case OTE_ID_RADIO_GNT_NOTCH + 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 4; break;
-		case OTE_ID_RADIO_GNT_NOTCH + 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 5; break;
+		case OTE_ID_RADIO_GNT_NOTCH - 5: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = -5; break;
+		case OTE_ID_RADIO_GNT_NOTCH - 4: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = -4; break;
+		case OTE_ID_RADIO_GNT_NOTCH - 3: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = -3; break;
+		case OTE_ID_RADIO_GNT_NOTCH - 2: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = -2; break;
+		case OTE_ID_RADIO_GNT_NOTCH - 1: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = -1; break;
+		case OTE_ID_RADIO_GNT_NOTCH + 0: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = 0; break;
+		case OTE_ID_RADIO_GNT_NOTCH + 1: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = 1; break;
+		case OTE_ID_RADIO_GNT_NOTCH + 2: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = 2; break;
+		case OTE_ID_RADIO_GNT_NOTCH + 3: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = 3; break;
+		case OTE_ID_RADIO_GNT_NOTCH + 4: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = 4; break;
+		case OTE_ID_RADIO_GNT_NOTCH + 5: st_msg_ote_u_snd.body.notch_pos[ID_GANTRY] = 5; break;
 			//引込
-		case OTE_ID_RADIO_BH_NOTCH - 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = -5; break;
-		case OTE_ID_RADIO_BH_NOTCH - 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = -4; break;
-		case OTE_ID_RADIO_BH_NOTCH - 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = -3; break;
-		case OTE_ID_RADIO_BH_NOTCH - 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = -2; break;
-		case OTE_ID_RADIO_BH_NOTCH - 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = -1; break;
-		case OTE_ID_RADIO_BH_NOTCH + 0: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 0; break;
-		case OTE_ID_RADIO_BH_NOTCH + 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 1; break;
-		case OTE_ID_RADIO_BH_NOTCH + 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 2; break;
-		case OTE_ID_RADIO_BH_NOTCH + 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 3; break;
-		case OTE_ID_RADIO_BH_NOTCH + 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 4; break;
-		case OTE_ID_RADIO_BH_NOTCH + 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 5; break;
+		case OTE_ID_RADIO_BH_NOTCH - 5: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = -5; break;
+		case OTE_ID_RADIO_BH_NOTCH - 4: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = -4; break;
+		case OTE_ID_RADIO_BH_NOTCH - 3: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = -3; break;
+		case OTE_ID_RADIO_BH_NOTCH - 2: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = -2; break;
+		case OTE_ID_RADIO_BH_NOTCH - 1: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = -1; break;
+		case OTE_ID_RADIO_BH_NOTCH + 0: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = 0; break;
+		case OTE_ID_RADIO_BH_NOTCH + 1: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = 1; break;
+		case OTE_ID_RADIO_BH_NOTCH + 2: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = 2; break;
+		case OTE_ID_RADIO_BH_NOTCH + 3: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = 3; break;
+		case OTE_ID_RADIO_BH_NOTCH + 4: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = 4; break;
+		case OTE_ID_RADIO_BH_NOTCH + 5: st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] = 5; break;
 			//旋回
-		case OTE_ID_RADIO_SLW_NOTCH - 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = -5; break;
-		case OTE_ID_RADIO_SLW_NOTCH - 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = -4; break;
-		case OTE_ID_RADIO_SLW_NOTCH - 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = -3; break;
-		case OTE_ID_RADIO_SLW_NOTCH - 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = -2; break;
-		case OTE_ID_RADIO_SLW_NOTCH - 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = -1; break;
-		case OTE_ID_RADIO_SLW_NOTCH + 0: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 0; break;
-		case OTE_ID_RADIO_SLW_NOTCH + 1: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 1; break;
-		case OTE_ID_RADIO_SLW_NOTCH + 2: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 2; break;
-		case OTE_ID_RADIO_SLW_NOTCH + 3: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 3; break;
-		case OTE_ID_RADIO_SLW_NOTCH + 4: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 4; break;
-		case OTE_ID_RADIO_SLW_NOTCH + 5: ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 5; break;
+		case OTE_ID_RADIO_SLW_NOTCH - 5: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = -5; break;
+		case OTE_ID_RADIO_SLW_NOTCH - 4: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = -4; break;
+		case OTE_ID_RADIO_SLW_NOTCH - 3: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = -3; break;
+		case OTE_ID_RADIO_SLW_NOTCH - 2: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = -2; break;
+		case OTE_ID_RADIO_SLW_NOTCH - 1: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = -1; break;
+		case OTE_ID_RADIO_SLW_NOTCH + 0: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 0; break;
+		case OTE_ID_RADIO_SLW_NOTCH + 1: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 1; break;
+		case OTE_ID_RADIO_SLW_NOTCH + 2: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 2; break;
+		case OTE_ID_RADIO_SLW_NOTCH + 3: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 3; break;
+		case OTE_ID_RADIO_SLW_NOTCH + 4: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 4; break;
+		case OTE_ID_RADIO_SLW_NOTCH + 5: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 5; break;
 #pragma endregion
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_CONNECT: {
 			ShowWindow(hWnd_sub[ote_io_workbuf.ote_in.sub_monitor_mode], SW_MINIMIZE);
@@ -896,12 +899,12 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_ESTOP: {
 			if (BST_CHECKED == SendMessage(h_pb_ote[OTE_INDEX_CHK_ESTOP], BM_GETCHECK, 0, 0))
-				ote_io_workbuf.ote_out.ote_pb_stat[OTE_INDEX_CHK_ESTOP] = L_ON;
+				st_msg_ote_u_snd.body.pb_ope[OTE_INDEX_CHK_ESTOP] = L_ON;
 			else
-				ote_io_workbuf.ote_out.ote_pb_stat[OTE_INDEX_CHK_ESTOP] = L_OFF;
+				st_msg_ote_u_snd.body.pb_ope[OTE_INDEX_CHK_ESTOP] = L_OFF;
 		}break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_CTR_SOURCE: {
-			ote_io_workbuf.ote_out.ote_pb_stat[OTE_INDEX_PB_CTR_SOURCE] = OTE_PB_HOLDTIME_MASK;
+			st_msg_ote_u_snd.body.pb_ope[OTE_INDEX_PB_CTR_SOURCE] = OTE_PB_HOLDTIME_MASK;
 			Button_SetState(h_pb_ote[OTE_INDEX_PB_CTR_SOURCE], TRUE);
 			SetFocus(h_pb_ote[OTE_INDEX_CHK_ESTOP]);//フォーカスを他に移さないとセット状態が取り込まれないようなので追加
 		}break;
@@ -916,7 +919,7 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+			if (rcv_ote_u_pc(&st_msg_pc_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
 				cnt_rcv_ote_u++;
 				disp_msg_cnt();
 
@@ -972,7 +975,7 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (rcv_pc_u_ote(&st_msg_pc_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+			if (rcv_pc_u_ote(&st_msg_ote_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
 				cnt_rcv_pc_u++;
 				disp_msg_cnt();
 			}
@@ -1094,30 +1097,30 @@ LRESULT CALLBACK COteIF::WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, 
 		{
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_REMOTE: {
 			if (BST_CHECKED == SendMessage(h_pb_ote[OTE_INDEX_CHK_REMOTE], BM_GETCHECK, 0, 0)) {
-				ote_io_workbuf.ote_out.ote_mode &= 0x0000000f;
-				ote_io_workbuf.ote_out.ote_mode |= ID_OTE_MODE_REMOTE_ACTIVE;
+				st_msg_ote_u_snd.body.ote_mode &= 0x0000000f;
+				st_msg_ote_u_snd.body.ote_mode |= ID_OTE_MODE_REMOTE_ACTIVE;
 			}
 			else
-				ote_io_workbuf.ote_out.ote_mode &= ~ID_OTE_MODE_REMOTE_ACTIVE;
+				st_msg_ote_u_snd.body.ote_mode &= ~ID_OTE_MODE_REMOTE_ACTIVE;
 		}break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_CONNECT: {
 			if (BST_CHECKED == SendMessage(h_pb_ote[OTE_INDEX_CHK_CONNECT], BM_GETCHECK, 0, 0)) {
-				ote_io_workbuf.ote_out.ote_mode &= 0x000000f0;
-				ote_io_workbuf.ote_out.ote_mode |= ID_OTE_MODE_REMOTE_OPE;
+				st_msg_ote_u_snd.body.ote_mode &= 0x000000f0;
+				st_msg_ote_u_snd.body.ote_mode |= ID_OTE_MODE_REMOTE_OPE;
 				SendMessage(h_pb_ote[OTE_INDEX_CHK_OTE_MON], BM_SETCHECK, BST_UNCHECKED, 0L);
 			}
 			else
-				ote_io_workbuf.ote_out.ote_mode &= ~ID_OTE_MODE_REMOTE_OPE;
+				st_msg_ote_u_snd.body.ote_mode &= ~ID_OTE_MODE_REMOTE_OPE;
 
 		}break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_OTE_MON: {
 			if (BST_CHECKED == SendMessage(h_pb_ote[OTE_INDEX_CHK_OTE_MON], BM_GETCHECK, 0, 0)) {
-				ote_io_workbuf.ote_out.ote_mode &= 0x000000f0;
-				ote_io_workbuf.ote_out.ote_mode |= ID_OTE_MODE_MONITOR;
+				st_msg_ote_u_snd.body.ote_mode &= 0x000000f0;
+				st_msg_ote_u_snd.body.ote_mode |= ID_OTE_MODE_MONITOR;
 				SendMessage(h_pb_ote[OTE_INDEX_CHK_CONNECT], BM_SETCHECK, BST_UNCHECKED, 0L);
 			}
 			else
-				ote_io_workbuf.ote_out.ote_mode &= ~ID_OTE_MODE_MONITOR;
+				st_msg_ote_u_snd.body.ote_mode &= ~ID_OTE_MODE_MONITOR;
 		}break;
 
 		default:
@@ -1361,6 +1364,10 @@ LRESULT CALLBACK COteIF::WndIfChkProc(HWND hWnd, UINT message, WPARAM wParam, LP
 			ote_pb_chk_radio_loc[OTE_INDEX_RADIO_IFCHK_MTE].x, ote_pb_chk_radio_loc[OTE_INDEX_RADIO_IFCHK_MTE].y, ote_pb_chk_radio_size[OTE_INDEX_RADIO_IFCHK_MTE].cx, ote_pb_chk_radio_size[OTE_INDEX_CHK_ESTOP].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_IFCHK_MTE), hInst, NULL);
 
+		ifchk_disp_item = OTE_INDEX_RADIO_IFCHK_UNI;
+		SendMessage(h_pb_ote[OTE_INDEX_RADIO_IFCHK_UNI], BM_SETCHECK, BST_CHECKED, 0L);
+
+
 		//送信ヘッダ表示
 		h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S] = CreateWindowW(TEXT("STATIC"), L"SND HEAD: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			ote_static_loc[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S].x, ote_static_loc[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S].y,
@@ -1372,12 +1379,12 @@ LRESULT CALLBACK COteIF::WndIfChkProc(HWND hWnd, UINT message, WPARAM wParam, LP
 			ote_static_size[OTE_INDEX_STATIC_IFCHK_MSG_BODY_S].cx, ote_static_size[OTE_INDEX_STATIC_IFCHK_MSG_BODY_S].cy,
 			hWnd, (HMENU)(OTE_ID_STATIC + OTE_INDEX_STATIC_IFCHK_MSG_BODY_S), hInst, NULL);
 		//受信ヘッダ表示
-		h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R] = CreateWindowW(TEXT("STATIC"), L"SND CNT U: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+		h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R] = CreateWindowW(TEXT("STATIC"), L"RCV HEAD: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			ote_static_loc[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R].x, ote_static_loc[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R].y,
 			ote_static_size[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R].cx, ote_static_size[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R].cy,
 			hWnd, (HMENU)(OTE_ID_STATIC + OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R), hInst, NULL);
 		//受信ボディ表示
-		h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R] = CreateWindowW(TEXT("STATIC"), L"SND CNT U: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
+		h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R] = CreateWindowW(TEXT("STATIC"), L"RCV BODY: -", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			ote_static_loc[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R].x, ote_static_loc[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R].y,
 			ote_static_size[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R].cx, ote_static_size[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R].cy,
 			hWnd, (HMENU)(OTE_ID_STATIC + OTE_INDEX_STATIC_IFCHK_MSG_BODY_R), hInst, NULL);
@@ -1387,16 +1394,86 @@ LRESULT CALLBACK COteIF::WndIfChkProc(HWND hWnd, UINT message, WPARAM wParam, LP
 	case WM_TIMER: {
 		msg_wos.str(L"");
 		if (ifchk_disp_item == OTE_INDEX_RADIO_IFCHK_UNI) {
-			msg_wos << L" UNICAST MSG:" ;
+
+			//PC ユニキャスト送信　HEAD部
+			msg_wos.str(L"");
+			msg_wos << L"SND HEAD:" << L" (PC)" << st_msg_pc_u_snd.head.myid << L" (EVENT)" << st_msg_pc_u_snd.head.code
+				<< L" (IP)" << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b4
+				<< L" (PORT) " << htons(st_msg_pc_u_snd.head.addr.sin_port)
+				<< L" (COM)" << st_msg_pc_u_snd.head.status << L" (接続中OTE)" << st_msg_pc_u_snd.head.tgid;
 			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S], msg_wos.str().c_str());
+
+			msg_wos.str(L"");
+			//PC ユニキャスト送信　BODY部
+			msg_wos << L"SND BODY:";
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_BODY_S], msg_wos.str().c_str());
+
+			//PC ユニキャスト受信　HEAD部
+			msg_wos.str(L"");
+			msg_wos << L"RCV HEAD:" << L" (OTE)" << st_msg_pc_u_rcv.head.myid << L" (EVENT)" << st_msg_pc_u_rcv.head.code
+				<< L" (IP)" << st_msg_pc_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b4
+				<< L" (PORT) " << htons(st_msg_pc_u_rcv.head.addr.sin_port)
+				<< L" (COM)" << st_msg_pc_u_rcv.head.status << L" (接続中PC)" << st_msg_pc_u_rcv.head.tgid;
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R], msg_wos.str().c_str());
+
+			msg_wos.str(L"");
+			//PC ユニキャスト受信　BODY部
+			msg_wos << L"RCV BODY:" << L"#PB(主幹)" << st_msg_pc_u_rcv.body.pb_ope[OTE_INDEX_PB_CTR_SOURCE] << L"(非停)" << st_msg_pc_u_rcv.body.pb_ope[OTE_INDEX_CHK_ESTOP]
+					<< L" #ﾉｯﾁ(MH)" << st_msg_pc_u_rcv.body.notch_pos[ID_HOIST] << L" (BH)" << st_msg_ote_u_snd.body.notch_pos[ID_BOOM_H] << L" (SL)" << st_msg_ote_u_snd.body.notch_pos[ID_SLEW];
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_BODY_R], msg_wos.str().c_str());
+
 		}
 		else if (ifchk_disp_item == OTE_INDEX_RADIO_IFCHK_MPC) {
-			msg_wos << L" PC MULTICAST MSG:";
+			//PC マルチキャスト送信　HEAD部
+			msg_wos.str(L"");
+			msg_wos << L"SND HEAD:" << L" (PC)" << st_msg_pc_m_snd.head.myid << L" (EVENT)" << st_msg_pc_m_snd.head.code
+				<< L" (IP)" << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b4
+				<< L" (PORT) " << htons(st_msg_pc_m_snd.head.addr.sin_port)
+				<< L" (COM)" << st_msg_pc_m_snd.head.status << L" (接続中OTE)" << st_msg_pc_m_snd.head.tgid;
 			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S], msg_wos.str().c_str());
+
+			msg_wos.str(L"");
+			//PC マルチキャスト送信　BODY部
+			msg_wos << L"SND BODY:";
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_BODY_S], msg_wos.str().c_str());
+
+			//PC マルチキャスト受信　HEAD部
+			msg_wos.str(L"");
+			msg_wos << L"RCV HEAD:" << L" (PC)" << st_msg_pc_m_pc_rcv.head.myid << L" (EVENT)" << st_msg_pc_m_pc_rcv.head.code
+				<< L" (IP)" << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b4
+				<< L" (PORT) " << htons(st_msg_pc_m_pc_rcv.head.addr.sin_port)
+				<< L" (COM)" << st_msg_pc_m_pc_rcv.head.status << L" (接続中PC)" << st_msg_pc_m_pc_rcv.head.tgid;
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R], msg_wos.str().c_str());
+
+			msg_wos.str(L"");
+			//PC マルチキャスト受信　BODY部
+			msg_wos << L"RCV BODY:" ;
 		}
 		else if (ifchk_disp_item == OTE_INDEX_RADIO_IFCHK_MTE) {
-			msg_wos << L" OTE MULTICAST MSG:";
+			//PC マルチキャスト送信　HEAD部
+			msg_wos.str(L"");
+			msg_wos << L"SND HEAD:" << L" (PC)" << st_msg_pc_m_snd.head.myid << L" (EVENT)" << st_msg_pc_m_snd.head.code
+				<< L" (IP)" << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b4
+				<< L" (PORT) " << htons(st_msg_pc_m_snd.head.addr.sin_port)
+				<< L" (COM)" << st_msg_pc_m_snd.head.status << L" (接続中OTE)" << st_msg_pc_m_snd.head.tgid;
 			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S], msg_wos.str().c_str());
+
+			msg_wos.str(L"");
+			//PC マルチキャスト送信　BODY部
+			msg_wos << L"SND BODY:";
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_BODY_S], msg_wos.str().c_str());
+
+			//OTE マルチキャスト受信　HEAD部
+			msg_wos.str(L"");
+			msg_wos << L"RCV HEAD:" << L" (OTE)" << st_msg_ote_m_pc_rcv.head.myid << L" (EVENT)" << st_msg_ote_m_pc_rcv.head.code
+				<< L" (IP)" << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b4
+				<< L" (PORT) " << htons(st_msg_ote_m_pc_rcv.head.addr.sin_port)
+				<< L" (COM)" << st_msg_ote_m_pc_rcv.head.status << L" (接続中PC)" << st_msg_ote_m_pc_rcv.head.tgid;
+			SetWindowText(h_static_ote[OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R], msg_wos.str().c_str());
+
+			msg_wos.str(L"");
+			//OTE マルチキャスト受信　BODY部
+			msg_wos << L"RCV BODY:";
 		}
 		else;
 
@@ -1435,7 +1512,6 @@ LRESULT CALLBACK COteIF::WndIfChkProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		KillTimer(hWnd, ID_OTE_IF_CHK_TIMER);
 		//PostQuitMessage(0);
 	}break;
-
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -1500,7 +1576,7 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(OTE_ID_STATIC_HST_NOTCH - OTE_N_NOTCH - 1), hInst, NULL);
 
 			SendMessage(h_rdio_ote_notch[ID_HOIST][OTE_N_NOTCH], BM_SETCHECK, BST_CHECKED, 0L);
-			ote_io_workbuf.ote_in.OTEnotch_sel[ID_HOIST] = 0;
+			ote_io_workbuf.ote_in.notch_pos[ID_HOIST] = 0;
 		}
 	}
 	//走行
@@ -1531,7 +1607,7 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(OTE_ID_STATIC_GNT_NOTCH - OTE_N_NOTCH - 1), hInst, NULL);
 
 			SendMessage(h_rdio_ote_notch[ID_GANTRY][OTE_N_NOTCH], BM_SETCHECK, BST_CHECKED, 0L);
-			ote_io_workbuf.ote_in.OTEnotch_sel[ID_GANTRY] = 0;
+			ote_io_workbuf.ote_in.notch_pos[ID_GANTRY] = 0;
 		}
 	}
 	//補巻
@@ -1562,7 +1638,7 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(OTE_ID_STATIC_AH_NOTCH - OTE_N_NOTCH - 1), hInst, NULL);
 
 			SendMessage(h_rdio_ote_notch[ID_AHOIST][OTE_N_NOTCH], BM_SETCHECK, BST_CHECKED, 0L);
-			ote_io_workbuf.ote_in.OTEnotch_sel[ID_AHOIST] = 0;
+			ote_io_workbuf.ote_in.notch_pos[ID_AHOIST] = 0;
 		}
 	}
 	//引込
@@ -1593,7 +1669,7 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(OTE_ID_STATIC_AH_NOTCH - OTE_N_NOTCH - 1), hInst, NULL);
 
 			SendMessage(h_rdio_ote_notch[ID_BOOM_H][OTE_N_NOTCH], BM_SETCHECK, BST_CHECKED, 0L);
-			ote_io_workbuf.ote_in.OTEnotch_sel[ID_BOOM_H] = 0;
+			ote_io_workbuf.ote_in.notch_pos[ID_BOOM_H] = 0;
 		}
 	}
 	//旋回
@@ -1624,18 +1700,15 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(OTE_ID_STATIC_SLW_NOTCH - OTE_N_NOTCH - 1), hInst, NULL);
 
 			SendMessage(h_rdio_ote_notch[ID_SLEW][OTE_N_NOTCH], BM_SETCHECK, BST_CHECKED, 0L);
-			ote_io_workbuf.ote_in.OTEnotch_sel[ID_SLEW] = 0;
+			ote_io_workbuf.ote_in.notch_pos[ID_SLEW] = 0;
 		}
 	}
-
 	//ボタン
 	{
 		//非常停止	
 		h_pb_ote[OTE_INDEX_CHK_ESTOP] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_CHK_ESTOP], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
 			ote_pb_chk_radio_loc[OTE_INDEX_CHK_ESTOP].x, ote_pb_chk_radio_loc[OTE_INDEX_CHK_ESTOP].y, ote_pb_chk_radio_size[OTE_INDEX_CHK_ESTOP].cx, ote_pb_chk_radio_size[OTE_INDEX_CHK_ESTOP].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_ESTOP), hInst, NULL);
-
-		
 		//主幹	
 		h_pb_ote[OTE_INDEX_PB_CTR_SOURCE] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_CTR_SOURCE], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
 			ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].y, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cy,

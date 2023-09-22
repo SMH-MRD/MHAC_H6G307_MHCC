@@ -8,6 +8,7 @@
 #define PLC_IF_SIM_MEM_NG           0x2000
 #define PLC_IF_AGENT_MEM_NG         0x1000
 #define PLC_IF_CS_MEM_NG            0x0800
+#define PLC_IF_OTE_MEM_NG           0x0400
 
 //-IF Windowの配置設定
 #define IF_WND_INIT_SIZE_W			560		//-IF Windowの初期サイズ　W
@@ -57,6 +58,7 @@ private:
     CSharedMem* pSimulationStatusObj;
     CSharedMem* pAgentInfObj;
     CSharedMem* pCSInfObj;
+    CSharedMem* pOTEioObj;
      
     ST_PLC_IO plc_if_workbuf;   //共有メモリへの出力セット作業用バッファ
 
@@ -64,6 +66,7 @@ private:
     LPST_CRANE_STATUS pCrane;
     LPST_AGENT_INFO pAgentInf;
     LPST_CS_INFO pCSInf;
+    LPST_OTE_IO pOTEio;
 
     int clear_plc_write();
 
