@@ -54,7 +54,8 @@
 //PB
 #define OTE_INDEX_PB_START				12	//釦オブジェクトの開始INDEX
 #define OTE_INDEX_PB_CTR_SOURCE			12
-#define OTE_INDEX_PB_END				12	//釦オブジェクトの終了INDEX
+#define OTE_INDEX_PB_FAULT_RESET		13
+#define OTE_INDEX_PB_END				13	//釦オブジェクトの終了INDEX
 
 #define OTE_ID_STATIC                   21700
 #define OTE_INDEX_STATIC_MSG_CNT			0

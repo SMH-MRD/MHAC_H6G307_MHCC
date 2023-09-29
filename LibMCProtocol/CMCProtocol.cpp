@@ -36,8 +36,6 @@ CMCProtocol::CMCProtocol() {
 CMCProtocol::~CMCProtocol() {
 	close();
 }
-
-
 //*********************************************************************************************　
 /// <summary>
 /// 指定ソケット準備、読み書きデバイス指定
@@ -680,7 +678,7 @@ void CMCProtocol::wstr_out_inf(const std::wstring& srcw) {
 //
 //
 static bool				is_next_write_req = true;
-static bool				is_slowmode = false, disp_sock_info = false, disp_msg = false, disp_infomation = true;
+static bool				is_slowmode = false, disp_sock_info = false, disp_msg = false, disp_infomation = false,is_disp_hex=false;
 static wostringstream	wos;
 static ostringstream	os;
 static wstring			wstr;
@@ -733,7 +731,7 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 
 		st_work_wnd.h_chk_inf = CreateWindow(L"BUTTON", L"Info", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			10, 325, 60, 25, hWnd, (HMENU)IDC_CHK_INF, hInst, NULL);
-		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_CHECKED, 0L);
+		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_UNCHECKED, 0L);
 
 		st_work_wnd.h_chkSockinf = CreateWindow(L"BUTTON", L"Sock", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			90, 5, 60, 25, hWnd, (HMENU)IDC_CHK_DISP_SOCK, hInst, NULL);
@@ -742,25 +740,33 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		st_work_wnd.h_chk_msg = CreateWindow(L"BUTTON", L"Msg", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			170, 5, 60, 25, hWnd, (HMENU)IDC_CHK_MSG, hInst, NULL);
 		SendMessage(st_work_wnd.h_chk_msg, BM_SETCHECK, BST_UNCHECKED, 0L);
+
+		st_work_wnd.h_chk_hex = CreateWindow(L"BUTTON", L"HEX", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			75, 325, 60, 25, hWnd, (HMENU)IDC_MC_INF_CHK_HEX, hInst, NULL);
+		SendMessage(st_work_wnd.h_chk_hex, BM_SETCHECK, BST_UNCHECKED, 0L);
+				
+		st_work_wnd.h_static_inf = CreateWindowW(TEXT("STATIC"), L"INFO:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			5, 350, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_INF, hInst, NULL);
+		st_work_wnd.h_static_Dr = CreateWindowW(TEXT("STATIC"), L"DR:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			40, 420, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_DW, hInst, NULL);
+		st_work_wnd.h_static_Dw = CreateWindowW(TEXT("STATIC"), L"DW:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			40, 490, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_DW, hInst, NULL);
 		
+		st_work_wnd.h_pb_dr_minus = CreateWindow(L"BUTTON", L"R-", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			5, 420, 30, 25, hWnd, (HMENU)IDC_PB_DR_MINUS, hInst, NULL);
+		st_work_wnd.h_pb_dr_plus = CreateWindow(L"BUTTON", L"R+", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			5, 450, 30, 25, hWnd, (HMENU)IDC_PB_DR_PLUS, hInst, NULL);
 
-
+		st_work_wnd.h_pb_dw_minus = CreateWindow(L"BUTTON", L"W-", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			5, 490, 30, 25, hWnd, (HMENU)IDC_PB_DW_MINUS, hInst, NULL);
+		st_work_wnd.h_pb_dw_plus = CreateWindow(L"BUTTON", L"W+", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			5, 520, 30, 25, hWnd, (HMENU)IDC_PB_DW_PLUS, hInst, NULL);
 	}
 	case WM_TIMER: {
 		
 		if (is_slowmode) {
 			break;
 		}
-
-		if (disp_sock_info) {
-	
-			
-			
-			
-			
-			break;
-		}
-
 
 		if (is_next_write_req) {//書き込み要求送信
 			//3Eフォーマット Dデバイス書き込み要求送信
@@ -810,6 +816,32 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		wos.str(L""); wos << L" R: " << std::dec << st_work_wnd.count_snd_r;
 		SetWindowText(st_work_wnd.h_static_snd_cnt_r, wos.str().c_str());
 
+		if (disp_infomation) {
+	
+
+			wos.str(L""); wos << L"DW" << st_work_wnd.i_dw_disp << L"\n";
+
+			for (int i = 0; i < 20; i++) {
+				if (is_disp_hex) wos << hex << setw(4) << setfill(L'0');
+				wos << mc_req_msg_w.req_data[st_work_wnd.i_dw_disp + i] << L" ";
+				if (i == 9)wos << L"\n";
+			}
+			SetWindowText(st_work_wnd.h_static_Dw, wos.str().c_str());
+
+			wos.str(L""); wos << L"DR" << dec << st_work_wnd.i_dr_disp << L"\n";
+
+			for (int i = 0; i < 20; i++) {
+				if (is_disp_hex) wos << hex << setw(4) << setfill(L'0');
+				wos << mc_res_msg_r.res_data[st_work_wnd.i_dr_disp + i] << L" ";
+				if (i == 9)wos << L"\n";
+			}
+			SetWindowText(st_work_wnd.h_static_Dr, wos.str().c_str());
+
+		}
+
+
+
+
 	}break;
 	case WM_COMMAND:
 	{
@@ -833,6 +865,29 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 			if (IsDlgButtonChecked(hWnd, IDC_CHK_MSG) == BST_CHECKED) disp_msg = true;
 			else  disp_msg = false;
 		}break;
+		case  IDC_MC_INF_CHK_HEX: {
+			if (IsDlgButtonChecked(hWnd, IDC_MC_INF_CHK_HEX) == BST_CHECKED) is_disp_hex = true;
+			else  is_disp_hex = false;
+		}break;
+			
+
+		case IDC_PB_DW_PLUS: {
+			st_work_wnd.i_dw_disp+=20;
+			if (st_work_wnd.i_dw_disp > 80)st_work_wnd.i_dw_disp = 0;
+		}break;
+		case IDC_PB_DW_MINUS: {
+			st_work_wnd.i_dw_disp-=20;
+			if (st_work_wnd.i_dw_disp < 0)st_work_wnd.i_dw_disp = 80;
+		}break;
+		case IDC_PB_DR_PLUS: {
+			st_work_wnd.i_dr_disp+=20;
+			if (st_work_wnd.i_dr_disp > 80)st_work_wnd.i_dr_disp = 0;
+		}break;
+		case IDC_PB_DR_MINUS: {
+			st_work_wnd.i_dr_disp -= 20;
+			if (st_work_wnd.i_dr_disp < 0)st_work_wnd.i_dr_disp = 80;
+		}break;
+
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}

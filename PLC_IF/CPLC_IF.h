@@ -12,7 +12,7 @@
 
 //-IF Windowの配置設定
 #define IF_WND_INIT_SIZE_W			560		//-IF Windowの初期サイズ　W
-#define IF_WND_INIT_SIZE_H			180		//-IF Windowの初期サイズ　H
+#define IF_WND_INIT_SIZE_H			600		//-IF Windowの初期サイズ　H
 #define IF_WND_INIT_POS_X			1365	//-IF Windowの初期位置設定　X
 #define IF_WND_INIT_POS_Y			20		//-IF Windowの初期位置設定　Y
 
@@ -73,6 +73,7 @@ private:
     int parse_data_in();
     int parse_ote_com();
     int parse_auto_com();
+    int parse_sim_status();
 
     int parse_notch_com();
     int parce_brk_status();
@@ -81,4 +82,7 @@ private:
     int set_notch_ref();
     int set_bit_coms();
     int set_ao_coms();
+
+    UINT16 get_notch_code(INT16 notch);
+    INT16 get_notch_pos(UINT16 code);
  };

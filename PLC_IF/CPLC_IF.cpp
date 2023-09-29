@@ -11,6 +11,14 @@ extern ST_KNL_MANAGE_SET    knl_manage_set;
 CMCProtocol* pMCProtocol;  //MCプロトコルオブジェクト:
 INT16 bit_mask[16] = {BIT0,BIT1,BIT2,BIT3,BIT4,BIT5,BIT6,BIT7,BIT8,BIT9,BIT10,BIT11,BIT12,BIT13,BIT14,BIT15};
 
+CABPLC_BOUT_MAP cab_bout_map;
+ERMPLC_BOUT_MAP erm_bout_map;
+ERMPLC_YOUT_MAP erm_yout_map;
+ERMPLC_XIN_MAP  erm_xin_map;
+
+
+
+
 CPLC_IF::CPLC_IF(HWND _hWnd_parent) {
 
     hWnd_parent = _hWnd_parent;
@@ -127,12 +135,6 @@ int CPLC_IF::init_proc() {
     lp_PLCread = (LPST_PLC_READ)(pMCProtocol->mc_res_msg_r.res_data);
     lp_PLCwrite = (LPST_PLC_WRITE)(pMCProtocol->mc_req_msg_w.req_data);
 
-#if 0
-    //CraneStat立ち上がり待ち
-    while (pCrane->is_tasks_standby_ok == false) {
-        Sleep(10);
-    }
-#endif
 
     return int(mode & 0xff00);
 }
@@ -163,6 +165,58 @@ int CPLC_IF::parse_data_in() {
 }
 
 int CPLC_IF::parse_ote_com() {
+    //運転室PB
+    //主幹入
+     if (pOTEio->ote_in.pb_ope[OTE_INDEX_PB_CTR_SOURCE])
+        lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
+    else
+        lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
+
+     //主幹切PB　常時ON
+        lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_off.y;
+ 
+
+     if (pOTEio->ote_in.pb_ope[OTE_INDEX_PB_FAULT_RESET])
+         lp_PLCwrite->cab_di[cab_bout_map.fault_reset.x] |= cab_bout_map.fault_reset.y;
+     else
+         lp_PLCwrite->cab_di[cab_bout_map.fault_reset.x] &= ~cab_bout_map.fault_reset.y;
+
+    if (pOTEio->ote_in.pb_ope[OTE_INDEX_CHK_ESTOP])//緊急停止はノーマルクローズ
+        lp_PLCwrite->cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
+    else
+     lp_PLCwrite->cab_di[cab_bout_map.cab_estp.x] |= cab_bout_map.cab_estp.y;
+
+    //ノッチ
+    //主巻
+    UINT16 notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_HOIST]);
+    notch_code = notch_code << cab_bout_map.notch_mh.y;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_mh.x] &= 0xffc0;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_mh.x] |= notch_code;
+
+    //補巻
+    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_AHOIST]);
+    notch_code = notch_code << cab_bout_map.notch_ah.y;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_ah.x] &= 0x03ff;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_ah.x] |= notch_code;
+
+    //走行
+    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_GANTRY]);
+    notch_code = notch_code << cab_bout_map.notch_gt.y;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_gt.x] &= 0x81ff;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_gt.x] |= notch_code;
+
+    //引込
+    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_BOOM_H]);
+    notch_code = notch_code << cab_bout_map.notch_bh.y;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_bh.x] &= 0xffc0;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_bh.x] |= notch_code;
+
+    //旋回
+    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_SLEW]);
+    notch_code = notch_code << cab_bout_map.notch_sl.y;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_sl.x] &= 0x81ff;
+    lp_PLCwrite->cab_di[cab_bout_map.notch_sl.x] |= notch_code;
+    
     return 0;
 }
 
@@ -173,14 +227,28 @@ int CPLC_IF::parse_auto_com() {
     return 0;
 }
 
+int CPLC_IF::parse_sim_status() {
+   //  lp_PLCwrite->erm_x[erm_xin_map.leg_emr_stop.x] &= ~erm_xin_map.leg_emr_stop.y;
+    //脚部　非常停止
+     lp_PLCwrite->erm_x[erm_xin_map.leg_emr_stop.x] |= erm_xin_map.leg_emr_stop.y;
+
+    return 0;
+}
+
 
 int CPLC_IF::parse() { 
+
+    //PLC書き込みデータセット
+    lp_PLCwrite->helthy = helthy_cnt++;   //### ヘルシー信号
 
     //### PLCリンク入力を翻訳
     parse_data_in();
   
     //### 遠隔端末出力内容を翻訳
     parse_ote_com();
+
+    //### シミュレーションの結果を出力
+    parse_sim_status();
  
     //共有メモリデータセット
     plc_if_workbuf.mode = this->mode;                   //モードセット
@@ -192,13 +260,6 @@ int CPLC_IF::parse() {
 //*********************************************************************************************
 
 int CPLC_IF::output() { 
-    //PLC書き込みデータセット
-    lp_PLCwrite->helthy = helthy_cnt++;   //### ヘルシー信号
- 
-    if(pOTEio->ote_in.pb_ope[OTE_INDEX_PB_CTR_SOURCE])
-        lp_PLCwrite->cab_di[0] |= 0x1;
-    else
-        lp_PLCwrite->cab_di[0] &= 0x0;
  
      //共有メモリ出力処理
     if(out_size) { 
@@ -211,6 +272,41 @@ int CPLC_IF::output() {
 // set_notch_ref()
 // AGENTタスクの速度指令をノッチ位置指令に変換してIO出力を設定
 //*********************************************************************************************
+
+UINT16 CPLC_IF::get_notch_code(INT16 notch) {
+ UINT16 code=0;
+ switch (notch) {
+    case  0:code = PTN_NOTCH_0; break;
+    case  1:code = PTN_NOTCH_F1; break;
+    case  2:code = PTN_NOTCH_F2; break;
+    case  3:code = PTN_NOTCH_F3; break;
+    case  4:code = PTN_NOTCH_F4; break;
+    case -1:code = PTN_NOTCH_R1; break;
+    case -2:code = PTN_NOTCH_R2; break;
+    case -3:code = PTN_NOTCH_R3; break;
+    case -4:code = PTN_NOTCH_R4 ; break;
+    default:code = PTN_NOTCH_0; break;
+ }
+ return code;
+}
+
+INT16 CPLC_IF::get_notch_pos(UINT16 code) {
+    INT16 pos = 0;
+    switch (code) {
+    case PTN_NOTCH_0  :pos =  0; break;
+    case PTN_NOTCH_F1 :pos =  1; break;
+    case PTN_NOTCH_F2 :pos =  2; break;
+    case PTN_NOTCH_F3 :pos =  3; break;
+    case PTN_NOTCH_F4 :pos =  4; break;
+    case PTN_NOTCH_R1 :pos = -1; break;
+    case PTN_NOTCH_R2 :pos = -2; break;
+    case PTN_NOTCH_R3 :pos = -3; break;
+    case PTN_NOTCH_R4 :pos = -4; break;
+    default           :pos =  0; break;
+    }
+    return pos;
+}
+
 int CPLC_IF::set_notch_ref() {
 
     return 0;

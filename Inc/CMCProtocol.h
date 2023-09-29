@@ -117,11 +117,19 @@ typedef struct _stXEMsgRes {
 #define IDC_MC_STATIC_MCCBUF        30004
 #define IDC_MC_STATIC_PLCBUF        30005
 #define IDC_MC_STATIC_SOCK_INF      30006
+#define IDC_MC_STATIC_INF			30007
+#define IDC_MC_STATIC_DW		    30008
+#define IDC_MC_STATIC_DR		    30009
 
-#define IDC_CHK_DISP_SOCK			30009
-#define IDC_CHK_IS_SLOW_MODE        30010
-#define IDC_CHK_INF					30011
-#define IDC_CHK_MSG					30012
+#define IDC_CHK_DISP_SOCK			30020
+#define IDC_CHK_IS_SLOW_MODE        30021
+#define IDC_CHK_INF					30022
+#define IDC_CHK_MSG					30023
+#define IDC_PB_DW_PLUS				30024
+#define IDC_PB_DW_MINUS				30025
+#define IDC_PB_DR_PLUS				30026
+#define IDC_PB_DR_MINUS				30027
+#define IDC_MC_INF_CHK_HEX			30028
 
 #define CODE_SERIAL_REQ_R           0x1
 #define CODE_SERIAL_REQ_W           0x2
@@ -146,11 +154,12 @@ typedef struct _stMCwnd {
 
 	LONG count_snd_r = 0, count_snd_w = 0, count_rcv_r = 0, count_rcv_w = 0, count_rcv_err = 0;
 	UINT32 cnt_res_w = 0, cnt_res_r = 0;
+	INT32 i_dr_disp = 0, i_dw_disp = 0;
 
 	int disp_item = 0;                                                      //表示項目
 	int area_x = 0, area_y = 0, area_w = 0, area_h = 0;                     //メインウィンドウ上の表示エリア
 	int inf_area_x = 0, inf_area_y = 0, inf_area_w = 0, inf_area_h = 0;     //メインウィンドウ上の表示エリア
-	int bmp_w = 0, bmp_h = 0;												//グラフィックビットマップサイズ
+										//グラフィックビットマップサイズ
 
 	int w_ptr = MC_PRM_MEM0TXT_ORG_Y, w_ptr_inf = MC_PRM_INFTXT_ORG_Y;
 	int x_org = 0;
@@ -171,8 +180,9 @@ typedef struct _stMCwnd {
 	HWND h_static_snd_msg_w, h_static_snd_msg_r, h_static_rcv_msg_w, h_static_rcv_msg_r, h_socket_inf;
 	HWND h_static_snd_cnt_w,h_static_snd_cnt_r,h_static_rcv_cnt_w,h_static_rcv_cnt_r, h_static_rcv_cnt_err;
 	HWND h_static_res_w, h_static_res_r;
-	HWND h_pb_read, h_pb_write;;
-	HWND h_chkSlow, h_chkSockinf, h_chk_inf, h_chk_msg;
+	HWND h_static_inf, h_static_Dr,h_static_Dw;
+	HWND h_pb_dw_plus, h_pb_dw_minus, h_pb_dr_plus, h_pb_dr_minus;
+	HWND h_chkSlow, h_chkSockinf, h_chk_inf, h_chk_msg,h_chk_hex;
 
 }ST_MC_WND, * LPST_MC_WND;
 

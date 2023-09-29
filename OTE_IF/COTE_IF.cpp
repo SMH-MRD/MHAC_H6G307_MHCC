@@ -587,7 +587,7 @@ HWND COteIF::open_connect_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
-	hWnd_sub[OTE_INDEX_RADIO_CONNECT] = CreateWindowW(TEXT("OTE CONNECT"), TEXT("OTE CONNECT"), WS_POPUP|WS_BORDER,//WS_OVERLAPPEDWINDOW,
+	hWnd_sub[OTE_INDEX_RADIO_CONNECT] = CreateWindowW(TEXT("OTE CONNECT"), TEXT("OTE CONNECT"), WS_POPUP | WS_BORDER,
 		OTE_WORK_SUB_WND_X, OTE_WORK_SUB_WND_Y, OTE_WORK_SUB_WND_W, OTE_WORK_SUB_WND_H,
 		nullptr, nullptr, hInst, nullptr);
 
@@ -896,7 +896,7 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			ShowWindow(hWnd_sub[OTE_INDEX_RADIO_MOMENT], SW_SHOWDEFAULT);
 			UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_MOMENT]);
 		}break;
-
+//PB
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_ESTOP: {
 			if (BST_CHECKED == SendMessage(h_pb_ote[OTE_INDEX_CHK_ESTOP], BM_GETCHECK, 0, 0))
 				st_msg_ote_u_snd.body.pb_ope[OTE_INDEX_CHK_ESTOP] = L_ON;
@@ -906,6 +906,11 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_CTR_SOURCE: {
 			st_msg_ote_u_snd.body.pb_ope[OTE_INDEX_PB_CTR_SOURCE] = OTE_PB_HOLDTIME_MASK;
 			Button_SetState(h_pb_ote[OTE_INDEX_PB_CTR_SOURCE], TRUE);
+			SetFocus(h_pb_ote[OTE_INDEX_CHK_ESTOP]);//フォーカスを他に移さないとセット状態が取り込まれないようなので追加
+		}break;
+		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_FAULT_RESET: {
+			st_msg_ote_u_snd.body.pb_ope[OTE_INDEX_PB_FAULT_RESET] = OTE_PB_HOLDTIME_MASK;
+			Button_SetState(h_pb_ote[OTE_INDEX_PB_FAULT_RESET], TRUE);
 			SetFocus(h_pb_ote[OTE_INDEX_CHK_ESTOP]);//フォーカスを他に移さないとセット状態が取り込まれないようなので追加
 		}break;
 
@@ -1713,6 +1718,10 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 		h_pb_ote[OTE_INDEX_PB_CTR_SOURCE] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_CTR_SOURCE], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
 			ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].y, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_CTR_SOURCE), hInst, NULL);
+		//故障リセット	
+		h_pb_ote[OTE_INDEX_PB_FAULT_RESET] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_FAULT_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
+			ote_pb_chk_radio_loc[OTE_INDEX_PB_FAULT_RESET].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_FAULT_RESET].y, ote_pb_chk_radio_size[OTE_INDEX_PB_FAULT_RESET].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_FAULT_RESET].cy,
+			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_FAULT_RESET), hInst, NULL);
 	}
 
 	return;
@@ -1908,7 +1917,6 @@ HRESULT COteIF::rcv_pc_u_ote(LPST_PC_U_MSG pbuf) {
 	}
 	return S_OK;
 }
-
 //*********************************************************************************************
 /// <summary>
 /// OTEマルチキャスト電文受信処理（OTEマルチキャストメッセージを受信）
