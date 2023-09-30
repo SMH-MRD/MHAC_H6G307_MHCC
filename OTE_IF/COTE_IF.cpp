@@ -15,6 +15,13 @@ std::wostringstream COteIF::msg_wos;
 ST_OTE_IF_WND COteIF::st_work_wnd;
 ST_OTE_IO COteIF::ote_io_workbuf;
 
+LPST_OTE_IO COteIF::pOTEio;
+LPST_CRANE_STATUS COteIF::pCraneStat;
+LPST_PLC_IO COteIF::pPLCio;
+LPST_CS_INFO COteIF::pCSInf;
+LPST_AGENT_INFO COteIF::pAgentInf;
+LPST_SWAY_IO COteIF::pSway_IO;
+
 bool COteIF::is_my_ote_active;
 HWND COteIF::hWnd_parent;		//親ウィンドウのハンドル
 HWND COteIF::hWnd_if; 			//通信イベント処理用ウィンドウハンドル
@@ -744,8 +751,10 @@ HWND COteIF::open_ifchk_Wnd(HWND hwnd) {
 /// <param name="wParam"></param>
 /// <param name="lParam"></param>
 /// <returns></returns>
+static int tmp_counter=0;
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	
+	HDC hdc;
+	int id;
 	switch (message)
 	{
 	case WM_CREATE: {
@@ -755,6 +764,10 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 
 	case WM_TIMER: {
+
+		//PBの表示更新
+		draw_pb();
+
 		if (wParam == ID_OTE_UNICAST_TIMER) {
 
 			if (is_my_ote_active) {
@@ -1715,7 +1728,7 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 			ote_pb_chk_radio_loc[OTE_INDEX_CHK_ESTOP].x, ote_pb_chk_radio_loc[OTE_INDEX_CHK_ESTOP].y, ote_pb_chk_radio_size[OTE_INDEX_CHK_ESTOP].cx, ote_pb_chk_radio_size[OTE_INDEX_CHK_ESTOP].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_ESTOP), hInst, NULL);
 		//主幹	
-		h_pb_ote[OTE_INDEX_PB_CTR_SOURCE] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_CTR_SOURCE], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
+		h_pb_ote[OTE_INDEX_PB_CTR_SOURCE] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_CTR_SOURCE], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE | BS_OWNERDRAW,
 			ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].y, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_CTR_SOURCE), hInst, NULL);
 		//故障リセット	
@@ -1723,6 +1736,21 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 			ote_pb_chk_radio_loc[OTE_INDEX_PB_FAULT_RESET].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_FAULT_RESET].y, ote_pb_chk_radio_size[OTE_INDEX_PB_FAULT_RESET].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_FAULT_RESET].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_FAULT_RESET), hInst, NULL);
 	}
+
+	return;
+}
+
+void COteIF::draw_pb() {
+	HBITMAP hBitmap;
+	HDC hdc,hmdc;
+	HINSTANCE hInst=(HINSTANCE)GetModuleHandle(0);
+
+	//主幹PB
+	hdc = GetDC(h_pb_ote[OTE_INDEX_PB_CTR_SOURCE]);
+	if (st_msg_ote_u_rcv.body.lamp[OTE_INDEX_PB_CTR_SOURCE])	hBitmap = (HBITMAP)LoadBitmap(hInst, L"IDB_PB_CTR_SOURCE_ON");
+		else				hBitmap = (HBITMAP)LoadBitmap(hInst, L"IDB_PB_CTR_SOURCE_OFF");
+	hmdc = CreateCompatibleDC(hdc);
+	SelectObject(hmdc, hBitmap);BitBlt(hdc, 0, 0, 50, 20, hmdc, 0, 0, SRCCOPY);	DeleteDC(hmdc);	DeleteObject(hBitmap);
 
 	return;
 }
@@ -1800,7 +1828,10 @@ HRESULT COteIF::snd_ote_u_pc(LPST_OTE_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
 /// <param name="pbuf"></param>
 /// <returns></returns>
 HRESULT COteIF::snd_pc_u_ote(LPST_PC_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
-	if (pSockOteUniCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), *p_addrin_to) == SOCKET_ERROR) {
+
+	pbuf->body.lamp[OTE_INDEX_PB_CTR_SOURCE] = pPLCio->input.rbuf.erm_bo[ID_MC_ERM_BO_160] & MC_SETBIT_LAMP_CONTROL_SOURCE;
+
+	if (pSockOteUniCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG), *p_addrin_to) == SOCKET_ERROR) {
 		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
 		return S_FALSE;
 	}

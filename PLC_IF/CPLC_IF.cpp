@@ -161,6 +161,10 @@ int CPLC_IF::clear_plc_write() {
 }
 
 int CPLC_IF::parse_data_in() {
+
+    //受信バッファの内容をワークバッファにコピー
+    memcpy_s(&(plc_if_workbuf.input), sizeof(PLC_READ_BUF),lp_PLCread, sizeof(PLC_READ_BUF));
+
     return 0;
 }
 

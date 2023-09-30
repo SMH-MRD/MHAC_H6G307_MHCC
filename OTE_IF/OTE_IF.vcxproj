@@ -166,6 +166,8 @@
     <ResourceCompile Include="OTE_IF.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\Img\pb_ctr_source_g.bmp" />
+    <Image Include="..\Img\pb_ctr_source_r.bmp" />
     <Image Include="OTE_IF.ico" />
     <Image Include="small.ico" />
   </ItemGroup>

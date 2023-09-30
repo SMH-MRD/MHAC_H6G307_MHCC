@@ -25,6 +25,7 @@
 #define OTE_MULTICAST_SCAN_MS				1000	    // マルチキャスト IF送信周期
 #define OTE_UNICAST_SCAN_MS					100			// ユニキャスト IF送信周期
 
+
 #define OTE_IF_OTE_IO_MEM_NG				0x8000
 #define OTE_IF_CRANE_MEM_NG					0x4000
 #define OTE_IF_SIM_MEM_NG					0x2000
@@ -193,12 +194,12 @@ public:
    int parse();                //メイン処理
    int output();               //出力処理
 
-   LPST_OTE_IO pOTEio;
-   LPST_CRANE_STATUS pCraneStat;
-   LPST_PLC_IO pPLCio;
-   LPST_CS_INFO pCSInf;
-   LPST_AGENT_INFO pAgentInf;
-   LPST_SWAY_IO pSway_IO;
+   static LPST_OTE_IO pOTEio;
+   static LPST_CRANE_STATUS pCraneStat;
+   static LPST_PLC_IO pPLCio;
+   static LPST_CS_INFO pCSInf;
+   static LPST_AGENT_INFO pAgentInf;
+   static LPST_SWAY_IO pSway_IO;
 
    static std::wstring msg_ws;
    static std::wostringstream msg_wos;
@@ -279,6 +280,7 @@ public:
    static void disp_ip_inf();
 
    static void set_OTE_panel_objects(HWND hWnd);
+   static void draw_pb();
 
    void activate_local_ote(bool is_activate_req);
 

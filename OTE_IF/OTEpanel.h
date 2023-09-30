@@ -50,14 +50,14 @@ SIZE ote_pb_chk_radio_size[OTE_N_PB_CHK_RADIO] = {
 	{ 50,20 }, { 50,20 }										//PB
 };
 
-HWND h_static_ote[OTE_N_STATIC];					//スタティックハンドル
+HWND h_static_ote[OTE_N_STATIC];								//スタティックハンドル
 POINT ote_static_loc[OTE_N_STATIC] = { 
 	{ 255, 0 },{ 0, 0 },{ 0, 45 },{ 0, 90 }, 
-	{ 5, 30 },{ 5, 55 },{ 5, 140 },{ 5, 165 }		//IF CHECK MSG
+	{ 5, 30 },{ 5, 55 },{ 5, 140 },{ 5, 165 }					//IF CHECK MSG
 };
 SIZE ote_static_size[OTE_N_STATIC] = { 
 	{ 545, 20 },{ 50, 20 },{ 250, 40 },{ 250, 110 }, 
-	{ 750, 20 },{ 750, 80 },{ 750, 20 },{ 750, 80 }		//IF CHECK MSG
+	{ 750, 20 },{ 750, 80 },{ 750, 20 },{ 750, 80 }				//IF CHECK MSG
 };
 INT32 ote_static_stat[OTE_N_STATIC];
 

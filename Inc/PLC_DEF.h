@@ -53,6 +53,15 @@ union PLC_WRITE_BUF {
     ST_PLC_WRITE  wbuf;
 };
 
+#define ID_MC_ERM_BO_000    0
+#define ID_MC_ERM_BO_010    1
+#define ID_MC_ERM_BO_140    2
+#define ID_MC_ERM_BO_150    3
+#define ID_MC_ERM_BO_160    4
+#define ID_MC_ERM_BO_170    5
+
+#define MC_SETBIT_LAMP_CONTROL_SOURCE 0x0002
+
 typedef struct st_PLCread_tag {
     INT16 helthy;               //PLCヘルシーカウンタ
     INT16 plc_ctrl;             // PLC運転モード
