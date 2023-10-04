@@ -777,7 +777,6 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			}
 		}
 		if (wParam == ID_OTE_MULTICAST_TIMER) {
-
 			if (S_OK == snd_pc_m_pc(set_msg_pc_m())) {//PC->OTEへマルチキャスト送信
 				cnt_snd_pc_m_pc++;
 			}
@@ -785,13 +784,12 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			if (S_OK == snd_pc_m_ote(set_msg_pc_m())) {//PC->OTEへマルチキャスト送信
 				cnt_snd_pc_m_ote++;
 			}
-
 			if (is_my_ote_active) {
 				if (S_OK == snd_ote_m_ote(set_msg_ote_m())) {
 					cnt_snd_ote_m_ote++;
 				}
 			}
-			disp_ip_inf();//IP情報表示更新
+	//		disp_ip_inf();//IP情報表示更新
 		}
 		disp_msg_cnt();//カウント表示更新
 
@@ -1731,6 +1729,9 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 		h_pb_ote[OTE_INDEX_PB_CTR_SOURCE] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_CTR_SOURCE], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE | BS_OWNERDRAW,
 			ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_CTR_SOURCE].y, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_CTR_SOURCE].cy,
 			hWnd, (HMENU)(OTE_ID_PB_CHK_RADIO + OTE_INDEX_PB_CTR_SOURCE), hInst, NULL);
+
+		st_work_wnd.hdc_pb_ctr_source = GetDC(h_pb_ote[OTE_INDEX_PB_CTR_SOURCE]);
+
 		//故障リセット	
 		h_pb_ote[OTE_INDEX_PB_FAULT_RESET] = CreateWindow(L"BUTTON", pb_text[OTE_INDEX_PB_FAULT_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
 			ote_pb_chk_radio_loc[OTE_INDEX_PB_FAULT_RESET].x, ote_pb_chk_radio_loc[OTE_INDEX_PB_FAULT_RESET].y, ote_pb_chk_radio_size[OTE_INDEX_PB_FAULT_RESET].cx, ote_pb_chk_radio_size[OTE_INDEX_PB_FAULT_RESET].cy,
@@ -1739,18 +1740,23 @@ void COteIF::set_OTE_panel_objects(HWND hWnd) {
 
 	return;
 }
-
+/// <summary>
+/// PBのオーナードロー
+/// </summary>
 void COteIF::draw_pb() {
 	HBITMAP hBitmap;
-	HDC hdc,hmdc;
+	HDC hmdc;
 	HINSTANCE hInst=(HINSTANCE)GetModuleHandle(0);
 
 	//主幹PB
-	hdc = GetDC(h_pb_ote[OTE_INDEX_PB_CTR_SOURCE]);
+
 	if (st_msg_ote_u_rcv.body.lamp[OTE_INDEX_PB_CTR_SOURCE])	hBitmap = (HBITMAP)LoadBitmap(hInst, L"IDB_PB_CTR_SOURCE_ON");
-		else				hBitmap = (HBITMAP)LoadBitmap(hInst, L"IDB_PB_CTR_SOURCE_OFF");
-	hmdc = CreateCompatibleDC(hdc);
-	SelectObject(hmdc, hBitmap);BitBlt(hdc, 0, 0, 50, 20, hmdc, 0, 0, SRCCOPY);	DeleteDC(hmdc);	DeleteObject(hBitmap);
+	else				hBitmap = (HBITMAP)LoadBitmap(hInst, L"IDB_PB_CTR_SOURCE_OFF");
+	
+	hmdc = CreateCompatibleDC(st_work_wnd.hdc_pb_ctr_source);
+	SelectObject(hmdc, hBitmap);BitBlt(st_work_wnd.hdc_pb_ctr_source, 0, 0, 50, 20, hmdc, 0, 0, SRCCOPY);
+	DeleteDC(hmdc);	
+	DeleteObject(hBitmap);
 
 	return;
 }

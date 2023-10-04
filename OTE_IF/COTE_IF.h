@@ -128,6 +128,7 @@ typedef struct _stOTEifwnd {
 	HBITMAP hBmap_inf = NULL;
 	HDC hdc_mem0 = NULL;						            //合成画面メモリデバイスコンテキスト
 	HDC hdc_mem_inf = NULL;					                //文字画面メモリデバイスコンテキスト
+	HDC hdc_pb_ctr_source;
 
 	HFONT hfont_inftext = NULL;				                //テキスト用フォント
 	BLENDFUNCTION bf = { 0,0,0,0 };					        //半透過設定構造体
