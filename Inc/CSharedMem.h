@@ -65,10 +65,10 @@ using namespace std;
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 #pragma region PLC IO
-#define PLC_IF_PC_DBG_MODE		0x00000001		//PCデバッグパネル、SIM出力からIO情報生成
-#define PLC_IF_MONITOR_MODE		0x00000001
-#define PLC_IF_REMOTE_MODE		0x00000002
-#define PLC_IF_SIMULATOR_MODE	0x00000004
+#define PLC_IF_PC_DBG_MODE		0x00000000		//SIM出力からIO情報生成
+#define PLC_IF_MONITOR_MODE		0x00000001		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_REMOTE_MODE		0x00000002		//操作端末からの操作入力有効通常運用モード
+#define PLC_IF_SIMULATOR_MODE	0x00000004		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
 
 // IO割付内容は、PLC_DEF.hに定義
 // PLC_状態信号構造体（機上センサ信号)
@@ -155,6 +155,8 @@ typedef struct StSimulationStatus {
 	PLC_WRITE_BUF plc_w;
 	ST_SWAY_IO sway_io;
 	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
+	double v_fb[MOTION_ID_MAX];								//速度fb
+	double pos[MOTION_ID_MAX];								//位置fb
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角
 	double kbh;												//引込半径に依存する速度、加速度補正係数
 	ST_SWAY_RCV_MSG rcv_msg;

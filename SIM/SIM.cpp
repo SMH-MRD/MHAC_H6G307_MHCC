@@ -151,8 +151,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-
-
    // タスクループ処理起動マルチメディアタイマ起動
    {
        // --マルチメディアタイマ精度設定
@@ -349,7 +347,6 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     pProcObj->input();          //入力
     pProcObj->parse();          //データ解析処理
     pProcObj->output();         //出力
-
  
     //Statusバーにメインプロセスのスキャンタイムとカウンタ表示
     TCHAR tbuf[1024];

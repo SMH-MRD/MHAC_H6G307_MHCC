@@ -71,10 +71,11 @@ int CSIM::init_proc() {
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
    //CraneStat立ち上がり待ち
+#if 0
     while (pCraneStat->is_tasks_standby_ok ==false) {
         Sleep(10);
     }
-
+#endif
     //クレーン仕様のセット
     pCrane->set_spec(&def_spec);
 
@@ -156,14 +157,14 @@ int CSIM::parse() {
             else {
                 pCrane->set_mode(MOB_MODE_PLC);
                 //吊荷の初期状態セット 
-                Vector3 _r(pPLC->status.pos[ID_BOOM_H] * cos(pPLC->status.pos[ID_SLEW]) + pPLC->status.pos[ID_GANTRY],
-                    pPLC->status.pos[ID_BOOM_H] * sin(pPLC->status.pos[ID_SLEW]),
-                    pPLC->status.pos[ID_HOIST]);                    //吊点位置
+                Vector3 _r(pPLC->pos[ID_BOOM_H] * cos(pPLC->pos[ID_SLEW]) + pPLC->pos[ID_GANTRY],
+                    pPLC->pos[ID_BOOM_H] * sin(pPLC->pos[ID_SLEW]),
+                    pPLC->pos[ID_HOIST]);                    //吊点位置
 
                 Vector3 _v(0.0, 0.0, 0.0);                          //吊点速度
                 pCrane->init_crane(dt);
                 pLoad->init_mob(dt, _r, _v);
-                pLoad->set_m(SIM_INIT_M + pPLC->status.weight);     //吊荷重セット
+                pLoad->set_m(SIM_INIT_M + pPLC->weight);     //吊荷重セット
             }
         }
     } //************** モード切り替え時初期化処理　**************
@@ -213,15 +214,15 @@ int CSIM::output() {
 // set_cran_motion() クレーン位置、速度情報セット
 //*********************************************************************************************
 int CSIM::set_cran_motion() {
-    sim_stat_workbuf.status.v_fb[ID_HOIST] = pCrane->v0[ID_HOIST];
-    sim_stat_workbuf.status.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];
-    sim_stat_workbuf.status.v_fb[ID_SLEW] = pCrane->v0[ID_SLEW];
-    sim_stat_workbuf.status.v_fb[ID_BOOM_H] = pCrane->v0[ID_BOOM_H];
+    sim_stat_workbuf.v_fb[ID_HOIST] = pCrane->v0[ID_HOIST];
+    sim_stat_workbuf.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];
+    sim_stat_workbuf.v_fb[ID_SLEW] = pCrane->v0[ID_SLEW];
+    sim_stat_workbuf.v_fb[ID_BOOM_H] = pCrane->v0[ID_BOOM_H];
 
-    sim_stat_workbuf.status.pos[ID_HOIST] = pCrane->r0[ID_HOIST];
-    sim_stat_workbuf.status.pos[ID_GANTRY] = pCrane->r0[ID_GANTRY];
-    sim_stat_workbuf.status.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
-    sim_stat_workbuf.status.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
+    sim_stat_workbuf.pos[ID_HOIST] = pCrane->r0[ID_HOIST];
+    sim_stat_workbuf.pos[ID_GANTRY] = pCrane->r0[ID_GANTRY];
+    sim_stat_workbuf.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
+    sim_stat_workbuf.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
 
     sim_stat_workbuf.L = pLoad->L;
     sim_stat_workbuf.vL = pLoad->vL;

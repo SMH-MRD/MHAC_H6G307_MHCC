@@ -146,81 +146,75 @@ Vector3 CCrane::A(Vector3& _r, Vector3& _v) {					//í›ì_ÇÃâ¡ë¨ìx
 
 #define REF_CUT_BREAK_CLOSE_RETIO 0.5	//ÉuÉåÅ[ÉLÇï¬Ç∂ÇÈîªíËåWêîÅ@ÇPÉmÉbÉ`ë¨ìxÇ∆ÇÃî‰ó¶
 
-void CCrane::Ac() {								//â¡ë¨ìxåvéZ
-	if (source_mode == MOB_MODE_SIM) {
-		//â¡ë¨éwóﬂåvéZ
-		if (!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
-		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) > accdec_cut_spd_range[ID_HOIST]) {
-			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][ACC];//ê≥ì]â¡ë¨
-			else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][DEC];//ãtì]å∏ë¨
-		}
-		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
-			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][DEC];//ê≥ì]å∏ë¨
-			else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][ACC];//ãtì]â¡ë¨
-		}
-		else {
-			a_ref[ID_HOIST] = 0.0;
-		}
-		//ã…å¿í‚é~
-		if ((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
-		if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
-
-
-		if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
-		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
-			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][ACC];//ê≥ì]â¡ë¨
-			else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][DEC];//ãtì]å∏ë¨
-		}
-		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
-			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][DEC];//ê≥ì]å∏ë¨
-			else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][ACC];//ãtì]â¡ë¨
-		}
-		else {
-			a_ref[ID_GANTRY] = 0.0;
-		}
-
-		//ã…å¿í‚é~
-		if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
-		if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
-
-
-
-		if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
-		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
-			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//ê≥ì]â¡ë¨
-			else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][DEC];//ãtì]å∏ë¨
-		}
-		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
-			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][DEC];//ê≥ì]å∏ë¨
-			else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][ACC];//ãtì]â¡ë¨
-		}
-		else {
-			a_ref[ID_BOOM_H] = 0.0;
-		}
-
-		//ã…å¿í‚é~
-		if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
-		if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
-
-		if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
-		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
-			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][ACC];//ê≥ì]â¡ë¨
-			else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][DEC];//ãtì]å∏ë¨
-		}
-		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
-			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][DEC];//ê≥ì]å∏ë¨
-			else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//ãtì]â¡ë¨
-		}
-		else {
-			a_ref[ID_SLEW] = 0.0;
-		}
+void CCrane::Ac() {	//â¡ë¨ìxåvéZ
+	//â¡ë¨éwóﬂåvéZ
+#if 0 //ãåÉ^ÉCÉv
+	if (!motion_break[ID_HOIST]) {													//ÉuÉåÅ[ÉLçÏìÆÇ≈â¡ë¨éwóﬂ0
+		a_ref[ID_HOIST] = 0.0;
 	}
-	else {			//PLC ÉÇÅ[ÉhÇ≈ÇÕÅAë¨ìxFBÇÃî˜ï™Çâ¡ë¨ìxéwóﬂÇ∆ÇµÇƒï]âø
-		//â¡ë¨éwóﬂåvéZ
-		a_ref[ID_HOIST] = (pPLC->status.v_fb[ID_HOIST] - v0[ID_HOIST]) / dt;
-		a_ref[ID_GANTRY] = (pPLC->status.v_fb[ID_GANTRY] - v0[ID_GANTRY]) / dt;
-		a_ref[ID_BOOM_H] = (pPLC->status.v_fb[ID_BOOM_H] - v0[ID_BOOM_H]) / dt;
-		a_ref[ID_SLEW] = (pPLC->status.v_fb[ID_SLEW] - v0[ID_SLEW]) / dt;
+	else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) > accdec_cut_spd_range[ID_HOIST]) {	//ë¨ìxìûíBÇ≈â¡ë¨éwóﬂ0
+		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][ACC];	//ê≥ì]â¡ë¨
+		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][DEC];//ãtì]å∏ë¨
+	}
+	else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
+		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][DEC];//ê≥ì]å∏ë¨
+		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][ACC];//ãtì]â¡ë¨
+	}
+	else {
+		a_ref[ID_HOIST] = 0.0;
+	}
+
+	//ã…å¿í‚é~
+	if ((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+	if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+
+
+	if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
+	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
+		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][ACC];//ê≥ì]â¡ë¨
+		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][DEC];//ãtì]å∏ë¨
+	}
+	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
+		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][DEC];//ê≥ì]å∏ë¨
+		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][ACC];//ãtì]â¡ë¨
+	}
+	else {
+		a_ref[ID_GANTRY] = 0.0;
+	}
+
+	//ã…å¿í‚é~
+	if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+	if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+
+
+	if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
+	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
+		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//ê≥ì]â¡ë¨
+		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][DEC];//ãtì]å∏ë¨
+	}
+	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
+		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][DEC];//ê≥ì]å∏ë¨
+		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][ACC];//ãtì]â¡ë¨
+	}
+	else {
+		a_ref[ID_BOOM_H] = 0.0;
+	}
+
+	//ã…å¿í‚é~
+	if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+	if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+
+	if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
+	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
+		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][ACC];//ê≥ì]â¡ë¨
+		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][DEC];//ãtì]å∏ë¨
+	}
+	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
+		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][DEC];//ê≥ì]å∏ë¨
+		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//ãtì]â¡ë¨
+	}
+	else {
+		a_ref[ID_SLEW] = 0.0;
 	}
 
 	//!!!! à¯çûâ¡ë¨ìxÇà¯çûîºåaÇ…âûÇ∂Çƒï‚ê≥
@@ -268,6 +262,189 @@ void CCrane::Ac() {								//â¡ë¨ìxåvéZ
 	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
 	a.z = a_z;
 
+
+	//!!!! à¯çûâ¡ë¨ìxÇà¯çûîºåaÇ…âûÇ∂Çƒï‚ê≥
+	double x = r0[ID_BOOM_H]; //à¯çûîºåa
+	double kbh = 0.0008 * x * x - 0.0626 * x + 1.9599;
+	a_ref[ID_BOOM_H] *= kbh;
+
+	//â¡ë¨ìxåvéZÅ@ìññ éwóﬂÇ…ëŒÇµÇƒàÍéüíxÇÍÉtÉBÉãÉ^Çì¸ÇÍÇÈå`Ç≈åvéZÅiè´óàìIÇ…ÉgÉãÉNéwóﬂÇ©ÇÁÇÃì±èoåüì¢Åj
+	if ((motion_break[ID_HOIST]) || (source_mode != MOB_MODE_SIM)) {
+		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
+	}
+	else {
+		a0[ID_HOIST] = 0.0;
+	}
+
+	if ((motion_break[ID_BOOM_H]) || (source_mode != MOB_MODE_SIM)) {
+		a0[ID_BOOM_H] = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * a0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
+	}
+	else {
+		a0[ID_BOOM_H] = 0.0;
+	}
+
+	if ((motion_break[ID_SLEW]) || (source_mode != MOB_MODE_SIM)) {
+		a0[ID_SLEW] = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * a0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
+	}
+	else {
+		a0[ID_SLEW] = 0.0;
+	}
+
+	if ((motion_break[ID_GANTRY]) || (source_mode != MOB_MODE_SIM)) {
+		a0[ID_GANTRY] = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * a0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
+	}
+	else {
+		a0[ID_GANTRY] = 0.0;
+	}
+
+
+	//í›ì_â¡ë¨ìxÉxÉNÉgÉãÅiâ~íåç¿ïWÅj
+	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//à¯çûï˚å¸â¡ë¨ìxÅ@à¯çûâ¡ë¨ìxÅ{ê˘âÒï™
+	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//ê˘âÒï˚å¸â¡ë¨ìx
+	double a_z = 0.0;																//í›ì_ÇÃçÇÇ≥ÇÕàÍíË
+
+	//xyzç¿ïWí›ì_â¡ë¨ìxÉxÉNÉgÉã
+	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
+	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
+	a.z = a_z;
+#endif
+	//â¡ë¨ìxéwóﬂåvéZ aref
+	//### éÂä™ ###
+	{
+		if (!motion_break[ID_HOIST]) {													//ÉuÉåÅ[ÉLçÏìÆÇ≈â¡ë¨éwóﬂ0
+			na_ref[ID_HOIST] = 0.0;
+		}
+		else if ((nv_ref[ID_HOIST] - nv0[ID_HOIST]) > pspec->accdec_d[ID_HOIST][FWD][ACC]) {
+			if (nv_ref[ID_HOIST] > 0.0) na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][FWD][ACC];	//ê≥ì]éwóﬂéû
+			else						na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][REV][DEC];	//ãtì]éwóﬂéû
+		}
+		else if ((nv_ref[ID_HOIST] - nv0[ID_HOIST]) < pspec->accdec_d[ID_HOIST][FWD][DEC]) {
+			if (nv_ref[ID_HOIST] > 0.0) na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][FWD][DEC];	//ê≥ì]éwóﬂéû
+			else						na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][REV][ACC];	//ãtì]éwóﬂéû
+		}
+		else {
+			na_ref[ID_HOIST] = 0.0;
+		}
+		//ã…å¿í‚é~
+		if ((na_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) na_ref[ID_HOIST] = 0.0;
+		if ((na_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) na_ref[ID_HOIST] = 0.0;
+	}
+	//### ï‚ä™ ###
+	{
+		if (!motion_break[ID_AHOIST]) {													//ÉuÉåÅ[ÉLçÏìÆÇ≈â¡ë¨éwóﬂ0
+			na_ref[ID_AHOIST] = 0.0;
+		}
+		else if ((nv_ref[ID_AHOIST] - nv0[ID_AHOIST]) > pspec->accdec_d[ID_AHOIST][FWD][ACC]) {
+			if (nv_ref[ID_AHOIST] > 0.0) na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][FWD][ACC];	//ê≥ì]éwóﬂéû
+			else						na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][REV][DEC];	//ãtì]éwóﬂéû
+		}
+		else if ((nv_ref[ID_AHOIST] - nv0[ID_AHOIST]) < pspec->accdec_d[ID_AHOIST][FWD][DEC]) {
+			if (nv_ref[ID_AHOIST] > 0.0) na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][FWD][DEC];	//ê≥ì]éwóﬂéû
+			else						na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][REV][ACC];	//ãtì]éwóﬂéû
+		}
+		else {
+			na_ref[ID_AHOIST] = 0.0;
+		}
+		//ã…å¿í‚é~
+		if ((na_ref[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST])) na_ref[ID_AHOIST] = 0.0;
+		if ((na_ref[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST])) na_ref[ID_AHOIST] = 0.0;
+	}
+	//### ëñçs ###
+	{
+		if (!motion_break[ID_GANTRY]) na_ref[ID_GANTRY] = 0.0;
+		else if ((nv_ref[ID_GANTRY] - nv0[ID_GANTRY]) > pspec->accdec_d[ID_GANTRY][FWD][ACC]) {
+			if (nv_ref[ID_GANTRY] > 0.0)	na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][FWD][ACC];//ê≥ì]éwóﬂ
+			else							na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][REV][DEC];//ãtì]éwóﬂ
+		}
+		else if ((nv_ref[ID_GANTRY] - nv0[ID_GANTRY]) < pspec->accdec[ID_GANTRY][FWD][DEC]) {
+			if (nv_ref[ID_GANTRY] > 0.0)	na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][FWD][DEC];//ê≥ì]å∏ë¨
+			else							na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][REV][ACC];//ãtì]â¡ë¨
+		}
+		else {
+			na_ref[ID_GANTRY] = 0.0;
+		}
+		//ã…å¿í‚é~
+		if ((na_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) na_ref[ID_GANTRY] = 0.0;
+		if ((na_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) na_ref[ID_GANTRY] = 0.0;
+	}
+	//### à¯çû ###
+	{
+		if (!motion_break[ID_BOOM_H]) {
+			na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
+		}
+		else if ((nv_ref[ID_BOOM_H] - nv0[ID_BOOM_H]) > pspec->accdec_d[ID_BOOM_H][FWD][ACC]) {
+			if (nv_ref[ID_BOOM_H] > 0.0) {
+				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][FWD][ACC];//ê≥ì]â¡ë¨
+			}
+			else {
+				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][REV][DEC];//ãtì]å∏ë¨
+			}
+		}
+		else if ((nv_ref[ID_BOOM_H] - nv0[ID_BOOM_H]) < pspec->accdec[ID_BOOM_H][FWD][DEC]) {
+			if (v_ref[ID_BOOM_H] > 0.0) {
+				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][FWD][DEC];//ê≥ì]å∏ë¨
+			}
+			else {
+				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][REV][ACC];//ãtì]â¡ë¨
+			}
+		}
+		else {
+			na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
+		}
+
+		//ã…å¿í‚é~
+		if ((na_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
+		if ((na_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
+	}
+	//### ê˘âÒ ###
+	{
+		if (!motion_break[ID_SLEW]) na_ref[ID_SLEW] = 0.0;
+		else if ((nv_ref[ID_SLEW] - nv0[ID_SLEW]) > pspec->accdec_d[ID_SLEW][FWD][ACC]) {
+			if (nv_ref[ID_SLEW] > 0.0)	na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][FWD][ACC];//ê≥ì]â¡ë¨
+			else						na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][REV][DEC];//ãtì]å∏ë¨
+		}
+		else if ((nv_ref[ID_SLEW] - nv0[ID_SLEW]) < pspec->accdec_d[ID_SLEW][FWD][DEC]) {
+			if (nv_ref[ID_SLEW] > 0.0)	na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][FWD][DEC];//ê≥ì]å∏ë¨
+			else						na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][REV][ACC];//ãtì]â¡ë¨
+		}
+		else {
+			na_ref[ID_SLEW] = 0.0;
+		}
+
+	}
+
+	//â¡ë¨ìxâûìöåvéZÅ@na0 ìññ éwóﬂÇ…ëŒÇµÇƒàÍéüíxÇÍÉtÉBÉãÉ^Çì¸ÇÍÇÈå`Ç≈åvéZ
+	if (motion_break[ID_HOIST])		na0[ID_HOIST] = (dt * na_ref[ID_HOIST] + Tf[ID_HOIST] * na0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
+	else							na0[ID_HOIST] = 0.0;
+	if (motion_break[ID_AHOIST])	na0[ID_AHOIST] = (dt * na_ref[ID_AHOIST] + Tf[ID_AHOIST] * na0[ID_AHOIST]) / (dt + Tf[ID_AHOIST]);
+	else							na0[ID_AHOIST] = 0.0;
+	if (motion_break[ID_BOOM_H]) {
+		na0[ID_BOOM_H] = na0[ID_BH_HOIST] = (dt * na_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * na0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
+	}
+	else {
+		na0[ID_BOOM_H] = na0[ID_BH_HOIST] = 0.0;
+	}
+	if (motion_break[ID_SLEW])		na0[ID_SLEW] = (dt * na_ref[ID_SLEW] + Tf[ID_SLEW] * na0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
+	else 							na0[ID_SLEW] = 0.0;
+	if (motion_break[ID_GANTRY]) 	na0[ID_GANTRY] = (dt * na_ref[ID_GANTRY] + Tf[ID_GANTRY] * na0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
+	else							na0[ID_GANTRY] = 0.0;
+
+	//í›ì_â¡ë¨ìxâûìöåvéZÅ@a0 ìññ éwóﬂÇ…ëŒÇµÇƒàÍéüíxÇÍÉtÉBÉãÉ^Çì¸ÇÍÇÈå`Ç≈åvéZ
+
+
+
+
+
+
+	//í›ì_â¡ë¨ìxÉxÉNÉgÉãÅiâ~íåç¿ïWÅj
+	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] *v0[ID_SLEW] * v0[ID_SLEW];		//à¯çûï˚å¸â¡ë¨ìxÅ@à¯çûâ¡ë¨ìxÅ{ê˘âÒï™
+	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//ê˘âÒï˚å¸â¡ë¨ìx
+	double a_z = 0.0;																//í›ì_ÇÃçÇÇ≥ÇÕàÍíË
+
+	//xyzç¿ïWí›ì_â¡ë¨ìxÉxÉNÉgÉã
+	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
+	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
+	a.z = a_z;
 	return;
 }
 
@@ -296,16 +473,16 @@ void CCrane::timeEvolution() {
 
 	}
 	else {
-		v0[ID_HOIST] = pPLC->status.v_fb[ID_HOIST];
-		v0[ID_GANTRY] = pPLC->status.v_fb[ID_GANTRY];
-		v0[ID_SLEW] = pPLC->status.v_fb[ID_SLEW];
-		v0[ID_BOOM_H] = pPLC->status.v_fb[ID_BOOM_H];
+		v0[ID_HOIST] = pPLC->v_fb[ID_HOIST];
+		v0[ID_GANTRY] = pPLC->v_fb[ID_GANTRY];
+		v0[ID_SLEW] = pPLC->v_fb[ID_SLEW];
+		v0[ID_BOOM_H] = pPLC->v_fb[ID_BOOM_H];
 
 		//à íuåvéZ(ÉIÉCÉâÅ[ñ@Åj
-		r0[ID_HOIST] = pPLC->status.pos[ID_HOIST];
-		r0[ID_GANTRY] = pPLC->status.pos[ID_GANTRY];
-		r0[ID_BOOM_H] = pPLC->status.pos[ID_BOOM_H];
-		r0[ID_SLEW] = pPLC->status.pos[ID_SLEW];
+		r0[ID_HOIST] = pPLC->pos[ID_HOIST];
+		r0[ID_GANTRY] = pPLC->pos[ID_GANTRY];
+		r0[ID_BOOM_H] = pPLC->pos[ID_BOOM_H];
+		r0[ID_SLEW] = pPLC->pos[ID_SLEW];
 	}
 
 	//ê˘âÒäpÇÕÅA-ÉŒÅ`ÉŒÇÃï\åªÇ…Ç∑ÇÈ
@@ -329,21 +506,51 @@ void CCrane::timeEvolution() {
 }
 
 void CCrane::init_crane(double _dt) {
+	//ÉNÉåÅ[ÉìÉpÉâÉÅÅ[É^ÉZÉbÉg
+	st_crane_prms.DpDb2 = 2.0 * SIM_PARA_DP * SIM_PARA_DB;
+	st_crane_prms.Dp2Db2 = SIM_PARA_DP * SIM_PARA_DP + SIM_PARA_DB * SIM_PARA_DB;
+	for (int i = 0; i < N_DRUM_LAYER; i++) {//à íuåvéZópåWêîåvéZëwíPà 
+		st_crane_prms.n_drum_max[ID_BOOM_H][i]		= SIM_PARA_N_BHBHD_GROOVE;		//ãNïöãNïöëwä™êî
+		st_crane_prms.n_drum_max[ID_BH_HOIST][i]	= SIM_PARA_N_BHMHD_GROOVE;		//ãNïöéÂä™ëwä™êî
+		st_crane_prms.n_drum_max[ID_HOIST][i]		= SIM_PARA_N_MHD_GROOVE;		//éÂä™ëwä™êî
+		st_crane_prms.n_drum_max[ID_AHOIST][i]		= SIM_PARA_N_AHD_GROOVE;		//ï‚ä™ëwä™êî
+		st_crane_prms.n_drum_max[ID_GANTRY][i]		= 1;							//ëñçsëwä™êî
+		st_crane_prms.n_drum_max[ID_SLEW][i]		= 1;							//ê˘âÒëwä™êî
+
+		st_crane_prms.d_r[ID_BOOM_H][i]				= 0.596 + (double)i * 0.04368;	//ëwîºåa
+		st_crane_prms.d_r[ID_BH_HOIST][i]			= 0.600 + (double)i * 0.0433;	//ëwîºåa
+		st_crane_prms.d_r[ID_HOIST][i]				= 0.600 + (double)i * 0.0433;	//ëwîºåa
+		st_crane_prms.d_r[ID_AHOIST][i]				= 0.375 + (double)i * 0.0240;	//ëwîºåa
+		st_crane_prms.d_r[ID_GANTRY][i]				= 0.25;							//é‘ó÷îºåa
+		st_crane_prms.d_r[ID_SLEW][i]				= 0.154;						//ÉsÉjÉIÉìîºåa
+
+		//ëwÇÃä™éÊó ÅiëSä™éûÅj
+		st_crane_prms.d_layer_lmax[ID_BOOM_H][i] = PI360 * st_crane_prms.d_r[ID_BOOM_H][i] * st_crane_prms.n_drum_max[ID_BOOM_H][i];
+		if (i > 0) st_crane_prms.d_layer_lmax[ID_BOOM_H][i] += st_crane_prms.d_layer_lmax[ID_BOOM_H][i-1];
+		st_crane_prms.d_layer_lmax[ID_BH_HOIST][i] = PI360 * st_crane_prms.d_r[ID_BH_HOIST][i] * st_crane_prms.n_drum_max[ID_BH_HOIST][i];
+		if (i > 0) st_crane_prms.d_layer_lmax[ID_BH_HOIST][i] += st_crane_prms.d_layer_lmax[ID_BH_HOIST][i - 1];
+		st_crane_prms.d_layer_lmax[ID_HOIST][i] = PI360 * st_crane_prms.d_r[ID_HOIST][i] * st_crane_prms.n_drum_max[ID_HOIST][i];
+		if (i > 0) st_crane_prms.d_layer_lmax[ID_HOIST][i] += st_crane_prms.d_layer_lmax[ID_HOIST][i - 1];
+		st_crane_prms.d_layer_lmax[ID_AHOIST][i] = PI360 * st_crane_prms.d_r[ID_AHOIST][i] * st_crane_prms.n_drum_max[ID_AHOIST][i];
+		if (i > 0) st_crane_prms.d_layer_lmax[ID_AHOIST][i] += st_crane_prms.d_layer_lmax[ID_AHOIST][i - 1];
+		st_crane_prms.d_layer_lmax[ID_GANTRY][i] = PI360 * st_crane_prms.d_r[ID_GANTRY][i] * st_crane_prms.n_drum_max[ID_GANTRY][i];
+		st_crane_prms.d_layer_lmax[ID_SLEW][i] = PI360 * st_crane_prms.d_r[ID_SLEW][i] * st_crane_prms.n_drum_max[ID_SLEW][i];
+	}
 
 	if (source_mode == MOB_MODE_PLC) {
 		//ÉNÉåÅ[ÉìäÓèÄì_ÇÃèâä˙à íu,ë¨ìx
-		rc.x = pPLC->status.pos[ID_GANTRY]; rc.y = 0.0; rc.z = 0.0;
-		vc.x = pPLC->status.v_fb[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
+		rc.x = pPLC->pos[ID_GANTRY]; rc.y = 0.0; rc.z = 0.0;
+		vc.x = pPLC->v_fb[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
 
 		Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high);
 
 		init_mob(_dt, _r, vc);
 
 		//r0ÇÕÅAäeé≤ÉAÉuÉ\ÉRÅ[É_ÇÃíl,Å@rÇÕÅAí›ì_ÇÃxyzç¿ïWÇÃíl
-		r0[ID_HOIST] = pPLC->status.pos[ID_HOIST];
+		r0[ID_HOIST] = pPLC->pos[ID_HOIST];
 		r0[ID_GANTRY] = rc.x;
-		r0[ID_SLEW] = pPLC->status.pos[ID_SLEW];
-		r0[ID_BOOM_H] = pPLC->status.pos[ID_BOOM_H];
+		r0[ID_SLEW] = pPLC->pos[ID_SLEW];
+		r0[ID_BOOM_H] = pPLC->pos[ID_BOOM_H];
 	}
 	else {
 		//ÉNÉåÅ[ÉìäÓèÄì_ÇÃèâä˙à íu,ë¨ìx
@@ -475,7 +682,6 @@ Vector3 CLoad::A(Vector3& r, Vector3& v) {
 	// ï‚ê≥îSê´íÔçRóÕ
 	Vector3 agamma = hatL.clone().multiplyScalor(-compensationGamma * v_.dot(hatL));
 	// í£óÕÇ…Ç–Ç‡ÇÃí∑Ç≥ÇÃï‚ê≥óÕÇâ¡Ç¶ÇÈ
-
 	a.add(ak).add(agamma);
 
 	return a;
@@ -491,7 +697,7 @@ double  CLoad::S() { //AÇÃåvéZïîÇÃä÷åWÇ≈S/LÇ∆Ç»Ç¡ÇƒÇ¢ÇÈÅBä™Ç´ÇÃâ¡ë¨ìxï™Ç™í«â¡Ç≥Ç
 
 }
 
-void CLoad::update_relative_vec() {
+void CLoad::update_relative_vec() {//ÉNÉåÅ[Éìí›ì_Ç∆ÇÃëäëŒë¨ìx
 	Vector3 vectmp;
 	L = vectmp.subVectors(r,pCrane->r);
 	vL = vectmp.subVectors(v,pCrane->v);
