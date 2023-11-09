@@ -16,9 +16,6 @@ ERMPLC_BOUT_MAP erm_bout_map;
 ERMPLC_YOUT_MAP erm_yout_map;
 ERMPLC_XIN_MAP  erm_xin_map;
 
-
-
-
 CPLC_IF::CPLC_IF(HWND _hWnd_parent) {
 
     hWnd_parent = _hWnd_parent;
@@ -102,7 +99,6 @@ int CPLC_IF::init_proc() {
     if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) {
         mode |= PLC_IF_CS_MEM_NG;
     }
-
     pCSInf = (LPST_CS_INFO)pCSInfObj->get_pMap(); 
     
     
@@ -135,6 +131,22 @@ int CPLC_IF::init_proc() {
     lp_PLCread = (LPST_PLC_READ)(pMCProtocol->mc_res_msg_r.res_data);
     lp_PLCwrite = (LPST_PLC_WRITE)(pMCProtocol->mc_req_msg_w.req_data);
 
+
+    //データ変換計算用パラメータセット
+    while (!pCrane->is_crane_status_ok) Sleep(100);//MAINプロセスの仕様取り込み完了待ち
+
+    for (int i = 0; i < MOTION_ID_MAX; i++) {//ドラム0層パラメータセット
+        plc_if_workbuf.Cdr[i][0] = pCrane->spec.prm_nw[SIZE_ITEM_WIRE_LEN0][i];
+        plc_if_workbuf.Ldr[i][0] = 0.0;
+    }
+
+    for (int j = 1; j < PLC_DRUM_LAYER_MAX; j++) {//ドラム1層以上パラメータセット{
+        for (int i = 0; i < ID_AHOIST+1; i++) {//ドラム1層以上パラメータセット
+            plc_if_workbuf.Cdr[i][j] =( pCrane->spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j-1.0)* pCrane->spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) * PI180;
+            plc_if_workbuf.Kdr[i][j] = (pCrane->spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j - 1.0) * pCrane->spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) / pCrane->spec.prm_nw[DRUM_ITEM_DIR][i];
+            plc_if_workbuf.Ldr[i][j] = plc_if_workbuf.Ldr[i][j-1] + pCrane->spec.prm_nw[NW_ITEM_GROOVE][i]* plc_if_workbuf.Cdr[i][j];
+        }
+    }
 
     return int(mode & 0xff00);
 }
@@ -239,7 +251,6 @@ int CPLC_IF::parse_sim_status() {
     return 0;
 }
 
-
 int CPLC_IF::parse() { 
 
     //PLC書き込みデータセット
@@ -264,6 +275,8 @@ int CPLC_IF::parse() {
 //*********************************************************************************************
 
 int CPLC_IF::output() { 
+
+    plc_if_workbuf.healthy_cnt++;
  
      //共有メモリ出力処理
     if(out_size) { 

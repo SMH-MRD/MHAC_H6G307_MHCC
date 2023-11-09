@@ -93,7 +93,7 @@ typedef struct StSpec {
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },				//[ID_TROLLY]	rps
 	{ 0.0,	0.0128,	0.0385,	0.0770,	0.1283,	0.1283 },			//[ID_BOOM_H]	rps
 	{ 0.0,	0.0068,	0.0204,	0.0409,	0.0681,	0.0681},			//[ID_SLEW]		rps
-	{ 0.0,	0.0694,	0.2082,	0.4164,	0.694,	0.694 },				//[ID_AHOIST]	rps
+	{ 0.0,	0.0694,	0.2082,	0.4164,	0.694,	0.694 },			//[ID_AHOIST]	rps
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },				//[ID_H_ASSY];
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },				//[ID_MOTION1];
 	};
@@ -266,8 +266,6 @@ typedef struct StSpec {
 //#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
 
 
-
-
 #define SWAY_IF_IP_SWAY_PORT_C			10080
 #define SWAY_IF_IP_SWAY_PORT_S			10081
 #define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
@@ -302,7 +300,91 @@ typedef struct StSpec {
 		{10.0,	0.0,	0.0,	5.0,	PI90,	0.0,	0.0,	0.0},
 		{15.0,	0.0,	0.0,	18.0,	-PI60,	0.0,	0.0,	0.0},
 	};
+
+	double Lb = 64.009;
+	double Lm = 63.000;
+	double La = 66.566;
+	double Lmb = 1.676;
+	double Lma = 4.981;
+	double Lba = 5.512;
+	double Th_pba = 2.00301;
+	double Th_pbm = 0.90266;
+	double Alpa_m = 0.02089;
+	double Alpa_a = 0.06801;
+	double Phbm = 2.20547;
+	double Hp = 47.7;
+	double Lp = 25.174;
+	double Php = 1.6583;
+	double Lmf = 2.9000;
+	double Laf = 2.2910;
+
+#define WIRE_ITEM_NUM		8		// ワイヤ関連パラメータ項目数
+#define NW_ITEM_WIND		0		// ワイヤ掛数
+#define NW_ITEM_WIND_BOOM	1		// ワイヤ掛数ブーム部
+#define NW_ITEM_EX_TURN		2		// あだ巻数
+#define NW_ITEM_GROOVE		3		// ドラム溝数
+#define DRUM_ITEM_DIR		4		// １層ドラム径
+#define DRUM_ITEM_WIRE_DIR	5		// ワイヤ径
+#define DRUM_ITEM_DIR_ADD	6		// ドラム径層加算値
+#define SIZE_ITEM_WIRE_LEN0	7		// 基準ワイヤ長
+	
+	double prm_nw[WIRE_ITEM_NUM][MOTION_ID_MAX]{
+		//	HST,	GNT,	BHMH,	BH,		SLW,	AH,		ASSY,	COM
+			{4.0,	0.0,	4.0,	6.0,	0.0,	2.0,	0.0,	0.0},	// ワイヤ掛数
+			{2.0,	0.0,	2.0,	6.0,	0.0,	4.0,	0.0,	0.0},	// ワイヤ掛数ブーム部
+			{4.0,	0.0,	6.0,	4.0,	0.0,	5.0,	0.0,	0.0},	// あだ巻数
+			{15.0,	1.0,	10.0,	12.0,	1.0,	15.0,	0.0,	0.0},	// ドラム溝数
+			{1.200,	0.50,	1.200,	1.1925,	0.308,	0.750,	0.0,	0.0},	// １層ドラム径
+			{0.05,	0.0,	0.05,	0.0425,	0.0,	0.028,	0.0,	0.0},	// ワイヤ径
+			{0.0866,0.0,	0.0866,	0.0736,	0.0,	0.0485,	0.0,	0.0},	// ドラム径層加算値
+			{563.598,1.571,	563.598,525.906,0.968,	402.636,0.0,	0.0}	// 基準ワイヤ長
+	};
+
+	double Th_rest	= -0.7113;	//ジブレスト時の起伏角
+	double D_min	= 41.425;	//最小半径時の起伏シーブ間距離
+	double D_rest	= 83.905;	//ジブレスト時の起伏シーブ間距離
+	double Hb_min	= 59.397;	//最小半径時の起伏高さ
+	double Hb_rest	= -41.786;	//ジブレスト時起伏高さ
+	double Dttb		= 3.652;	//TTB径
+	double Nbh_drum = 67.974;	//引込ドラム回転数の和（引込＋主巻）
+	double Load0_mh = 11000.0;	//主巻吊具荷重
+	double Load0_ah = 1900.0;	//補巻吊具荷重
+
+#define MOTION_ITEM_NUM			6		// 動作関連パラメータ項目数
+#define MOTION_ITEM_END_POS_F	0		// 正転方向軸極限位置（m,rad）
+#define MOTION_ITEM_END_POS_R	1		// 逆転方向軸極限位置（m,rad）
+#define MOTION_ITEM_LIM_V_F		2		// 正転方向軸極限速度（m/s,rad/s）
+#define MOTION_ITEM_LIM_V_R		3		// 逆転方向軸極限速度（m/s,rad/s）
+#define MOTION_ITEM_RATE_A_F	4		// 正転方向軸定格加速度（m/s2,rad/s2）
+#define MOTION_ITEM_RATE_A_R	5		// 逆転方向軸定格加速度（m/s2,rad/s2）
+
+	double prm_move[MOTION_ITEM_NUM][MOTION_ID_MAX]{
+		//	HST,		GNT,		BHMH,		BH,			SLW,		AH,			ASSY,	COM
+			{79.0,		28.333,		0.0,		21.0,		3.142,		88.0,		0.0,	0.0},	// 正転方向軸極限位置（m,rad）
+			{-5.550,	0.011234,	0.0,		62.0,		-3.142,		-5.408,		0.0,	0.0},	// 逆転方向軸極限位置（m,rad）
+			{0.35,		0.5,		0.0,		0.208,		0.035,		0.4,		0.0,	0.0},	// 正転方向軸極限速度（m/s,rad/s）
+			{-0.35,		-0.5,		0.0,		-0.208,		-0.035,		-0.4,		0.0,	0.0},	// 逆転方向軸極限速度（m/s,rad/s）
+			{0.078,		0.063,		0.0,		0.139,		0.004,		0.133,		0.0,	0.0},	// 正転方向軸定格加速度（m/s2,rad/s2）
+			{-0.078,	-0.063,		0.0,		-0.139,		-0.004,		-0.133,		0.0,	0.0}	// 逆転方向軸定格加速度（m/s2,rad/s2）
+	};
+
+
+#define DRIVE_ITEM_NUM			4		// ドライブ関連パラメータ項目数
+#define DRIVE_ITEM_RPS			0		// モータ定格回転数（100%）
+#define DRIVE_ITEM_GEAR			1		// 減速比
+#define DRIVE_ITEM_ACC_TIME		2		// 加速時間（100%)
+#define DRIVE_ITEM_RATE_V		3		// 定格速度（100%)
+
+	double prm_drv[DRIVE_ITEM_NUM][MOTION_ID_MAX]{
+	//	HST,		GNT,		BHMH,		BH,			SLW,		AH,			ASSY,	COM
+		{12.5,		28.333,		0.0,		29.1667,	29.167,		16.667,		0.0,	0.0},	// モータ定格回転数（rps　100%）
+		{0.007823,	0.011234,	0.0,		0.004399,	0.0000191,	0.008418,	0.0,	0.0},	// 減速比(ドラム回転/モータ回転）
+		{1.5,		8.0,		0.0,		1.5,		9.0,		1.5,		0.0,	0.0},	// 加速時間（100%)
+		{0.1170,	0.5,		0.0,		0.2080,		0.035,		0.2000,		0.0,	0.0}	// 定格速度（m/s, rad/s)
+	};
+
 }ST_SPEC, * LPST_SPEC;
+
 
 
 

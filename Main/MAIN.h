@@ -28,7 +28,7 @@
 #define MAIN_WND_INIT_SIZE_W		620		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		420		//-Main Windowの初期サイズ　H
 #define MAIN_WND_INIT_POS_X			20		//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			20		//-Main Windowの初期位置設定　Y
+#define MAIN_WND_INIT_POS_Y			0		//-Main Windowの初期位置設定　Y
 
 //-Tweet Message表示用Static Windowのサイズ設定値
 #define MSG_WND_H					20		//Height of tweet window

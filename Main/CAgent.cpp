@@ -59,8 +59,6 @@ void CAgent::init_task(void* pobj) {
 	pCom_hot = NULL;
 	pjob_active = NULL;
 
-	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
-
 	AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 	pjob_active = NULL;
 
@@ -319,26 +317,26 @@ void CAgent::main_proc() {
 		//JOB–³‚µ
 		else if (pCom_hot == NULL) {
 			//Šª‚ÍŒ»ÝˆÊ’u
-			AgentInf_workbuf.auto_pos_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+			AgentInf_workbuf.auto_pos_target.pos[ID_HOIST] = pPLC_IO->pos[ID_HOIST];
 
 			//ˆøž‚Íƒmƒbƒ`“ü‚è‚Ü‚½‚ÍU‚êŽ~‚ßOFF‚ÅŒ»ÝˆÊ’u@0ƒmƒbƒ`ƒgƒŠƒK‚ÅŒ»ÝˆÊ’u{Œ¸‘¬‹——£ˆÊ’u
 			//0ƒmƒbƒ`ƒgƒŠƒK‚ÅŒ»ÝˆÊ’u{Œ¸‘¬‹——£ˆÊ’u‚ÉÝ’è
 			if (!(notch0_last & BIT_SEL_BH) && (pCraneStat->notch0 & BIT_SEL_BH)) {
-				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + pEnv->cal_dist4stop(ID_BOOM_H, false);
+				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->pos[ID_BOOM_H] + pEnv->cal_dist4stop(ID_BOOM_H, false);
 			}
 			//ƒmƒbƒ`“ü‚è‚Ü‚½‚ÍU‚êŽ~‚ßƒ‚[ƒhOFF‚ÅŒ»ÝˆÊ’u
 			else if (!(pCraneStat->notch0 & BIT_SEL_BH) || (pCSInf->antisway_mode != L_ON)) {
-				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->pos[ID_BOOM_H];
 			}
 			else;
 
 			//ù‰ñ‚Íƒmƒbƒ`“ü‚è‚Ü‚½‚ÍU‚êŽ~‚ßOFF‚ÅŒ»ÝˆÊ’u@0ƒmƒbƒ`ƒgƒŠƒK‚ÅŒ»ÝˆÊ’u{Œ¸‘¬‹——£ˆÊ’u
 			if (!(notch0_last & BIT_SEL_SLW) && (pCraneStat->notch0 & BIT_SEL_SLW)) { //0ƒmƒbƒ`ƒgƒŠƒK
-				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + pEnv->cal_dist4stop(ID_SLEW, false);
+				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->pos[ID_SLEW] + pEnv->cal_dist4stop(ID_SLEW, false);
 			}
 			//ƒmƒbƒ`“ü‚è‚Ü‚½‚ÍU‚êŽ~‚ßƒ‚[ƒhOFF‚ÅŒ»ÝˆÊ’u
 			else if (!(pCraneStat->notch0 & BIT_SEL_SLW) || (pCSInf->antisway_mode != L_ON)) {
-				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->pos[ID_SLEW];
 			}
 			else;
 		}
@@ -581,9 +579,9 @@ void CAgent::set_as_workbuf(int motion) {
 	double temp_d;
 
 	//Œ»ÝˆÊ’u
-	st_as_work.pos[motion] = pPLC_IO->status.pos[motion];
+	st_as_work.pos[motion] = pPLC_IO->pos[motion];
 	//Œ»Ý‘¬“x
-	st_as_work.v[motion] = pPLC_IO->status.v_fb[motion];
+	st_as_work.v[motion] = pPLC_IO->v_fb[motion];
 	//ˆÚ“®‹——£
 	temp_d = AgentInf_workbuf.auto_pos_target.pos[motion] - st_as_work.pos[motion];
 	if (motion == ID_SLEW) {																//ù‰ñ‚ÍA180‚ð‰z‚¦‚é‚Æ‚«‚Í‹t•ûŒü‚ª‹ß‚¢
@@ -1095,7 +1093,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		v_out = pStep->_v;
 
 		double v1percent = pCraneStat->spec.notch_spd_f[motion][5] * 0.01; //1%‘¬“x
-		double dv = v_out - pPLC_IO->status.v_fb[motion],dv_abs;
+		double dv = v_out - pPLC_IO->v_fb[motion],dv_abs;
 		if (dv < 0.0)dv_abs = -dv;
 		else dv_abs = dv;
 
@@ -1106,7 +1104,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = STAT_END;
 
 			//Šª‚«‰º‚°Žž‚ÍˆÊ’u‚àƒ`ƒFƒbƒN
-			if (pPLC_IO->status.pos[ID_HOIST] < pStep->_p)
+			if (pPLC_IO->pos[ID_HOIST] < pStep->_p)
 				pStep->status = STAT_END;
 		}
 		else if (dv_abs < v1percent) {
@@ -1124,11 +1122,11 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		v_out = pStep->_v;
 
 		if (precipe->direction >= ID_STOP) {					//ˆÚ“®•ûŒü@{
-			if(pPLC_IO->status.pos[motion] >= pStep->_p)		//–Ú•WˆÊ’u‚ð‰z‚¦‚½
+			if(pPLC_IO->pos[motion] >= pStep->_p)		//–Ú•WˆÊ’u‚ð‰z‚¦‚½
 				pStep->status = STAT_END;
 		}
 		else {													//ˆÚ“®•ûŒü@-
-			if (pPLC_IO->status.pos[motion] < pStep->_p)		//–Ú•WˆÊ’u‚ð‰z‚¦‚½
+			if (pPLC_IO->pos[motion] < pStep->_p)		//–Ú•WˆÊ’u‚ð‰z‚¦‚½
 				pStep->status = STAT_END;
 		}
 
@@ -1174,7 +1172,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	//#	”÷¬ˆÊ’u‡‚í‚¹
 	case CTR_TYPE_FINE_POS: {
 		pStep->status = STAT_ACTIVE;
-		double dx = pStep->_p - pPLC_IO->status.pos[motion];
+		double dx = pStep->_p - pPLC_IO->pos[motion];
 		if (motion == ID_SLEW) {
 			if (dx > PI180)dx -= PI360;
 			else if(dx < -PI180) dx += PI360;
@@ -1592,6 +1590,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 /*  PBŽw—ßXV	(”ñí’âŽ~,ŽåŠ²PB‘¼j										*/
 /****************************************************************************/
 void CAgent::update_pb_lamp_com() {
+#if 0
 	//‘€ìPB(Žæ‚èŠ¸‚¦‚¸PLC“ü—Í’lŽæ‚èž‚ÝiPLC IO‚É‚ÄOFF DELAY‘g‚Ýž‚ÝÏj
 	AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = pPLC_IO->ui.PB[ID_PB_ESTOP];
 	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON];
@@ -1599,7 +1598,7 @@ void CAgent::update_pb_lamp_com() {
 	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON];
 	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF];
 	AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = pPLC_IO->ui.PB[ID_PB_FAULT_RESET];
-	
+#endif
 	return;
 };
 

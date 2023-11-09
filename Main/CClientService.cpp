@@ -30,7 +30,7 @@ CClientService::~CClientService() {
 /*   タスク初期化処理                                                       */
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
 /****************************************************************************/
-static BOOL PLC_PBs_last[N_PLC_PB];
+//static BOOL PLC_PBs_last[N_PLC_PB];
 
 void CClientService::init_task(void* pobj) {
 
@@ -41,7 +41,7 @@ void CClientService::init_task(void* pobj) {
 	pAgent_Inf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	pOTE_IO = (LPST_OTE_IO)(pOTEioObj->get_pMap());
 	pJob_IO = (LPST_JOB_IO)(pJobIO_Obj->get_pMap());
-
+#if 0
 	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
 
 	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
@@ -62,6 +62,7 @@ void CClientService::init_task(void* pobj) {
 	inf.is_init_complete = true;
 	CS_workbuf.job_set_event = CS_JOBSET_EVENT_CLEAR;
 	CS_workbuf.ote_camera_height_m = 30.0;
+#endif
 	return;
 };
 
@@ -103,6 +104,7 @@ void CClientService::input() {
 };
 
 //# 操作入力取り込み処理
+#if 0
 static int as_pb_last = 0, auto_pb_last = 0, set_z_pb_last = 0, set_xy_pb_last = 0;
 static int park_pb_last = 0, pick_pb_last = 0, grnd_pb_last = 0;					//自動指定入力前回値保持
 static int mhp1_pb_last = 0, mhp2_pb_last = 0, mhm1_pb_last = 0, mhm2_pb_last = 0;	//目標位置補正入力前回値保持
@@ -112,6 +114,7 @@ static int semi_auto_selected_last = SEMI_AUTO_TG_CLR,job_set_event_last;
 static INT16 notch_pos_last[8];
 static INT32 tg_pos_last[8];
 static INT32 tg_dist_last[8];
+#endif
 
 //モードセット　自動目標位置
 int CClientService::parce_onboard_input(int mode) {
@@ -120,7 +123,7 @@ int CClientService::parce_onboard_input(int mode) {
 	//振れ止めモードセット
 	INT16* pUIpb;
 	INT16* pUIpb_semiauto;
-
+#if 0
 	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {
 		if (pOTE_IO->rcv_msg_u.body.pb[ID_PB_ESTOP]) CS_workbuf.estop_active = L_ON;
 		else CS_workbuf.estop_active = L_OFF;
@@ -241,9 +244,9 @@ int CClientService::parce_onboard_input(int mode) {
 						//OTE タッチ目標移動距離モード
 						CS_workbuf.ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
 						//OTE タッチ目標移動距離
-						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[0] / 1000.0;
-						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[1] / 1000.0;
-						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[2] / 1000.0;
+						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_HOIST] = pPLC_IO->pos[ID_HOIST] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[0] / 1000.0;
+						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_BOOM_H] = pPLC_IO->pos[ID_BOOM_H] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[1] / 1000.0;
+						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_SLEW] = pPLC_IO->pos[ID_SLEW] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[2] / 1000.0;
 
 						CS_workbuf.semi_auto_selected = SEMI_AUTO_TOUCH_DIST;
 
@@ -466,7 +469,7 @@ int CClientService::parce_onboard_input(int mode) {
 	slm1_pb_last = pUIpb[ID_PB_SL_M1];
 	slm2_pb_last = pUIpb[ID_PB_SL_M2];
 	semi_auto_selected_last = CS_workbuf.semi_auto_selected;
-
+#endif
 	return 0;
 }
 
@@ -490,9 +493,9 @@ int CClientService::set_hp_pos_for_view() {
 
 	double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m;
 
-	tg_x_m = pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
+	tg_x_m = pPLC_IO->pos[ID_BOOM_H] * cos(pPLC_IO->pos[ID_SLEW]);
 	tg_x_rad = tg_x_m / CS_workbuf.ote_camera_height_m;
-	tg_y_m = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
+	tg_y_m = pPLC_IO->pos[ID_BOOM_H] * sin(pPLC_IO->pos[ID_SLEW]);
 	tg_y_rad = tg_y_m / CS_workbuf.ote_camera_height_m;
 
 	CS_workbuf.hunging_point_for_view[0] = (INT32)(tg_x_rad * 1000.0);
@@ -505,7 +508,7 @@ int CClientService::set_hp_pos_for_view() {
 
 //# タッチ目標位置を半自動設定目標にセット
 int CClientService::update_ote_touch_pos_tg() {
-
+#if 0
 	//OTE タッチ目標位置
 	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[2] / 1000.0;
 	double d_z = CS_workbuf.ote_camera_height_m;
@@ -545,14 +548,14 @@ int CClientService::update_ote_touch_pos_tg() {
 		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
 	}
 
-
+#endif
 
 	return 0;
 }
 
 //# 操作端末入力取り込み処理
 int CClientService::parce_ote_imput(int mode) {
-
+#if 0
 	CS_workbuf.ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
 
 	//OTE表示画面用カメラ視点高さ
@@ -563,18 +566,21 @@ int CClientService::parce_ote_imput(int mode) {
 	for (int i = 0;i < 5;i++) notch_pos_last[i] = pOTE_IO->rcv_msg_u.body.notch_pos[i];
 	for (int i = 0;i < 4;i++)tg_pos_last[i] = pOTE_IO->rcv_msg_u.body.tg_pos1[i];
 	for (int i = 0;i < 4;i++)tg_dist_last[i] = pOTE_IO->rcv_msg_u.body.tg_dist1[i];
-
+#endif
 	return 0;
 }
 
 //# 操作端末有効判断
 int CClientService::can_ote_activate() {
+#if 0
 	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE]) {
 		return L_ON;
 	}
 	else {
 		return L_OFF;
 	}
+#endif
+	return L_OFF;
 }
 
 bool CClientService::chk_trig_ote_touch_pos_target() {
@@ -582,8 +588,9 @@ bool CClientService::chk_trig_ote_touch_pos_target() {
 	for (int i = 0;i < 3;i++) {
 		if (tg_pos_last[i] != pOTE_IO->rcv_msg_u.body.tg_pos1[i])return true;
 	}
-*/
+
 	if (!(tg_pos_last[3]) && (pOTE_IO->rcv_msg_u.body.tg_pos1[3]))return true;
+	*/
 	return false;
 }
 bool CClientService::chk_trig_ote_touch_dist_target() {
@@ -599,11 +606,11 @@ bool CClientService::chk_trig_ote_touch_dist_target() {
 	for (int i = 0;i < 3;i++) {
 		if (tg_dist_last[i] != pOTE_IO->rcv_msg_u.body.tg_dist1[i])return true;
 	}
-		*/
+
 	if (CS_workbuf.ote_notch_dist_mode) {
 		if (!(tg_dist_last[3]) && (pOTE_IO->rcv_msg_u.body.tg_dist1[3]))return true;
 	}
-
+		*/
 	return false;
 }
 
@@ -761,7 +768,7 @@ int CClientService::perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg) {
 void CClientService::output() {
 
 /*### 自動関連ランプ表示　###*/
-
+#if 0
 	//振れ止めランプ
 	if (CS_workbuf.antisway_mode == L_ON) {
 		CS_workbuf.ui_lamp[ID_PB_ANTISWAY_ON] = L_ON;
@@ -947,6 +954,7 @@ void CClientService::output() {
 
 		tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	}
+#endif
 	return;
 
 };

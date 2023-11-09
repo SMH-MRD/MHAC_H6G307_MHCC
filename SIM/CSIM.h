@@ -16,6 +16,7 @@ class CSIM :
     public CBasicControl
 {
 
+
 private:
 
     //# 出力用共有メモリオブジェクトポインタ:
@@ -34,7 +35,7 @@ private:
 
     double dt;//スキャン時間
 
-    CCrane* pCrane; //クレーンのモデル
+    CJC* pCrane; //クレーンのモデル
     CLoad* pLoad;   //吊荷のモデル
 
   public:

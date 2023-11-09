@@ -83,7 +83,7 @@
 #define CMON_MAZENDA_PEN2           6
 
 #define OTE_WORK_WND_X						10					//OTEメインパネル表示位置X
-#define OTE_WORK_WND_Y						10					//OTEメインパネル表示位置Y
+#define OTE_WORK_WND_Y						550					//OTEメインパネル表示位置Y
 #define OTE_WORK_WND_W						800					//OTEメインパネルWINDOW幅
 #define OTE_WORK_WND_H						600					//OTEメインパネルWINDOW高さ
 

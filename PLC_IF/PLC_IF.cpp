@@ -12,6 +12,7 @@
 
 #define MAX_LOADSTRING 100
 
+
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
@@ -205,15 +206,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
         pProcObj->show_if_wnd();
 
-        stMainWnd.h_redio_remote = CreateWindow(L"BUTTON", L"RMT", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-            5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_REMOTE, hInst, NULL);
-        stMainWnd.h_redio_mon = CreateWindow(L"BUTTON", L"MON", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
-            50, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_MON, hInst, NULL);
-        stMainWnd.h_redio_sim = CreateWindow(L"BUTTON", L"SIM", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            95, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM, hInst, NULL);
-        pProcObj->set_mode(PLC_IF_REMOTE_MODE);
-        SendMessage(stMainWnd.h_redio_remote, BM_SETCHECK, BST_CHECKED, 0L);
-        SetWindowText(stMainWnd.h_static0, L"REMOTE MODE");
+        stMainWnd.h_redio_m0 = CreateWindow(L"BUTTON", L"M0", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
+            5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M0, hInst, NULL);
+        stMainWnd.h_redio_m1 = CreateWindow(L"BUTTON", L"M1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
+            50, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M1, hInst, NULL);
+        stMainWnd.h_redio_m2 = CreateWindow(L"BUTTON", L"M2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+            95, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M2, hInst, NULL);
+        pProcObj->set_mode(PLC_IF_SIM_MODE_2);
+        SendMessage(stMainWnd.h_redio_m2, BM_SETCHECK, BST_CHECKED, 0L);
+        SetWindowText(stMainWnd.h_static0, L"SIM M2");
     }
     break;
     case WM_COMMAND:
@@ -230,26 +231,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DestroyWindow(hWnd);
             break;
 
-        case IDC_RADIO_MON: {
-            pProcObj->set_mode(PLC_IF_MONITOR_MODE);
+        case IDC_RADIO_SIM_M0: {
+            pProcObj->set_mode(PLC_IF_SIM_MODE_0);
             TCHAR tbuf[32];
             wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
-            SetWindowText(stMainWnd.h_static0, L"MONITOR MODE");
+            SetWindowText(stMainWnd.h_static0, L"SIM M0");
         }break;
-        case IDC_RADIO_REMOTE: {
-            pProcObj->set_mode(PLC_IF_REMOTE_MODE);
+        case IDC_RADIO_SIM_M1: {
+            pProcObj->set_mode(PLC_IF_SIM_MODE_1);
             TCHAR tbuf[32];
             wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
-            SetWindowText(stMainWnd.h_static0, L"REMOTE MODE");
+            SetWindowText(stMainWnd.h_static0, L"SIM M1");
         }break;
-        case IDC_RADIO_SIM: {
-            pProcObj->set_mode(PLC_IF_SIMULATOR_MODE);
+        case IDC_RADIO_SIM_M2: {
+            pProcObj->set_mode(PLC_IF_SIM_MODE_2);
             TCHAR tbuf[32];
             wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
-            SetWindowText(stMainWnd.h_static0, L"SIMULATOR MODE");
+            SetWindowText(stMainWnd.h_static0, L"SIM M2");
         }break;
 
         case IDC_CHK_IFCHK:
@@ -354,3 +355,4 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
      }
     return;
 }
+

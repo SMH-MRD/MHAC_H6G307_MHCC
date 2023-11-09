@@ -61,19 +61,32 @@
 #define SMEM_DATA_SIZE_MAX				1000000	//共有メモリ割り当て最大サイズ　1Mbyte	
 
 using namespace std;
+
+typedef struct StMoveSet {
+	double p;
+	double v;
+	double a;
+}ST_MOVE_SET, * LPST_MOVE_SET;
+
 /****************************************************************************/
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 #pragma region PLC IO
 #define PLC_IF_PC_DBG_MODE		0x00000000		//SIM出力からIO情報生成
-#define PLC_IF_MONITOR_MODE		0x00000001		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
-#define PLC_IF_REMOTE_MODE		0x00000002		//操作端末からの操作入力有効通常運用モード
-#define PLC_IF_SIMULATOR_MODE	0x00000004		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+#define PLC_IF_MONITOR_MODE		0x00000100		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_REMOTE_MODE		0x00000200		//操作端末からの操作入力有効通常運用モード
+#define PLC_IF_SIMULATOR_MODE	0x00000400		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+#define PLC_IF_SIM_MODE_0		0x00000000		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_SIM_MODE_1		0x00000001		//操作端末からの操作入力有効通常運用モード
+#define PLC_IF_SIM_MODE_2		0x00000002		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+
+#define PLC_DRUM_LAYER_MAX		10				//ドラム層数最大値
 
 // IO割付内容は、PLC_DEF.hに定義
 // PLC_状態信号構造体（機上センサ信号)
 typedef struct StPLC_IO {
 	INT32 mode;
+	INT32 healthy_cnt;
 	double v_fb[MOTION_ID_MAX];			//速度FB
 	double v_ref[MOTION_ID_MAX];		//PLCへの速度指令出力
 	double trq_fb_01per[MOTION_ID_MAX];	//トルクFB
@@ -84,6 +97,13 @@ typedef struct StPLC_IO {
 	INT16 notch_ref[MOTION_ID_MAX];		//ノッチ指令入力FB（OTE入力含む）
 	PLC_READ_BUF		input;			//PLCからの読み取り信号生値
 	PLC_WRITE_BUF		output;			//PLCへの書き込み信号生値
+
+	double Cdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム1層円周
+	double Ldr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層巻取量
+	double Kdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層円周倍率
+
+	ST_MOVE_SET	axc[MOTION_ID_MAX];		//軸動作
+
 }ST_PLC_IO, * LPST_PLC_IO;
 
 #pragma endregion PLC IO定義構造体
@@ -157,10 +177,22 @@ typedef struct StSimulationStatus {
 	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
 	double v_fb[MOTION_ID_MAX];								//速度fb
 	double pos[MOTION_ID_MAX];								//位置fb
-	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角
+	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角,振れ角速度
 	double kbh;												//引込半径に依存する速度、加速度補正係数
 	ST_SWAY_RCV_MSG rcv_msg;
 	ST_SWAY_SND_MSG snd_msg;
+
+	ST_MOVE_SET	d;										//ポスト‐起伏シーブ間動作状態
+	ST_MOVE_SET	ph;										//φ
+	ST_MOVE_SET	th;										//θ
+	ST_MOVE_SET	hm0;									//主巻シーブ起伏高さ
+	ST_MOVE_SET	ha0;									//補巻シーブ起伏高さ
+	ST_MOVE_SET	lrm;									//主巻ロープ長
+	ST_MOVE_SET	lra;									//補巻ロープ長
+	ST_MOVE_SET	nd[MOTION_ID_MAX];						//ドラム回転動作
+	UINT32 i_layer[MOTION_ID_MAX];		//ドラム現在層数
+	double n_layer[MOTION_ID_MAX];		//ドラム現在層巻取数
+
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 #pragma endregion シミュレーション信号定義構造体
 //****************************************************************************
@@ -207,9 +239,12 @@ typedef struct stEnvSubproc {
 
 #define PB_TRIG_COUNT			1
 
+#define DRUM_LAYER_MAX	10	//ドラ巻取り層数最大値
+
 typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
 	bool is_tasks_standby_ok;							//タスクの立ち上がり確認
+	bool is_crane_status_ok=false;							//クレーンステータス初期化完了
 	ST_SPEC spec;										//クレーン仕様
 
 //Periodical Update			：定周期更新
@@ -217,9 +252,15 @@ typedef struct StCraneStatus {
 	ST_ENV_SUBPROC subproc_stat;						//サブプロセスの状態
 	WORD operation_mode;								//運転モード　機上,リモート
 
-	Vector3 rc;											//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	Vector3 rl;											//吊荷のクレーン吊点とのx,y,z相対座標
-	Vector3 rcam_m;										//振れセンサ検出x,y,z座標 m
+	Vector3 rc;											//クレーン主巻吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl;											//主巻吊荷のクレーン吊点とのx,y,z相対座標
+	Vector3 rcam_m;										//主巻振れセンサ検出x,y,z座標 m
+
+	Vector3 rc_a;										//クレーン補巻吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl_a;										//補巻吊荷のクレーン吊点とのx,y,z相対座標
+	Vector3 rcam_m_a;									//補巻振れセンサ検出x,y,z座標 m
+
+	
 	double notch_spd_ref[MOTION_ID_MAX];				//ノッチ速度指令
 	double mh_l;										//ロープ長
 	double T;											//振周期		s
@@ -237,6 +278,11 @@ typedef struct StCraneStatus {
 
 	INT32 notch0;										//0ノッチ判定総合
 	INT32 notch0_crane;									//0ノッチ判定PLC
+
+	double Cdr[DRUM_LAYER_MAX][MOTION_ID_MAX];			//ドラム層円周
+	double Ldr[DRUM_LAYER_MAX][MOTION_ID_MAX];			//ドラム層FULL巻取量
+
+	double notch_spd[MOTION_ID_MAX][NOTCH_MAX];			//# ノッチ速度設定現在値
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 #pragma endregion 

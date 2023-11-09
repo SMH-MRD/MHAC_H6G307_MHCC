@@ -85,7 +85,7 @@ void CMob::timeEvolution() {
 /********************************************************************************/
 /*       Crane Object                                                          */
 /********************************************************************************/
-CCrane::CCrane() { 
+CJC::CJC() { 
 	pspec = &def_spec;							//クレーン仕様
 
 	//0速とみなす速度上限
@@ -120,9 +120,9 @@ CCrane::CCrane() {
 	source_mode = MOB_MODE_SIM;
 	
 }
-CCrane::~CCrane() {}
+CJC::~CJC() {}
 
-void CCrane::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref) {
+void CJC::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref) {
 	v_ref[ID_HOIST] = hoist_ref;
 	v_ref[ID_BOOM_H] = boomh_ref;
 	v_ref[ID_SLEW] = slew_ref;
@@ -131,7 +131,7 @@ void CCrane::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, dou
 }
 
 // ﾄﾙｸT(N・m）= F x R　= J x dω/dt  仕事率P=Tω=Mav　a=Tω/Mv=MT/r
-Vector3 CCrane::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
+Vector3 CJC::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
 
 	Vector3 a;
 	double r_bm = r0[ID_BOOM_H];//旋回半径
@@ -146,7 +146,7 @@ Vector3 CCrane::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
 
 #define REF_CUT_BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
 
-void CCrane::Ac() {	//加速度計算
+void CJC::Ac() {	//加速度計算
 	//加速指令計算
 #if 0 //旧タイプ
 	if (!motion_break[ID_HOIST]) {													//ブレーキ作動で加速指令0
@@ -307,7 +307,7 @@ void CCrane::Ac() {	//加速度計算
 	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
 	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
 	a.z = a_z;
-#endif
+
 	//加速度指令計算 aref
 	//### 主巻 ###
 	{
@@ -413,6 +413,7 @@ void CCrane::Ac() {	//加速度計算
 
 	}
 
+
 	//加速度応答計算　na0 当面指令に対して一次遅れフィルタを入れる形で計算
 	if (motion_break[ID_HOIST])		na0[ID_HOIST] = (dt * na_ref[ID_HOIST] + Tf[ID_HOIST] * na0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
 	else							na0[ID_HOIST] = 0.0;
@@ -433,7 +434,7 @@ void CCrane::Ac() {	//加速度計算
 
 
 
-
+#endif
 
 
 	//吊点加速度ベクトル（円柱座標）
@@ -448,7 +449,7 @@ void CCrane::Ac() {	//加速度計算
 	return;
 }
 
-void CCrane::timeEvolution() {
+void CJC::timeEvolution() {
 	//クレーン部
 	//加速度計算
 	Ac();
@@ -505,37 +506,22 @@ void CCrane::timeEvolution() {
 	return;
 }
 
-void CCrane::init_crane(double _dt) {
+void CJC::init_crane(double _dt) {
+	
+	//ドラム回転位置セット
+	set_nbh_d_ph_th_from_r(SIM_INIT_R);
+
+	set_nmh_from_d_mh(pSimStat->d.p, SIM_INIT_MH); 
+
+	set_nah_from_d_ah(pSimStat->d.p, SIM_INIT_AH);
+
+	slw_rad_per_turn = PI360 * pspec->prm_nw[DRUM_ITEM_DIR][ID_SLEW] / pspec->Dttb;
+	set_nsl_from_slr(SIM_INIT_TH); 
+
+	gnt_m_per_turn = PI180 * pspec->prm_nw[DRUM_ITEM_DIR][ID_GANTRY];
+	set_ngt_from_gtm(SIM_INIT_X);
+	
 	//クレーンパラメータセット
-	st_crane_prms.DpDb2 = 2.0 * SIM_PARA_DP * SIM_PARA_DB;
-	st_crane_prms.Dp2Db2 = SIM_PARA_DP * SIM_PARA_DP + SIM_PARA_DB * SIM_PARA_DB;
-	for (int i = 0; i < N_DRUM_LAYER; i++) {//位置計算用係数計算層単位
-		st_crane_prms.n_drum_max[ID_BOOM_H][i]		= SIM_PARA_N_BHBHD_GROOVE;		//起伏起伏層巻数
-		st_crane_prms.n_drum_max[ID_BH_HOIST][i]	= SIM_PARA_N_BHMHD_GROOVE;		//起伏主巻層巻数
-		st_crane_prms.n_drum_max[ID_HOIST][i]		= SIM_PARA_N_MHD_GROOVE;		//主巻層巻数
-		st_crane_prms.n_drum_max[ID_AHOIST][i]		= SIM_PARA_N_AHD_GROOVE;		//補巻層巻数
-		st_crane_prms.n_drum_max[ID_GANTRY][i]		= 1;							//走行層巻数
-		st_crane_prms.n_drum_max[ID_SLEW][i]		= 1;							//旋回層巻数
-
-		st_crane_prms.d_r[ID_BOOM_H][i]				= 0.596 + (double)i * 0.04368;	//層半径
-		st_crane_prms.d_r[ID_BH_HOIST][i]			= 0.600 + (double)i * 0.0433;	//層半径
-		st_crane_prms.d_r[ID_HOIST][i]				= 0.600 + (double)i * 0.0433;	//層半径
-		st_crane_prms.d_r[ID_AHOIST][i]				= 0.375 + (double)i * 0.0240;	//層半径
-		st_crane_prms.d_r[ID_GANTRY][i]				= 0.25;							//車輪半径
-		st_crane_prms.d_r[ID_SLEW][i]				= 0.154;						//ピニオン半径
-
-		//層の巻取量（全巻時）
-		st_crane_prms.d_layer_lmax[ID_BOOM_H][i] = PI360 * st_crane_prms.d_r[ID_BOOM_H][i] * st_crane_prms.n_drum_max[ID_BOOM_H][i];
-		if (i > 0) st_crane_prms.d_layer_lmax[ID_BOOM_H][i] += st_crane_prms.d_layer_lmax[ID_BOOM_H][i-1];
-		st_crane_prms.d_layer_lmax[ID_BH_HOIST][i] = PI360 * st_crane_prms.d_r[ID_BH_HOIST][i] * st_crane_prms.n_drum_max[ID_BH_HOIST][i];
-		if (i > 0) st_crane_prms.d_layer_lmax[ID_BH_HOIST][i] += st_crane_prms.d_layer_lmax[ID_BH_HOIST][i - 1];
-		st_crane_prms.d_layer_lmax[ID_HOIST][i] = PI360 * st_crane_prms.d_r[ID_HOIST][i] * st_crane_prms.n_drum_max[ID_HOIST][i];
-		if (i > 0) st_crane_prms.d_layer_lmax[ID_HOIST][i] += st_crane_prms.d_layer_lmax[ID_HOIST][i - 1];
-		st_crane_prms.d_layer_lmax[ID_AHOIST][i] = PI360 * st_crane_prms.d_r[ID_AHOIST][i] * st_crane_prms.n_drum_max[ID_AHOIST][i];
-		if (i > 0) st_crane_prms.d_layer_lmax[ID_AHOIST][i] += st_crane_prms.d_layer_lmax[ID_AHOIST][i - 1];
-		st_crane_prms.d_layer_lmax[ID_GANTRY][i] = PI360 * st_crane_prms.d_r[ID_GANTRY][i] * st_crane_prms.n_drum_max[ID_GANTRY][i];
-		st_crane_prms.d_layer_lmax[ID_SLEW][i] = PI360 * st_crane_prms.d_r[ID_SLEW][i] * st_crane_prms.n_drum_max[ID_SLEW][i];
-	}
 
 	if (source_mode == MOB_MODE_PLC) {
 		//クレーン基準点の初期位置,速度
@@ -576,13 +562,14 @@ void CCrane::init_crane(double _dt) {
 	Tf[ID_BOOM_H] = SIM_TF_BOOM_H;
 	Tf[ID_SLEW] = SIM_TF_SLEW;
 	Tf[ID_GANTRY] = SIM_TF_GANTRY;
+
 }
 
 
 #define BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
 
 // 各モーションのブレーキ状態をセット
-void CCrane::update_break_status() {
+void CJC::update_break_status() {
 
 	if (v_ref[ID_HOIST] != 0.0) {
 		motion_break[ID_HOIST] = true;
@@ -650,6 +637,122 @@ void CCrane::update_break_status() {
 	return;
 }
 
+void CJC::set_nbh_d_ph_th_from_r(double r) {
+	pSimStat->th.p = acos(r/pspec->Lb);
+	pSimStat->ph.p = pspec->Php - pSimStat->th.p;
+	pSimStat->d.p = sqrt(pspec->Lb* pspec->Lb + pspec->Lp * pspec->Lp - 2.0* pspec->Lb * pspec->Lp * cos(pSimStat->ph.p));
+
+	double ln = pPLC->Cdr[ID_BOOM_H][0] - pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H] * pSimStat->d.p;
+	int i;
+	for (i = 1; i < PLC_DRUM_LAYER_MAX-1; i++) {
+		if (ln < pPLC->Ldr[ID_BOOM_H][i]) break;
+	}
+
+	//起伏起伏ドラム層数
+	pSimStat->i_layer[ID_BOOM_H] = i;
+	pSimStat->n_layer[ID_BOOM_H] = (ln-pPLC->Ldr[ID_BOOM_H][i-1])/ pPLC->Cdr[ID_BOOM_H][i];
+
+	//回転数
+	pSimStat->nd[ID_BOOM_H].p = pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H] * ((double)i - 1.0) + pSimStat->n_layer[ID_BOOM_H];
+	pSimStat->nd[ID_BHMH].p = pspec->Nbh_drum- pSimStat->nd[ID_BOOM_H].p;
+
+	//起伏主巻ドラム層数
+	pSimStat->i_layer[ID_BHMH] = (UINT32)(pSimStat->nd[ID_BHMH].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_BHMH]);									//現在層数-1
+	pSimStat->n_layer[ID_BHMH] = pSimStat->nd[ID_BHMH].p - (double)pSimStat->i_layer[ID_BHMH] * pspec->prm_nw[NW_ITEM_GROOVE][ID_BHMH];		// 回転数-（現在層数-1）*溝数
+	pSimStat->i_layer[ID_BHMH]++;//現在層数
+
+	return;
+}
+
+//旋回半径と主巻揚程から主巻ドラム回転数をセットする
+void CJC::set_nmh_from_d_mh(double d, double mh) {
+	//ロープ長
+	double lrope = pspec->Hp + pspec->Lm * sin(pSimStat->th.p - pspec->Alpa_m) - mh;
+	
+	//起伏ドラム巻取り量
+	double lbhm;
+	if (pSimStat->i_layer[ID_BHMH] > 0) 
+		lbhm = pPLC->Ldr[ID_BHMH][pSimStat->i_layer[ID_BHMH] - 1] + pPLC->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH] ] * pSimStat->n_layer[ID_BHMH];
+	else 
+		lbhm = pPLC->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->n_layer[ID_BHMH];
+	
+	//主巻ドラム巻取り量
+	double ln = pPLC->Cdr[ID_HOIST][0] - pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST] * pSimStat->d.p - lbhm - lrope* pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
+
+	int i;
+	for (i = 1; i < PLC_DRUM_LAYER_MAX - 1; i++) {
+		if (ln < pPLC->Ldr[ID_HOIST][i]) break;
+	}
+	pSimStat->i_layer[ID_HOIST] = i;
+	pSimStat->n_layer[ID_HOIST] = (ln - pPLC->Ldr[ID_HOIST][i - 1])/pPLC->Cdr[ID_HOIST][i];
+
+	pSimStat->nd[ID_HOIST].p = pspec->prm_nw[NW_ITEM_GROOVE][ID_HOIST] * ((double)i - 1.0) + pSimStat->n_layer[ID_HOIST];
+	return;
+
+}
+
+//dと補巻揚程から補巻ドラム回転数をセットする
+void CJC::set_nah_from_d_ah(double d, double ah) { 
+	
+	//ロープ長
+	double lrope = pspec->Hp + pspec->La * sin(pSimStat->th.p - pspec->Alpa_a) - ah;
+
+	//補巻ドラム巻取り量
+	double ln = pPLC->Cdr[ID_AHOIST][0] - pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST] * pSimStat->d.p  - lrope * pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];
+
+	int i;
+	for (i = 1; i < PLC_DRUM_LAYER_MAX - 1; i++) {
+		if (ln < pPLC->Ldr[ID_AHOIST][i]) break;
+	}
+	pSimStat->i_layer[ID_AHOIST] = i;
+	pSimStat->n_layer[ID_AHOIST] = (ln - pPLC->Ldr[ID_AHOIST][i - 1]) / pPLC->Cdr[ID_AHOIST][i];
+
+	pSimStat->nd[ID_AHOIST].p = pspec->prm_nw[NW_ITEM_GROOVE][ID_AHOIST] * ((double)i - 1.0) + pSimStat->n_layer[ID_AHOIST];
+
+	return; 
+} 
+
+//旋回位置(rad)から旋回ピニオン回転数をセットする
+void CJC::set_nsl_from_slr(double sl_rad) { 
+	
+	pSimStat->nd[ID_SLEW].p = sl_rad / slw_rad_per_turn;
+	pSimStat->i_layer[ID_SLEW] = 1;
+	pSimStat->n_layer[ID_SLEW] = pSimStat->nd[ID_SLEW].p;
+	return; 
+}
+
+//走行位置から走行車輪回転数をセットする
+void CJC::set_ngt_from_gtm(double gt_m) {
+	pSimStat->nd[ID_GANTRY].p = gt_m / gnt_m_per_turn;
+	pSimStat->i_layer[ID_GANTRY] = 1;
+	pSimStat->n_layer[ID_GANTRY] = pSimStat->nd[ID_GANTRY].p;
+	return;
+}
+
+//引込ドラム回転状態からd,d",d""をセットする
+void CJC::set_d_th_from_nbh() {
+
+	pSimStat->i_layer[ID_BOOM_H] = (UINT32)(pSimStat->nd[ID_BOOM_H].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]) + 1;
+	pSimStat->n_layer[ID_BOOM_H] = pSimStat->nd[ID_BOOM_H].p - pPLC->Ldr[pSimStat->i_layer[ID_BOOM_H]-1][ID_BOOM_H];
+	pSimStat->d.p = 
+		(
+		pPLC->Cdr[0][ID_BOOM_H]																//基準ロープ長
+		- pPLC->Ldr[pSimStat->i_layer[ID_BOOM_H] - 1][ID_BOOM_H]							//下層巻取り量
+		- pSimStat->n_layer[ID_BOOM_H] * pPLC->Cdr[pSimStat->i_layer[ID_BOOM_H]][ID_BOOM_H] //層巻取り量
+		)/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];
+
+	c_ph = (pspec->Lb * pspec->Lb + pspec->Lp * pspec->Lp - pSimStat->d.p * pSimStat->d.p) / (2.0 * pspec->Lb * pspec->Lp);
+	pSimStat->ph.p = acos(c_ph);
+	s_ph = sin(pSimStat->ph.p);
+	pSimStat->th.p = pspec->Php- pSimStat->ph.p;
+
+	
+
+
+
+	return; 
+}                         
+
 /********************************************************************************/
 /*      Load Object(吊荷）                                                      */
 /********************************************************************************/
@@ -703,3 +806,5 @@ void CLoad::update_relative_vec() {//クレーン吊点との相対速度
 	vL = vectmp.subVectors(v,pCrane->v);
 	return;
 }
+
+

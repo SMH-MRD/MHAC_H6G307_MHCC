@@ -14,7 +14,7 @@ CSIM::CSIM() {
     pAgentInfObj = new CSharedMem;
 
     // MOB オブジェクトのインスタンス化
-    pCrane = new CCrane(); //クレーンのモデル
+    pCrane = new CJC(); //クレーンのモデル
     pLoad = new CLoad();   //吊荷のモデル
     pSIM_work = &sim_stat_workbuf;
 
@@ -71,20 +71,21 @@ int CSIM::init_proc() {
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
    //CraneStat立ち上がり待ち
-#if 0
-    while (pCraneStat->is_tasks_standby_ok ==false) {
-        Sleep(10);
+    while (pCraneStat->is_crane_status_ok !=true) {
+        Sleep(100);
     }
-#endif
+    //PLC IF立ち上がり待ち
+    while (pPLC->healthy_cnt < 10) {
+        Sleep(100);
+    }
+
     //クレーン仕様のセット
+    pCrane->pPLC = pPLC;
+    pCrane->pSimStat = (LPST_SIMULATION_STATUS)poutput;
     pCrane->set_spec(&def_spec);
 
     //クレーンの初期状態セット 
     pCrane->init_crane(SYSTEM_TICK_ms / 1000.0);
-
-    //クレーンオブジェクトにPLC_IOのポインタ渡し
-    pCrane->set_plc(pPLC);
-
 
     //吊荷ｵﾌﾞｼﾞｪｸﾄにｸﾚｰﾝｵﾌﾞｼﾞｪｸﾄを紐付け
     pLoad->set_crane(pCrane);

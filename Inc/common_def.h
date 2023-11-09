@@ -68,6 +68,7 @@
 #define ID_HOIST        0   //巻 　       ID
 #define ID_GANTRY       1   //走行        ID
 #define ID_TROLLY       2   //横行        ID
+#define ID_BHMH         2   //引込主巻    ID
 #define ID_BOOM_H       3   //引込        ID
 #define ID_SLEW         4   //旋回        ID
 #define ID_OP_ROOM      5   //運転室移動　ID LLC
@@ -78,6 +79,7 @@
 #define BIT_SEL_HST         0x00000001
 #define BIT_SEL_GNT         0x00000002
 #define BIT_SEL_TRY         0x00000004
+#define BIT_SEL_BHMH        0x00000004
 #define BIT_SEL_BH          0x00000008
 #define BIT_SEL_SLW         0x00000010
 #define BIT_SEL_OPR         0x00000020  //LLC

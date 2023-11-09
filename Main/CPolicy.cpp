@@ -1051,9 +1051,9 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
 
 	for (int i = 0; i < MOTION_ID_MAX; i++) {
 		//Œ»İˆÊ’u
-		st_com_work.pos[i] = pPLC_IO->status.pos[i];
+		st_com_work.pos[i] = pPLC_IO->pos[i];
 		//Œ»İ‘¬“x
-		st_com_work.v[i] = pPLC_IO->status.v_fb[i];
+		st_com_work.v[i] = pPLC_IO->v_fb[i];
 		//ˆÚ“®‹——£@•ûŒü
 		st_com_work.dist_for_target[i] = st_com_work.target.pos[i] - st_com_work.pos[i];
 
