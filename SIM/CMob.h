@@ -70,6 +70,7 @@ public:
     
     double M;                                       //クレーン全体質量　Kg
     double l_mh;                                    //巻ロープ長 m
+    double l_ah;                                    //補巻巻ロープ長 m
 
     double slw_rad_per_turn;                        //旋回ピニオン1回転の旋回角度
     double gnt_m_per_turn;                          //走行車輪1回転の移動量
@@ -110,7 +111,12 @@ public:
     void set_nsl_from_slr(double sl_rad);           //旋回位置(rad)から旋回ピニオン回転数をセットする
     void set_ngt_from_gtm(double gt_m);             //走行位置から走行車輪回転数をセットする
 
-    void set_d_th_from_nbh();                          //引込ドラム回転状態からd,θの状態をセットする
+    void set_d_th_from_nbh();                        //引込ドラム回転状態からd,θの状態をセットする
+    void set_bh();                                   //引込状態r0,v0,a0をセットする
+    void set_mh();                                   //主巻状態r0,v0,a0とロープ長、振れ周期をセットする
+    void set_ah();                                   //補巻状態r0,v0,a0とロープ長、振れ周期をセットする
+    void set_sl();                                   //旋回状態r0,v0,a0をセットする
+    void set_gt();                                   //走行状態r0,v0,a0をセットする
         
 
     LPST_PLC_IO pPLC;

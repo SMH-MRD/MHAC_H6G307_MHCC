@@ -192,6 +192,7 @@ typedef struct StSimulationStatus {
 	ST_MOVE_SET	nd[MOTION_ID_MAX];						//ドラム回転動作
 	UINT32 i_layer[MOTION_ID_MAX];		//ドラム現在層数
 	double n_layer[MOTION_ID_MAX];		//ドラム現在層巻取数
+	double l_drum[MOTION_ID_MAX];		//ドラム巻取り量
 
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 #pragma endregion シミュレーション信号定義構造体
