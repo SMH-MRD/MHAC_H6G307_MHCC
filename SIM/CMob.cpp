@@ -811,18 +811,21 @@ void  CJC::set_mh(){
 
 	pSimStat->lrm.v = (
 						-pPLC->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].v		//主巻ドラム回転分
-						-(pSimStat->d.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH])						//d変化分
+						-pSimStat->d.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
 						+ pPLC->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].v		//起伏ドラム回転分
 						)/ pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
 
 	pSimStat->lrm.a = (
 						-pPLC->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//主巻ドラム回転分
-						- (pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH])						//d変化分
-						+ pPLC->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].v		//起伏ドラム回転分
+						- pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
+						+ pPLC->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].a		//起伏ドラム回転分
 						) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
 
-	
 
+	r0[ID_HOIST] = pspec->Hp + pspec->Lm * sin(pSimStat->th.p - pspec->Alpa_m) - pSimStat->lrm.p;
+	v0[ID_HOIST] = pspec->Lm * pSimStat->th.v * cos(pSimStat->th.p - pspec->Alpa_m) - pSimStat->lrm.v;
+	a0[ID_HOIST] = pspec->Lm *( pSimStat->th.a * cos(pSimStat->th.p - pspec->Alpa_m) - pSimStat->th.v * pSimStat->th.v * sin(pSimStat->th.p - pspec->Alpa_m))
+					+ pSimStat->lrm.a;
 	return; 
 } 
 //補巻状態r0,v0,a0とロープ長、振れ周期をセットする
