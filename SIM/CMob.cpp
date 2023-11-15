@@ -28,22 +28,18 @@ CMob::CMob(double _dt, Vector3& _r, Vector3& _v) {
 	v.copy(_v);
 	R0 = { 0.0,0.0,0.0 };
 }
-
 CMob::~CMob() {}
 
 //加速度ベクトル　継承先で再定義する
-
 Vector3 CMob::A(Vector3& r, Vector3& v) {
 	return r.clone();
 };
-
 void CMob::set_fex(double fx,double fy,double fz) {
 	fex.x = fx;
 	fex.y = fy;
 	fex.z = fz;
 	return;
 };
-
 void CMob::set_dt(double _dt) {
 	dt = _dt;
 	return;
@@ -88,13 +84,15 @@ void CMob::timeEvolution() {
 CJC::CJC() { 
 	pspec = &def_spec;							//クレーン仕様
 
-	//0速とみなす速度上限
-	accdec_cut_spd_range[ID_HOIST] = 0.01;
-	accdec_cut_spd_range[ID_BOOM_H] = 0.01;
-	accdec_cut_spd_range[ID_SLEW] = 0.001;
-	accdec_cut_spd_range[ID_GANTRY] = 0.01;
+	//0速とみなす速度上限（ドラム回転速度）
+	accdec_cut_spd_range[ID_HOIST]	= 0.1;		//%
+	accdec_cut_spd_range[ID_BOOM_H] = 0.1;		//%
+	accdec_cut_spd_range[ID_SLEW]	= 0.1;		//%
+	accdec_cut_spd_range[ID_GANTRY] = 0.1;		//%		
+	accdec_cut_spd_range[ID_AHOIST] = 0.1;		//%
 
-	M = pspec->m_loard0;//初期荷重
+	mh_load = pspec->Load0_mh;//初期主巻荷重
+	ah_load = pspec->Load0_ah;//初期補巻荷重
 
 	for (int i = 0; i < MOTION_ID_MAX;i++) {
 		is_fwd_endstop[i] = false;
@@ -115,21 +113,19 @@ CJC::CJC() {
 	r0[ID_HOIST] = pspec->boom_high - 9.8;	//初期値　周期　2πとなる巻き位置
 	r0[ID_BOOM_H] = pspec->boom_pos_min;
 	r0[ID_SLEW] = 0.0;
-	l_mh = 9.8;//初期値　周期　2π
 
 	source_mode = MOB_MODE_SIM;
 	
 }
 CJC::~CJC() {}
-
-void CJC::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref) {
+void CJC::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref, double ah_ref) {
 	v_ref[ID_HOIST] = hoist_ref;
 	v_ref[ID_BOOM_H] = boomh_ref;
 	v_ref[ID_SLEW] = slew_ref;
 	v_ref[ID_GANTRY] = gantry_ref;
+	v_ref[ID_AHOIST] = ah_ref;
 	return;
 }
-
 // ﾄﾙｸT(N・m）= F x R　= J x dω/dt  仕事率P=Tω=Mav　a=Tω/Mv=MT/r
 Vector3 CJC::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
 
@@ -140,305 +136,168 @@ Vector3 CJC::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
 	a.y = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) + r_bm * a0[ID_SLEW] * cos(r0[ID_SLEW]) - r_bm * v0[ID_SLEW] * v0[ID_SLEW] * sin(r0[ID_SLEW]);
 	a.z = 0.0;
 
+
+
+
 	return a;
 }
-
-
-#define REF_CUT_BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
-
 void CJC::Ac() {	//加速度計算
+
 	//加速指令計算
-#if 0 //旧タイプ
-	if (!motion_break[ID_HOIST]) {													//ブレーキ作動で加速指令0
-		a_ref[ID_HOIST] = 0.0;
-	}
-	else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) > accdec_cut_spd_range[ID_HOIST]) {	//速度到達で加速指令0
-		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][ACC];	//正転加速
-		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
-		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][DEC];//正転減速
-		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_HOIST] = 0.0;
+	// #主巻
+	{
+		//ブレーキ閉
+		if (!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
+		//速度指令に未達
+		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) > accdec_cut_spd_range[ID_HOIST]) {
+			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][FWD][ACC];		//正転加速指令
+			else a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][REV][DEC];		//逆転減速指令
+		}
+		//速度指令に未達
+		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
+			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][FWD][DEC];		//正転減速指令
+			else a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][REV][ACC];		//逆転加速指令
+		}
+		//速度指令に到達
+		else {
+			a_ref[ID_HOIST] = 0.0;
+		}
+
+		//極限停止
+		if ((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+		if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
 	}
 
-	//極限停止
-	if ((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
-	if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+	// #補巻
+	{
+		//ブレーキ閉
+		if (!motion_break[ID_AHOIST]) a_ref[ID_AHOIST] = 0.0;
+		//速度指令に未達
+		else if ((v_ref[ID_AHOIST] - v0[ID_AHOIST]) > accdec_cut_spd_range[ID_AHOIST]) {
+			if (v_ref[ID_AHOIST] > 0.0) a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][FWD][ACC];		//正転加速指令
+			else a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][REV][DEC];		//逆転減速指令
+		}
+		//速度指令に未達
+		else if ((v_ref[ID_AHOIST] - v0[ID_AHOIST]) < -accdec_cut_spd_range[ID_AHOIST]) {
+			if (v_ref[ID_AHOIST] > 0.0) a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][FWD][DEC];		//正転減速指令
+			else a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][REV][ACC];		//逆転加速指令
+		}
+		//速度指令に到達
+		else {
+			a_ref[ID_AHOIST] = 0.0;
+		}
 
-
-	if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
-	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
-		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][ACC];//正転加速
-		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
-		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][DEC];//正転減速
-		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_GANTRY] = 0.0;
-	}
-
-	//極限停止
-	if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
-	if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
-
-
-	if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
-	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
-		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//正転加速
-		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
-		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][DEC];//正転減速
-		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_BOOM_H] = 0.0;
+		//極限停止
+		if ((a_ref[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST])) a_ref[ID_AHOIST] = 0.0;
+		if ((a_ref[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST])) a_ref[ID_AHOIST] = 0.0;
 	}
 
-	//極限停止
-	if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
-	if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+	// #走行
+	{
+		if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
+		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
+			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][FWD][ACC];	//正転加速
+			else a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][REV][DEC];	//逆転減速
+		}
+		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
+			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][FWD][DEC];	//正転減速
+			else a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][REV][ACC];	//逆転加速
+		}
+		else {
+			a_ref[ID_GANTRY] = 0.0;
+		}
 
-	if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
-	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
-		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][ACC];//正転加速
-		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
-		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][DEC];//正転減速
-		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_SLEW] = 0.0;
-	}
-
-	//!!!! 引込加速度を引込半径に応じて補正
-	double x = r0[ID_BOOM_H]; //引込半径
-	double kbh = 0.0008 * x * x - 0.0626*x + 1.9599;
-	a_ref[ID_BOOM_H] *= kbh;
-
-	//加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
-	if ((motion_break[ID_HOIST])||(source_mode != MOB_MODE_SIM)) {
-		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
-	}
-	else {
-		a0[ID_HOIST] = 0.0;
+		//極限停止
+		if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+		if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
 	}
 
-	if ((motion_break[ID_BOOM_H]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_BOOM_H] = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * a0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
-	}
-	else {
-		a0[ID_BOOM_H] = 0.0;
+	// #引込
+	{
+		if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
+		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
+			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][FWD][ACC];	//正転加速
+			else a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][REV][DEC];	//逆転減速
+		}
+		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
+			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][FWD][DEC];	//正転減速
+			else a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][REV][ACC];	//逆転加速
+		}
+		else {
+			a_ref[ID_BOOM_H] = 0.0;
+		}
+
+		//極限停止
+		if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+		if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
 	}
 
-	if ((motion_break[ID_SLEW]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_SLEW] = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * a0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
-	}
-	else {
-		a0[ID_SLEW] = 0.0;
+	// #旋回
+	{
+		if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
+		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
+			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][FWD][ACC];//正転加速
+			else a_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][REV][DEC];//逆転減速
+		}
+		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
+			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][FWD][DEC];//正転減速
+			else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//逆転加速
+		}
+		else {
+			a_ref[ID_SLEW] = 0.0;
+		}
 	}
 
-	if ((motion_break[ID_GANTRY]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_GANTRY] = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * a0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
-	}
-	else {
-		a0[ID_GANTRY] = 0.0;
+	//ドラム加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
+	{
+		//主巻
+		if ((motion_break[ID_HOIST]) || (source_mode != MOB_MODE_SIM)) {
+			pSimStat->nd[ID_HOIST].a = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * pSimStat->nd[ID_HOIST].a )/ (dt + Tf[ID_HOIST]);
+		}
+		else {
+			pSimStat->nd[ID_HOIST].a = 0.0;
+		}
+		//補巻
+		if ((motion_break[ID_AHOIST]) || (source_mode != MOB_MODE_SIM)) {
+			pSimStat->nd[ID_AHOIST].a = (dt * a_ref[ID_AHOIST] + Tf[ID_AHOIST] * pSimStat->nd[ID_AHOIST].a) / (dt + Tf[ID_AHOIST]);
+		}
+		else {
+			pSimStat->nd[ID_AHOIST].a = 0.0;
+		}
+		//引込
+		if ((motion_break[ID_BOOM_H]) || (source_mode != MOB_MODE_SIM)) {
+			pSimStat->nd[ID_BOOM_H].a = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * pSimStat->nd[ID_BOOM_H].a) / (dt + Tf[ID_BOOM_H]);
+		}
+		else {
+			pSimStat->nd[ID_BOOM_H].a = 0.0;
+		}
+		//旋回
+		if ((motion_break[ID_SLEW]) || (source_mode != MOB_MODE_SIM)) {
+			pSimStat->nd[ID_SLEW].a = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * pSimStat->nd[ID_SLEW].a) / (dt + Tf[ID_SLEW]);
+		}
+		else {
+			pSimStat->nd[ID_SLEW].a = 0.0;
+		}
+		//走行
+		if ((motion_break[ID_GANTRY]) || (source_mode != MOB_MODE_SIM)) {
+			pSimStat->nd[ID_GANTRY].a = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * pSimStat->nd[ID_GANTRY].a) / (dt + Tf[ID_GANTRY]);
+		}
+		else {
+			pSimStat->nd[ID_GANTRY].a = 0.0;
+		}
 	}
 
+	//吊点、吊具加速度計算
+	double thm = pSimStat->th.p - pspec->Alpa_m;
+	double tha = pSimStat->th.p - pspec->Alpa_a;
+	a0[ID_HOIST] = pspec->Lm * (pSimStat->th.a * cos(thm) - pSimStat->th.v * pSimStat->th.v * sin(thm))  + pSimStat->lrm.a;
+	a0[ID_BOOM_H] = -pspec->Lm * (pSimStat->th.a * sin(thm) + pSimStat->th.a * pSimStat->th.a * cos(thm));
+	a0[ID_AHOIST] = pspec->La * (pSimStat->th.a * cos(tha) - pSimStat->th.v * pSimStat->th.v * sin(tha)) + pSimStat->lra.a;
+	a0[ID_SLEW] = pSimStat->nd[ID_SLEW].a * PI360;
+	a0[ID_GANTRY] = pSimStat->nd[ID_GANTRY].a * pPLC->Cdr[ID_GANTRY][1];
 
 	//吊点加速度ベクトル（円柱座標）
-	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分
-	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//旋回方向加速度
-	double a_z = 0.0;																//吊点の高さは一定
-
-	//xyz座標吊点加速度ベクトル
-	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
-	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
-	a.z = a_z;
-
-
-	//!!!! 引込加速度を引込半径に応じて補正
-	double x = r0[ID_BOOM_H]; //引込半径
-	double kbh = 0.0008 * x * x - 0.0626 * x + 1.9599;
-	a_ref[ID_BOOM_H] *= kbh;
-
-	//加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
-	if ((motion_break[ID_HOIST]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
-	}
-	else {
-		a0[ID_HOIST] = 0.0;
-	}
-
-	if ((motion_break[ID_BOOM_H]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_BOOM_H] = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * a0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
-	}
-	else {
-		a0[ID_BOOM_H] = 0.0;
-	}
-
-	if ((motion_break[ID_SLEW]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_SLEW] = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * a0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
-	}
-	else {
-		a0[ID_SLEW] = 0.0;
-	}
-
-	if ((motion_break[ID_GANTRY]) || (source_mode != MOB_MODE_SIM)) {
-		a0[ID_GANTRY] = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * a0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
-	}
-	else {
-		a0[ID_GANTRY] = 0.0;
-	}
-
-
-	//吊点加速度ベクトル（円柱座標）
-	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分
-	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//旋回方向加速度
-	double a_z = 0.0;																//吊点の高さは一定
-
-	//xyz座標吊点加速度ベクトル
-	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
-	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
-	a.z = a_z;
-
-	//加速度指令計算 aref
-	//### 主巻 ###
-	{
-		if (!motion_break[ID_HOIST]) {													//ブレーキ作動で加速指令0
-			na_ref[ID_HOIST] = 0.0;
-		}
-		else if ((nv_ref[ID_HOIST] - nv0[ID_HOIST]) > pspec->accdec_d[ID_HOIST][FWD][ACC]) {
-			if (nv_ref[ID_HOIST] > 0.0) na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][FWD][ACC];	//正転指令時
-			else						na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][REV][DEC];	//逆転指令時
-		}
-		else if ((nv_ref[ID_HOIST] - nv0[ID_HOIST]) < pspec->accdec_d[ID_HOIST][FWD][DEC]) {
-			if (nv_ref[ID_HOIST] > 0.0) na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][FWD][DEC];	//正転指令時
-			else						na_ref[ID_HOIST] = pspec->accdec_d[ID_HOIST][REV][ACC];	//逆転指令時
-		}
-		else {
-			na_ref[ID_HOIST] = 0.0;
-		}
-		//極限停止
-		if ((na_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) na_ref[ID_HOIST] = 0.0;
-		if ((na_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) na_ref[ID_HOIST] = 0.0;
-	}
-	//### 補巻 ###
-	{
-		if (!motion_break[ID_AHOIST]) {													//ブレーキ作動で加速指令0
-			na_ref[ID_AHOIST] = 0.0;
-		}
-		else if ((nv_ref[ID_AHOIST] - nv0[ID_AHOIST]) > pspec->accdec_d[ID_AHOIST][FWD][ACC]) {
-			if (nv_ref[ID_AHOIST] > 0.0) na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][FWD][ACC];	//正転指令時
-			else						na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][REV][DEC];	//逆転指令時
-		}
-		else if ((nv_ref[ID_AHOIST] - nv0[ID_AHOIST]) < pspec->accdec_d[ID_AHOIST][FWD][DEC]) {
-			if (nv_ref[ID_AHOIST] > 0.0) na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][FWD][DEC];	//正転指令時
-			else						na_ref[ID_AHOIST] = pspec->accdec_d[ID_AHOIST][REV][ACC];	//逆転指令時
-		}
-		else {
-			na_ref[ID_AHOIST] = 0.0;
-		}
-		//極限停止
-		if ((na_ref[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST])) na_ref[ID_AHOIST] = 0.0;
-		if ((na_ref[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST])) na_ref[ID_AHOIST] = 0.0;
-	}
-	//### 走行 ###
-	{
-		if (!motion_break[ID_GANTRY]) na_ref[ID_GANTRY] = 0.0;
-		else if ((nv_ref[ID_GANTRY] - nv0[ID_GANTRY]) > pspec->accdec_d[ID_GANTRY][FWD][ACC]) {
-			if (nv_ref[ID_GANTRY] > 0.0)	na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][FWD][ACC];//正転指令
-			else							na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][REV][DEC];//逆転指令
-		}
-		else if ((nv_ref[ID_GANTRY] - nv0[ID_GANTRY]) < pspec->accdec[ID_GANTRY][FWD][DEC]) {
-			if (nv_ref[ID_GANTRY] > 0.0)	na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][FWD][DEC];//正転減速
-			else							na_ref[ID_GANTRY] = pspec->accdec_d[ID_GANTRY][REV][ACC];//逆転加速
-		}
-		else {
-			na_ref[ID_GANTRY] = 0.0;
-		}
-		//極限停止
-		if ((na_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) na_ref[ID_GANTRY] = 0.0;
-		if ((na_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) na_ref[ID_GANTRY] = 0.0;
-	}
-	//### 引込 ###
-	{
-		if (!motion_break[ID_BOOM_H]) {
-			na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
-		}
-		else if ((nv_ref[ID_BOOM_H] - nv0[ID_BOOM_H]) > pspec->accdec_d[ID_BOOM_H][FWD][ACC]) {
-			if (nv_ref[ID_BOOM_H] > 0.0) {
-				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][FWD][ACC];//正転加速
-			}
-			else {
-				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][REV][DEC];//逆転減速
-			}
-		}
-		else if ((nv_ref[ID_BOOM_H] - nv0[ID_BOOM_H]) < pspec->accdec[ID_BOOM_H][FWD][DEC]) {
-			if (v_ref[ID_BOOM_H] > 0.0) {
-				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][FWD][DEC];//正転減速
-			}
-			else {
-				na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = pspec->accdec_d[ID_BOOM_H][REV][ACC];//逆転加速
-			}
-		}
-		else {
-			na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
-		}
-
-		//極限停止
-		if ((na_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
-		if ((na_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) na_ref[ID_BOOM_H] = na_ref[ID_BH_HOIST] = 0.0;
-	}
-	//### 旋回 ###
-	{
-		if (!motion_break[ID_SLEW]) na_ref[ID_SLEW] = 0.0;
-		else if ((nv_ref[ID_SLEW] - nv0[ID_SLEW]) > pspec->accdec_d[ID_SLEW][FWD][ACC]) {
-			if (nv_ref[ID_SLEW] > 0.0)	na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][FWD][ACC];//正転加速
-			else						na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][REV][DEC];//逆転減速
-		}
-		else if ((nv_ref[ID_SLEW] - nv0[ID_SLEW]) < pspec->accdec_d[ID_SLEW][FWD][DEC]) {
-			if (nv_ref[ID_SLEW] > 0.0)	na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][FWD][DEC];//正転減速
-			else						na_ref[ID_SLEW] = pspec->accdec_d[ID_SLEW][REV][ACC];//逆転加速
-		}
-		else {
-			na_ref[ID_SLEW] = 0.0;
-		}
-
-	}
-
-
-	//加速度応答計算　na0 当面指令に対して一次遅れフィルタを入れる形で計算
-	if (motion_break[ID_HOIST])		na0[ID_HOIST] = (dt * na_ref[ID_HOIST] + Tf[ID_HOIST] * na0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
-	else							na0[ID_HOIST] = 0.0;
-	if (motion_break[ID_AHOIST])	na0[ID_AHOIST] = (dt * na_ref[ID_AHOIST] + Tf[ID_AHOIST] * na0[ID_AHOIST]) / (dt + Tf[ID_AHOIST]);
-	else							na0[ID_AHOIST] = 0.0;
-	if (motion_break[ID_BOOM_H]) {
-		na0[ID_BOOM_H] = na0[ID_BH_HOIST] = (dt * na_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * na0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
-	}
-	else {
-		na0[ID_BOOM_H] = na0[ID_BH_HOIST] = 0.0;
-	}
-	if (motion_break[ID_SLEW])		na0[ID_SLEW] = (dt * na_ref[ID_SLEW] + Tf[ID_SLEW] * na0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
-	else 							na0[ID_SLEW] = 0.0;
-	if (motion_break[ID_GANTRY]) 	na0[ID_GANTRY] = (dt * na_ref[ID_GANTRY] + Tf[ID_GANTRY] * na0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
-	else							na0[ID_GANTRY] = 0.0;
-
-	//吊点加速度応答計算　a0 当面指令に対して一次遅れフィルタを入れる形で計算
-
-
-
-#endif
-
-
-	//吊点加速度ベクトル（円柱座標）
-	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] *v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分
+	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分(Rω2）
 	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//旋回方向加速度
 	double a_z = 0.0;																//吊点の高さは一定
 
@@ -448,49 +307,55 @@ void CJC::Ac() {	//加速度計算
 	a.z = a_z;
 	return;
 }
-
 void CJC::timeEvolution() {
 	//クレーン部
 	//加速度計算
 	Ac();
 
-	if (source_mode == MOB_MODE_SIM) {
-		//速度計算(オイラー法）
-		v0[ID_HOIST] += a0[ID_HOIST] * dt;	if (!motion_break[ID_HOIST]) v0[ID_HOIST] = 0.0;
-		v0[ID_GANTRY] += a0[ID_GANTRY] * dt;	if (!motion_break[ID_GANTRY]) v0[ID_GANTRY] = 0.0;
-		v0[ID_SLEW] += a0[ID_SLEW] * dt;	if (!motion_break[ID_SLEW]) v0[ID_SLEW] = 0.0;
-		v0[ID_BOOM_H] += a0[ID_BOOM_H] * dt;	if (!motion_break[ID_BOOM_H]) v0[ID_BOOM_H] = 0.0;
+	//ドラム速度計算(オイラー法）
+	pSimStat->nd[ID_HOIST].v	+= pSimStat->nd[ID_HOIST].a * dt;	if (!motion_break[ID_HOIST])	pSimStat->nd[ID_HOIST].v = 0.0;
+	pSimStat->nd[ID_AHOIST].v	+= pSimStat->nd[ID_AHOIST].a * dt;	if (!motion_break[ID_AHOIST])	pSimStat->nd[ID_AHOIST].v = 0.0;
+	pSimStat->nd[ID_BOOM_H].v	+= pSimStat->nd[ID_BOOM_H].a * dt;	if (!motion_break[ID_BOOM_H])	pSimStat->nd[ID_BOOM_H].v = 0.0;
+	pSimStat->nd[ID_SLEW].v		+= pSimStat->nd[ID_SLEW].a * dt;	if (!motion_break[ID_SLEW])		pSimStat->nd[ID_SLEW].v = 0.0;
+	pSimStat->nd[ID_GANTRY].v	+= pSimStat->nd[ID_GANTRY].a * dt;	if (!motion_break[ID_GANTRY])	pSimStat->nd[ID_GANTRY].v = 0.0;
 
-		//極限停止
-		if (((v0[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) || (v0[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) v0[ID_HOIST] = 0.0;
-		if (((v0[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) || (v0[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) v0[ID_GANTRY] = 0.0;
-		if (((v0[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) || (v0[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) v0[ID_BOOM_H] = 0.0;
+	//極限停止
+	if (((v0[ID_HOIST]  > 0.0) && (is_fwd_endstop[ID_HOIST]))	|| (v0[ID_HOIST] < 0.0)	 && (is_rev_endstop[ID_HOIST]))		pSimStat->nd[ID_HOIST].v  = 0.0;
+	if (((v0[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST]))	|| (v0[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST]))	pSimStat->nd[ID_AHOIST].v = 0.0;
+	if (((v0[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY]))	|| (v0[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY]))	pSimStat->nd[ID_GANTRY].v = 0.0;
+	if (((v0[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H]))	|| (v0[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H]))	pSimStat->nd[ID_BOOM_H].v = 0.0;
 
-		//位置計算(オイラー法）
-		r0[ID_HOIST] += v0[ID_HOIST] * dt;
-		r0[ID_GANTRY] += v0[ID_GANTRY] * dt;
-		r0[ID_BOOM_H] += v0[ID_BOOM_H] * dt;
-		r0[ID_SLEW] += v0[ID_SLEW] * dt;
+	//ドラム位置計算(オイラー法）
+	pSimStat->nd[ID_HOIST].p	+= pSimStat->nd[ID_HOIST].v  * dt;
+	pSimStat->nd[ID_AHOIST].p	+= pSimStat->nd[ID_AHOIST].v * dt;
+	pSimStat->nd[ID_GANTRY].p	+= pSimStat->nd[ID_GANTRY].v * dt;
+	pSimStat->nd[ID_BOOM_H].p	+= pSimStat->nd[ID_BOOM_H].v * dt;
+	pSimStat->nd[ID_SLEW].p		+= pSimStat->nd[ID_SLEW].v   * dt;
 
-	}
-	else {
-		v0[ID_HOIST] = pPLC->v_fb[ID_HOIST];
-		v0[ID_GANTRY] = pPLC->v_fb[ID_GANTRY];
-		v0[ID_SLEW] = pPLC->v_fb[ID_SLEW];
-		v0[ID_BOOM_H] = pPLC->v_fb[ID_BOOM_H];
+	//クレーン状態セット
+	set_d_th_from_nbh();                        //引込ドラム回転状態からd,θの状態をセットする
+	set_bh();                                   //引込ドラム状態をセットする
+	set_mh();                                   //主巻ドラム状態、ロープ状態をセットする
+	set_ah();                                   //主巻ドラム状態、ロープ状態をセットする
+	set_sl();                                   //旋回ドラム状態をセットする
+	set_gt();                                   //走行ドラム状態をセットする
 
-		//位置計算(オイラー法）
-		r0[ID_HOIST] = pPLC->pos[ID_HOIST];
-		r0[ID_GANTRY] = pPLC->pos[ID_GANTRY];
-		r0[ID_BOOM_H] = pPLC->pos[ID_BOOM_H];
-		r0[ID_SLEW] = pPLC->pos[ID_SLEW];
-	}
+	double thm = pSimStat->th.p - pspec->Alpa_m;
 
-	//旋回角は、-π～πの表現にする
-	if (r0[ID_SLEW] >= PI180)r0[ID_SLEW] -= PI360; if (r0[ID_SLEW] <= -PI180)r0[ID_SLEW] += PI360;
+	v0[ID_HOIST]	= pspec->Lm * pSimStat->th.v * cos(pSimStat->th.p - pspec->Alpa_m) - pSimStat->lrm.v;
+	v0[ID_AHOIST]	= pspec->La * pSimStat->th.v * cos(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.v;
+	v0[ID_SLEW]		= pSimStat->nd[ID_SLEW].v * PI360;
+	v0[ID_GANTRY]	= pSimStat->nd[ID_GANTRY].v * pPLC->Cdr[ID_GANTRY][1];
+	v0[ID_BOOM_H]	= -pspec->Lm * pSimStat->th.v * sin(thm);
 
-	vc.x = v0[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
-	rc.x = r0[ID_GANTRY]; rc.y = R0.y; rc.z = R0.z;
+	r0[ID_HOIST]	= pspec->Hp + pspec->Lm * sin(pSimStat->th.p - pspec->Alpa_m) - pSimStat->lrm.p;
+	r0[ID_AHOIST]	= pspec->Hp + pspec->La * sin(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.p;
+	r0[ID_SLEW]		= pSimStat->n_layer[ID_SLEW] * PI360 - PI180; //旋回は±180°で表現
+	r0[ID_GANTRY]	= pSimStat->l_drum[ID_GANTRY];
+	r0[ID_BOOM_H] = pspec->Lm * cos(thm);
+
+	vc.x = v0[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;		//クレーン中心位置
+	rc.x = r0[ID_GANTRY]; rc.y = R0.y; rc.z = R0.z;		//クレーン中心位置
 
 	//吊点部
 	double r_bm = r0[ID_BOOM_H];//旋回半径
@@ -501,11 +366,13 @@ void CJC::timeEvolution() {
 	r.x = r_bm * cos(r0[ID_SLEW]) + r0[ID_GANTRY];
 	r.y = r_bm * sin(r0[ID_SLEW]);
 	r.z = pspec->boom_high;
-	l_mh = pspec->boom_high - r0[ID_HOIST];	//ロープ長
+
+	//ロープ長セット　LOADオブジェクトから参照
+	l_mh = pSimStat->lrm.p;
+	l_ah = pSimStat->lra.p;
 
 	return;
 }
-
 void CJC::init_crane(double _dt) {
 	
 	//ドラム回転位置セット
@@ -515,7 +382,7 @@ void CJC::init_crane(double _dt) {
 
 	set_nah_from_d_ah(pSimStat->d.p, SIM_INIT_AH);
 
-	slw_rad_per_turn = PI360 * pspec->prm_nw[DRUM_ITEM_DIR][ID_SLEW] / pspec->Dttb;
+	slw_rad_per_turn = PI360 * pspec->prm_nw[DRUM_ITEM_DIR][ID_SLEW] / pspec->Dttb;		//ピニオン１回転での旋回角度
 	set_nsl_from_slr(SIM_INIT_TH); 
 
 	gnt_m_per_turn = PI180 * pspec->prm_nw[DRUM_ITEM_DIR][ID_GANTRY];
@@ -554,23 +421,27 @@ void CJC::init_crane(double _dt) {
 		r0[ID_BOOM_H] = SIM_INIT_R;
 	}
 
-	set_v_ref(0.0, 0.0, 0.0, 0.0);	//初期速度指令値セット
+	set_v_ref(0.0, 0.0, 0.0, 0.0, 0.0);	//初期速度指令値セット
 	set_fex(0.0, 0.0, 0.0);			//初期外力セット
 		
 	//加速度一次遅れフィルタ時定数
-	Tf[ID_HOIST] = SIM_TF_HOIST;
-	Tf[ID_BOOM_H] = SIM_TF_BOOM_H;
-	Tf[ID_SLEW] = SIM_TF_SLEW;
-	Tf[ID_GANTRY] = SIM_TF_GANTRY;
+	Tf[ID_HOIST]	= SIM_TF_HOIST;
+	Tf[ID_BOOM_H]	= SIM_TF_BOOM_H;
+	Tf[ID_SLEW]		= SIM_TF_SLEW;
+	Tf[ID_GANTRY]	= SIM_TF_GANTRY;
+	Tf[ID_AHOIST]	= SIM_TF_AHOIST;
 
 }
-
-
-#define BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
-
 // 各モーションのブレーキ状態をセット
 void CJC::update_break_status() {
 
+	if(pPLC->brk[ID_HOIST]	!= 0) motion_break[ID_HOIST]	= true;
+	if(pPLC->brk[ID_AHOIST]	!= 0) motion_break[ID_AHOIST] = true;
+	if(pPLC->brk[ID_GANTRY]	!= 0) motion_break[ID_GANTRY] = true;
+	if(pPLC->brk[ID_BOOM_H]	!= 0) motion_break[ID_BOOM_H] = true;
+	if(pPLC->brk[ID_SLEW]	!= 0) motion_break[ID_SLEW] = true;
+
+#if 0
 	if (v_ref[ID_HOIST] != 0.0) {
 		motion_break[ID_HOIST] = true;
 	}
@@ -633,10 +504,9 @@ void CJC::update_break_status() {
 		brk_elaped_time[ID_GANTRY] = 0.0;
 	}
 
-
+#endif
 	return;
 }
-
 void CJC::set_nbh_d_ph_th_from_r(double r) {
 	pSimStat->th.p = acos(r/pspec->Lb);
 	pSimStat->ph.p = pspec->Php - pSimStat->th.p;
@@ -666,7 +536,6 @@ void CJC::set_nbh_d_ph_th_from_r(double r) {
 
 	return;
 }
-
 //旋回半径と主巻揚程から主巻ドラム回転数をセットする
 void CJC::set_nmh_from_d_mh(double d, double mh) {
 	//ロープ長
@@ -695,7 +564,6 @@ void CJC::set_nmh_from_d_mh(double d, double mh) {
 	return;
 
 }
-
 //dと補巻揚程から補巻ドラム回転数をセットする
 void CJC::set_nah_from_d_ah(double d, double ah) { 
 	
@@ -718,7 +586,6 @@ void CJC::set_nah_from_d_ah(double d, double ah) {
 
 	return; 
 } 
-
 //旋回位置(rad)から旋回ピニオン回転数をセットする
 void CJC::set_nsl_from_slr(double sl_rad) { 
 	
@@ -729,7 +596,6 @@ void CJC::set_nsl_from_slr(double sl_rad) {
 	pSimStat->l_drum[ID_SLEW] = pPLC->Cdr[ID_SLEW][0] * pSimStat->n_layer[ID_SLEW];
 	return; 
 }
-
 //走行位置から走行車輪回転数をセットする
 void CJC::set_ngt_from_gtm(double gt_m) {
 	pSimStat->nd[ID_GANTRY].p = gt_m / gnt_m_per_turn;
@@ -739,7 +605,6 @@ void CJC::set_ngt_from_gtm(double gt_m) {
 	pSimStat->l_drum[ID_GANTRY] = pPLC->Cdr[ID_GANTRY][0] * pSimStat->n_layer[ID_GANTRY];
 	return;
 }
-
 //引込ドラム回転状態からd,th,d",th",d"",th""をセットする
 void CJC::set_d_th_from_nbh() {
 
@@ -771,23 +636,17 @@ void CJC::set_d_th_from_nbh() {
 
 	return; 
 } 
-
-//ドラム回転状態から引込状態をセットする
+//引込ドラム回転状態をセットする
 void  CJC::set_bh() { 
 	UINT32 i;
-
 	i = (UINT32)(pSimStat->nd[ID_BOOM_H].p  / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]); //現在層数-1
 	pSimStat->i_layer[ID_BOOM_H] = i + 1;
 	pSimStat->n_layer[ID_BOOM_H] = (pPLC->Cdr[ID_BOOM_H][0] - pPLC->Ldr[ID_BOOM_H][i]) / pPLC->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]];
 	pSimStat->l_drum[ID_BOOM_H] = pPLC->Ldr[ID_BOOM_H][i] + pSimStat->n_layer[ID_BOOM_H] * pPLC->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]];
 
-	double thm = pSimStat->th.p - pspec->Alpa_m;
-	r0[ID_BOOM_H] = pspec->Lm * cos(thm);
-	v0[ID_BOOM_H] = -pspec->Lm * pSimStat->th.v * sin(thm);
-	a0[ID_BOOM_H] = -pspec->Lm * (pSimStat->th.a * sin(thm) + pSimStat->th.a  * pSimStat->th.a * cos(thm));
 	return; 
 }
-//主巻状態r0,v0,a0とロープ長をセットする
+//主巻ドラム回転状態とロープ長をセットする
 void  CJC::set_mh(){
 	//引込主巻ドラム部
 	pSimStat->nd[ID_BHMH].p = pspec->Nbh_drum - pSimStat->nd[ID_BOOM_H].p;
@@ -800,7 +659,7 @@ void  CJC::set_mh(){
 
 	i = (UINT32)(pSimStat->nd[ID_HOIST].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_HOIST]); //現在層数-1
 	pSimStat->i_layer[ID_HOIST] = i + 1;
-	pSimStat->n_layer[ID_HOIST] = (pPLC->Cdr[ID_HOIST][0] - pPLC->Ldr[ID_HOIST][i]) / pPLC->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]];
+	pSimStat->n_layer[ID_HOIST] = (pSimStat->nd[ID_HOIST].p - pPLC->Ldr[ID_HOIST][i]) / pPLC->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]];
 	pSimStat->l_drum[ID_HOIST] = pPLC->Ldr[ID_HOIST][i] + pSimStat->n_layer[ID_HOIST] * pPLC->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]];
 
 	pSimStat->lrm.p = (
@@ -820,26 +679,46 @@ void  CJC::set_mh(){
 						- pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
 						+ pPLC->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].a		//起伏ドラム回転分
 						) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
-
-
-	r0[ID_HOIST] = pspec->Hp + pspec->Lm * sin(pSimStat->th.p - pspec->Alpa_m) - pSimStat->lrm.p;
-	v0[ID_HOIST] = pspec->Lm * pSimStat->th.v * cos(pSimStat->th.p - pspec->Alpa_m) - pSimStat->lrm.v;
-	a0[ID_HOIST] = pspec->Lm *( pSimStat->th.a * cos(pSimStat->th.p - pspec->Alpa_m) - pSimStat->th.v * pSimStat->th.v * sin(pSimStat->th.p - pspec->Alpa_m))
-					+ pSimStat->lrm.a;
 	return; 
 } 
-//補巻状態r0,v0,a0とロープ長、振れ周期をセットする
+//補巻ドラム回転状態とロープ長をセットする
 void  CJC::set_ah(){ 
-	pSimStat->lrm.p = pSimStat->nd[ID_HOIST].p;
+	//補巻ドラム部
+	int i= (UINT32)(pSimStat->nd[ID_AHOIST].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_AHOIST]); //現在層数-1
+	pSimStat->i_layer[ID_AHOIST] = i + 1;
+	pSimStat->n_layer[ID_AHOIST] = (pSimStat->nd[ID_AHOIST].p - pPLC->Ldr[ID_AHOIST][i]) / pPLC->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]];
+	pSimStat->l_drum[ID_AHOIST] = pPLC->Ldr[ID_AHOIST][i] + pSimStat->n_layer[ID_AHOIST] * pPLC->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]];//ドラム巻取り量
 
+	pSimStat->lra.p = (
+		pPLC->Cdr[0][ID_AHOIST] 															//全ロープ
+		- pSimStat->d.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]						//d部ロープ
+		- pSimStat->l_drum[ID_AHOIST]														//ドラム部ロープ
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];											//ワイヤ掛け数
+
+	pSimStat->lrm.v = (
+		-pPLC->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]] * pSimStat->nd[ID_AHOIST].v		//主巻ドラム回転分
+		- pSimStat->d.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]						//d変化分
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
+
+	pSimStat->lrm.a = (
+		-pPLC->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//主巻ドラム回転分
+		- pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
 	return;
 } 
-//旋回状態r0,v0,a0をセットする
+//旋回ドラム回転状態をセットする
 void  CJC::set_sl(){
+	//旋回ピニオン部
+	pSimStat->l_drum[ID_SLEW]	= pSimStat->nd[ID_SLEW].p * pPLC->Cdr[ID_SLEW][1];										//旋回移動量(m)
+	pSimStat->i_layer[ID_SLEW]	= (UINT32)(pSimStat->l_drum[ID_SLEW]/ pPLC->Cdr[ID_SLEW][0]);							//旋回回転数整数部 = 回転移動量/TTB円周
+	pSimStat->n_layer[ID_SLEW]	= (pSimStat->l_drum[ID_SLEW] / pPLC->Cdr[ID_SLEW][0] - pSimStat->i_layer[ID_SLEW]) ;	//旋回回転数小数点以下
 	return; 
 } 
-//走行状態r0,v0,a0をセットする
+//走行ドラム回転状態をセットする
 void  CJC::set_gt(){
+	pSimStat->l_drum[ID_GANTRY] = pSimStat->nd[ID_GANTRY].p * pPLC->Cdr[ID_GANTRY][1];										//移動量(m)
+	pSimStat->i_layer[ID_GANTRY] = (UINT32)(pSimStat->nd[ID_GANTRY].p);														//走行車輪回転数部
+	pSimStat->n_layer[ID_GANTRY] = (pSimStat->l_drum[ID_GANTRY] / pPLC->Cdr[ID_GANTRY][0] - pSimStat->i_layer[ID_GANTRY]);	//旋回回転数小数点以下
 	return; 
 } 
 
@@ -847,6 +726,7 @@ void  CJC::set_gt(){
 /*      Load Object(吊荷）                                                      */
 /********************************************************************************/
 
+//吊荷位置の初期化
 void CLoad ::init_mob(double _dt, Vector3& _r, Vector3& _v) {
 	dt = _dt;
 	r.copy(_r);

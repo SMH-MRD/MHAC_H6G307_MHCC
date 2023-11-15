@@ -367,3 +367,9 @@ struct ERMPLC_XIN_MAP {
 #define PTN_NOTCH_R3		0x001C
 #define PTN_NOTCH_R4		0x003C
 
+//CC LINK
+#define CC_PRM_MAX_RPM_MH   2250
+#define CC_PRM_MAX_RPM_AH   2250
+#define CC_PRM_MAX_RPM_BH   1750
+#define CC_PRM_MAX_RPM_SLW  1750
+#define CC_PRM_MAX_RPM_GT   2000

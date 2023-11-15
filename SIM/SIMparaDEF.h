@@ -12,4 +12,5 @@
 #define SIM_TF_GANTRY          0.2   //ëñçs       
 #define SIM_TF_TROLLY          0.2   //â°çs       
 #define SIM_TF_BOOM_H          0.2   //à¯çû       
-#define SIM_TF_SLEW            0.2   //ê˘âÒ       
+#define SIM_TF_SLEW            0.2   //ê˘âÒ
+#define SIM_TF_AHOIST          0.2   //â°çs  

@@ -142,8 +142,11 @@ int CPLC_IF::init_proc() {
 
     for (int j = 1; j < PLC_DRUM_LAYER_MAX; j++) {//ドラム1層以上パラメータセット{
         for (int i = 0; i < ID_AHOIST+1; i++) {//ドラム1層以上パラメータセット
+            //ドラム円周
             plc_if_workbuf.Cdr[i][j] =( pCrane->spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j-1.0)* pCrane->spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) * PI180;
+            //ドラム層対ドラム1層円周比率
             plc_if_workbuf.Kdr[i][j] = (pCrane->spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j - 1.0) * pCrane->spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) / pCrane->spec.prm_nw[DRUM_ITEM_DIR][i];
+            //ドラム層巻取り量
             plc_if_workbuf.Ldr[i][j] = plc_if_workbuf.Ldr[i][j-1] + pCrane->spec.prm_nw[NW_ITEM_GROOVE][i]* plc_if_workbuf.Cdr[i][j];
         }
     }

@@ -30,7 +30,6 @@ public:
     virtual void set_fex(double,double,double);//外力
     virtual void set_dt(double);//計算時間間隔セット
 
-
     //速度ベクトルを与えるメソッド
     virtual Vector3 V(Vector3& r, Vector3& v);
     //時間発展を計算するメソッド
@@ -49,13 +48,14 @@ private:
 //クレーンクラス
 //r,vは、吊点の位置と座標
 
-#define SIM_INIT_R                  21.0        //デフォルト旋回半径
+#define SIM_INIT_R                  21.00       //デフォルト旋回半径主巻
+#define SIM_INIT_MHR                21.90       //デフォルト旋回半径主巻
+#define SIM_INIT_AHR                26.06       //デフォルト旋回半径補巻
 #define SIM_INIT_MH                 60.0        //デフォルト主巻高さ
 #define SIM_INIT_AH                 59.2        //デフォルト補巻高さ
 #define SIM_INIT_TH                 PI90        //旋回初期値 rad
 #define SIM_INIT_L                  9.8         //ロープ長初期値 m
 #define SIM_INIT_X                  10.0        //走行初期値 m
-#define SIM_INIT_LOAD_MH            10000.0     //主巻初期値 kg
 #define SIM_INIT_M                  10000.0     //荷重初期値 kg
 
 #define MOB_MODE_SIM                0
@@ -69,6 +69,8 @@ public:
     ~CJC();
     
     double M;                                       //クレーン全体質量　Kg
+    double mh_load;                                //主巻荷重
+    double ah_load;                                //補巻荷重
     double l_mh;                                    //巻ロープ長 m
     double l_ah;                                    //補巻巻ロープ長 m
 
@@ -81,9 +83,13 @@ public:
 
     int source_mode;
 
-    double r0[MOTION_ID_MAX];                       //位置・角度
-    double v0[MOTION_ID_MAX];                       //速度・角速度
-    double a0[MOTION_ID_MAX];                       //加速度・角加速度
+    double r0[MOTION_ID_MAX];                       //位置・角度(m)
+    double v0[MOTION_ID_MAX];                       //速度・角速度(m)
+    double a0[MOTION_ID_MAX];                       //加速度・角加速度(m)
+    
+    double np[MOTION_ID_MAX];                       //ドラム回転位置
+    double nv[MOTION_ID_MAX];                       //ドラム回転速度(rps)
+    double na[MOTION_ID_MAX];                       //ドラム回転加速度(rps2)
  
     double v_ref[MOTION_ID_MAX];                    //速度・角速度指令
     double a_ref[MOTION_ID_MAX];                    //加速度・角加速度指令
@@ -97,7 +103,7 @@ public:
   
     void init_crane(double _dt); 
  
-    void set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref);        //速度指令値入力
+    void set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref, double ah_ref);        //速度指令値入力
     void update_break_status();                     //ブレーキ状態, ブレーキ開放経過時間セット
     
     void timeEvolution();                           //時間発展を計算するメソッド
@@ -112,11 +118,11 @@ public:
     void set_ngt_from_gtm(double gt_m);             //走行位置から走行車輪回転数をセットする
 
     void set_d_th_from_nbh();                        //引込ドラム回転状態からd,θの状態をセットする
-    void set_bh();                                   //引込状態r0,v0,a0をセットする
-    void set_mh();                                   //主巻状態r0,v0,a0とロープ長、振れ周期をセットする
-    void set_ah();                                   //補巻状態r0,v0,a0とロープ長、振れ周期をセットする
-    void set_sl();                                   //旋回状態r0,v0,a0をセットする
-    void set_gt();                                   //走行状態r0,v0,a0をセットする
+    void set_bh();                                   //引込ドラム状態をセットする
+    void set_mh();                                   //主巻ドラム状態、ロープ状態をセットする
+    void set_ah();                                   //主巻ドラム状態、ロープ状態をセットする
+    void set_sl();                                   //旋回ドラム状態をセットする
+    void set_gt();                                   //走行ドラム状態をセットする
         
 
     LPST_PLC_IO pPLC;

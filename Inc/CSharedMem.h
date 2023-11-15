@@ -93,7 +93,7 @@ typedef struct StPLC_IO {
 	double pos[MOTION_ID_MAX];			//位置FB
 	double weight;						//主巻荷重FB
 	double weight_ah;					//補巻荷重FB
-	INT16 brk[MOTION_ID_MAX];			//ブレーキ状態FB
+	INT16 brk[MOTION_ID_MAX];			//ブレーキ状態FB 0閉
 	INT16 notch_ref[MOTION_ID_MAX];		//ノッチ指令入力FB（OTE入力含む）
 	PLC_READ_BUF		input;			//PLCからの読み取り信号生値
 	PLC_WRITE_BUF		output;			//PLCへの書き込み信号生値

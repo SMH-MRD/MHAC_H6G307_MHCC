@@ -35,8 +35,9 @@ private:
 
     double dt;//スキャン時間
 
-    CJC* pCrane; //クレーンのモデル
-    CLoad* pLoad;   //吊荷のモデル
+    CJC* pCrane;        //クレーンのモデル
+    CLoad* pLoad;       //主巻吊荷のモデル
+    CLoad* pLoad2;      //補巻吊荷のモデル
 
   public:
     CSIM();
