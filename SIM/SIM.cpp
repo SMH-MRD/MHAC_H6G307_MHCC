@@ -210,13 +210,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             10, 5, 120, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+            145, 5, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
-        stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"PAUSE->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            30, 40, 100, 30, hWnd, (HMENU)IDC_PB_ACTIVE, hInst, NULL);
+        stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"PAUSE", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            40, 35, 80, 20, hWnd, (HMENU)IDC_PB_ACTIVE, hInst, NULL);
 
-        stMainWnd.h_chk_packetout = CreateWindow(L"BUTTON", L"SWAY PACKET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            150, 40, 120, 30, hWnd, (HMENU)IDC_PB_PACKET_MODE, hInst, NULL);
+        stMainWnd.h_chk_packetout = CreateWindow(L"BUTTON", L"SW ACT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            40, 65, 80, 20, hWnd, (HMENU)IDC_PB_PACKET_MODE, hInst, NULL);
     }
     break;
     case WM_COMMAND:
@@ -236,20 +236,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (pProcObj->mode & SIM_ACTIVE_MODE) {
                      pProcObj->set_mode(L_OFF);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"SIM PAUSED!");
-                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"ACTIVE->");
+                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"START");
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"PAUSE");
                 }
                 else {
                     pProcObj->set_mode(L_ON);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"SIM ACTIVE!");
-                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"PAUSE->");
+                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"PAUSE");
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"ACTIVE");
                 }
                 break;
             case IDC_PB_PACKET_MODE:
 
-                if(pWorkWnd->hWorkWnd == NULL) pWorkWnd->open_WorkWnd(hWnd);
-                else                pWorkWnd->close_WorkWnd();
+                if (pWorkWnd->hWorkWnd == NULL) {
+                    pWorkWnd->open_WorkWnd(hWnd);
+                    SendMessage(stMainWnd.h_chk_packetout, WM_SETTEXT, 0, (LPARAM)L"SW STOP");
+                }
+                else {
+                    pWorkWnd->close_WorkWnd();
+                    SendMessage(stMainWnd.h_chk_packetout, WM_SETTEXT, 0, (LPARAM)L"SW ACT");
+                }
 
                 break;
                 

@@ -9,6 +9,8 @@
 
 #include "OTEpanel.H"
 
+static HWND hwnd_subwnd_now;
+
 std::wstring COteIF::msg_ws;
 std::wostringstream COteIF::msg_wos;
 
@@ -21,6 +23,8 @@ LPST_PLC_IO COteIF::pPLCio;
 LPST_CS_INFO COteIF::pCSInf;
 LPST_AGENT_INFO COteIF::pAgentInf;
 LPST_SWAY_IO COteIF::pSway_IO;
+
+
 
 bool COteIF::is_my_ote_active;
 HWND COteIF::hWnd_parent;		//親ウィンドウのハンドル
@@ -158,21 +162,12 @@ int COteIF::init_proc() {
 		pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 	}
     
-	//通信イベント処理用ウィンドウオープン
+	//操作端末、通信イベント処理用ウィンドウオープン
 	hWnd_if = open_work_Wnd(hWnd_parent);					//イベント処理ウィンドOPEN
-
-	open_connect_Wnd(hWnd_if);
-	open_auto_Wnd(hWnd_if);
-	open_mode_Wnd(hWnd_if);
-	open_fault_Wnd(hWnd_if);
-	open_moment_Wnd(hWnd_if);
-
-	//サブウィンドウ　接続表示
-	ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_CONNECT;
-	InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_CONNECT], NULL, TRUE);//表示更新
-	ShowWindow(hWnd_sub[OTE_INDEX_RADIO_CONNECT], SW_SHOW);
-	UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_CONNECT]);
 	
+															//サブウィンドウ//サブウィンドウ　接続表示
+	hwnd_subwnd_now = open_connect_Wnd(hWnd_if);
+	ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_CONNECT;
 
 	//### ソケットアドレスセット
 	memset(&addrin_ote_u_pc	, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_m_pc, 0, sizeof(SOCKADDR_IN));memset(&addrin_ote_m_pc, 0, sizeof(SOCKADDR_IN));
@@ -594,9 +589,15 @@ HWND COteIF::open_connect_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
-	hWnd_sub[OTE_INDEX_RADIO_CONNECT] = CreateWindowW(TEXT("OTE CONNECT"), TEXT("OTE CONNECT"), WS_POPUP | WS_BORDER,
+
+	hWnd_sub[OTE_INDEX_RADIO_CONNECT] = CreateWindowW(TEXT("OTE CONNECT"), TEXT("OTE CONNECT"), WS_CHILD | WS_BORDER,
 		OTE_WORK_SUB_WND_X, OTE_WORK_SUB_WND_Y, OTE_WORK_SUB_WND_W, OTE_WORK_SUB_WND_H,
-		nullptr, nullptr, hInst, nullptr);
+		hwnd, nullptr, hInst, nullptr);
+
+	InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_CONNECT], NULL, TRUE);//表示更新
+
+	ShowWindow(hWnd_sub[OTE_INDEX_RADIO_CONNECT], SW_SHOW);
+	UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_CONNECT]);
 
 	return hWnd_sub[OTE_INDEX_RADIO_CONNECT];
 }
@@ -621,9 +622,14 @@ HWND COteIF::open_auto_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
-	hWnd_sub[OTE_INDEX_RADIO_AUTO] = CreateWindowW(TEXT("OTE AUTO"), TEXT("OTE AUTO"), WS_POPUP | WS_BORDER,//WS_OVERLAPPEDWINDOW,
+	hWnd_sub[OTE_INDEX_RADIO_AUTO] = CreateWindowW(TEXT("OTE AUTO"), TEXT("OTE AUTO"), WS_CHILD | WS_BORDER,//WS_OVERLAPPEDWINDOW,
 		OTE_WORK_SUB_WND_X, OTE_WORK_SUB_WND_Y, OTE_WORK_SUB_WND_W, OTE_WORK_SUB_WND_H,
-		nullptr, nullptr, hInst, nullptr);
+		hwnd, nullptr, hInst, nullptr);
+
+	InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_AUTO], NULL, TRUE);//表示更新
+
+	ShowWindow(hWnd_sub[OTE_INDEX_RADIO_AUTO], SW_SHOW);
+	UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_AUTO]);
 
 	return hWnd_sub[OTE_INDEX_RADIO_AUTO];
 }
@@ -648,9 +654,14 @@ HWND COteIF::open_mode_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
-	hWnd_sub[OTE_INDEX_RADIO_MODE] = CreateWindowW(TEXT("OTE MODE"), TEXT("OTE MODE"), WS_POPUP | WS_BORDER,//WS_OVERLAPPEDWINDOW,
+	hWnd_sub[OTE_INDEX_RADIO_MODE] = CreateWindowW(TEXT("OTE MODE"), TEXT("OTE MODE"), WS_CHILD | WS_BORDER,//WS_OVERLAPPEDWINDOW,
 		OTE_WORK_SUB_WND_X, OTE_WORK_SUB_WND_Y, OTE_WORK_SUB_WND_W, OTE_WORK_SUB_WND_H,
-		nullptr, nullptr, hInst, nullptr);
+		hwnd, nullptr, hInst, nullptr);
+
+	InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_MODE], NULL, TRUE);//表示更新
+
+	ShowWindow(hWnd_sub[OTE_INDEX_RADIO_MODE], SW_SHOW);
+	UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_MODE]);
 
 	return hWnd_sub[OTE_INDEX_RADIO_MODE];
 }
@@ -675,9 +686,14 @@ HWND COteIF::open_fault_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
-	hWnd_sub[OTE_INDEX_RADIO_FAULT] = CreateWindowW(TEXT("OTE FAULT"), TEXT("OTE FAULT"), WS_POPUP | WS_BORDER,//WS_OVERLAPPEDWINDOW,
+	hWnd_sub[OTE_INDEX_RADIO_FAULT] = CreateWindowW(TEXT("OTE FAULT"), TEXT("OTE FAULT"), WS_CHILD | WS_BORDER,//WS_OVERLAPPEDWINDOW,
 		OTE_WORK_SUB_WND_X, OTE_WORK_SUB_WND_Y, OTE_WORK_SUB_WND_W, OTE_WORK_SUB_WND_H,
-		nullptr, nullptr, hInst, nullptr);
+		hwnd, nullptr, hInst, nullptr);
+
+	InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_FAULT], NULL, TRUE);//表示更新
+
+	ShowWindow(hWnd_sub[OTE_INDEX_RADIO_FAULT], SW_SHOW);
+	UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_FAULT]);
 
 	return hWnd_sub[OTE_INDEX_RADIO_FAULT];
 }
@@ -702,9 +718,15 @@ HWND COteIF::open_moment_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
-	hWnd_sub[OTE_INDEX_RADIO_MOMENT] = CreateWindowW(TEXT("OTE MOMENT"), TEXT("OTE MOMENT"), WS_POPUP | WS_BORDER,//WS_OVERLAPPEDWINDOW,
+	hWnd_sub[OTE_INDEX_RADIO_MOMENT] = CreateWindowW(TEXT("OTE MOMENT"), TEXT("OTE MOMENT"), WS_CHILD | WS_BORDER,//WS_OVERLAPPEDWINDOW,
 		OTE_WORK_SUB_WND_X, OTE_WORK_SUB_WND_Y, OTE_WORK_SUB_WND_W, OTE_WORK_SUB_WND_H,
-		nullptr, nullptr, hInst, nullptr);
+		hwnd, nullptr, hInst, nullptr);
+
+	
+	InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_MOMENT], NULL, TRUE);//表示更新
+
+	ShowWindow(hWnd_sub[OTE_INDEX_RADIO_MOMENT], SW_SHOW);
+	UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_MOMENT]);
 
 	return hWnd_sub[OTE_INDEX_RADIO_MOMENT];
 }
@@ -730,9 +752,10 @@ HWND COteIF::open_ifchk_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
+
 	hWnd_ifchk = CreateWindowW(TEXT("OTE IF CHK"), TEXT("OTE IF CHK"), WS_POPUP,
 		OTE_IFCHK_WND_X, OTE_IFCHK_WND_Y, OTE_IFCHK_WND_W, OTE_IFCHK_WND_H,
-		nullptr, nullptr, hInst, nullptr);
+		hwnd, nullptr, hInst, nullptr);
 
 	InvalidateRect(hWnd_ifchk, NULL, TRUE);//表示更新
 
@@ -752,6 +775,7 @@ HWND COteIF::open_ifchk_Wnd(HWND hwnd) {
 /// <param name="lParam"></param>
 /// <returns></returns>
 static int tmp_counter=0;
+
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
 	int id;
@@ -873,39 +897,29 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		case OTE_ID_RADIO_SLW_NOTCH + 5: st_msg_ote_u_snd.body.notch_pos[ID_SLEW] = 5; break;
 #pragma endregion
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_CONNECT: {
-			ShowWindow(hWnd_sub[ote_io_workbuf.ote_in.sub_monitor_mode], SW_MINIMIZE);
+			DestroyWindow(hwnd_subwnd_now);
+			hwnd_subwnd_now = open_connect_Wnd(hWnd_if);
 			ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_CONNECT;
-			InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_CONNECT], NULL, TRUE);//表示更新
-			ShowWindow(hWnd_sub[OTE_INDEX_RADIO_CONNECT], SW_SHOWDEFAULT);
-			UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_CONNECT]);
 		}break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_AUTO: {
-			ShowWindow(hWnd_sub[ote_io_workbuf.ote_in.sub_monitor_mode], SW_MINIMIZE);
+			DestroyWindow(hwnd_subwnd_now);
+		    hwnd_subwnd_now = open_auto_Wnd(hWnd_if);
 			ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_AUTO;
-			InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_AUTO], NULL, TRUE);//表示更新
-			ShowWindow(hWnd_sub[OTE_INDEX_RADIO_AUTO], SW_SHOWDEFAULT);
-			UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_AUTO]);
 		} break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_MODE: { 
-			ShowWindow(hWnd_sub[ote_io_workbuf.ote_in.sub_monitor_mode], SW_MINIMIZE);
+			DestroyWindow(hwnd_subwnd_now);
+			hwnd_subwnd_now = open_mode_Wnd(hWnd_if);
 			ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_MODE;
-			InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_MODE], NULL, TRUE);//表示更新
-			ShowWindow(hWnd_sub[OTE_INDEX_RADIO_MODE], SW_SHOWDEFAULT);
-			UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_MODE]);
 		} break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_FAULT: {
-			ShowWindow(hWnd_sub[ote_io_workbuf.ote_in.sub_monitor_mode], SW_MINIMIZE);
+			DestroyWindow(hwnd_subwnd_now);
+			hwnd_subwnd_now = open_fault_Wnd(hWnd_if);
 			ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_FAULT;
-			InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_FAULT], NULL, TRUE);//表示更新
-			ShowWindow(hWnd_sub[OTE_INDEX_RADIO_FAULT], SW_SHOWDEFAULT);
-			UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_FAULT]);
 		}break;
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_RADIO_MOMENT:{
-			ShowWindow(hWnd_sub[ote_io_workbuf.ote_in.sub_monitor_mode], SW_MINIMIZE);
+			DestroyWindow(hwnd_subwnd_now);
+			hwnd_subwnd_now = open_moment_Wnd(hWnd_if);
 			ote_io_workbuf.ote_in.sub_monitor_mode = OTE_INDEX_RADIO_MOMENT;
-			InvalidateRect(hWnd_sub[OTE_INDEX_RADIO_MOMENT], NULL, TRUE);//表示更新
-			ShowWindow(hWnd_sub[OTE_INDEX_RADIO_MOMENT], SW_SHOWDEFAULT);
-			UpdateWindow(hWnd_sub[OTE_INDEX_RADIO_MOMENT]);
 		}break;
 //PB
 		case OTE_ID_PB_CHK_RADIO + OTE_INDEX_CHK_ESTOP: {
@@ -1062,7 +1076,7 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 }
 //*********************************************************************************************
 /// <summary>
-/// ワークウィンドウコールバック関数
+/// サブウィンドウコールバック関数
 /// </summary>
 /// <param name="hWnd"></param>
 /// <param name="message"></param>

@@ -58,7 +58,7 @@ public:
 		else return S_FALSE;
 	}
 	
-	HRESULT add_multi_to_sock(SOCKADDR_IN addr_in_m); 
+	HRESULT add_multi_to_sock(SOCKADDR_IN addr_in_m); //マルチキャストグループへの参加登録
 
 	HRESULT Close();
 

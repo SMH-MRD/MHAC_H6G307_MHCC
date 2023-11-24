@@ -72,13 +72,10 @@ typedef struct StMoveSet {
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 #pragma region PLC IO
-#define PLC_IF_PC_DBG_MODE		0x00000000		//SIM出力からIO情報生成
-#define PLC_IF_MONITOR_MODE		0x00000100		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
-#define PLC_IF_REMOTE_MODE		0x00000200		//操作端末からの操作入力有効通常運用モード
-#define PLC_IF_SIMULATOR_MODE	0x00000400		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
-#define PLC_IF_SIM_MODE_0		0x00000000		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
-#define PLC_IF_SIM_MODE_1		0x00000001		//操作端末からの操作入力有効通常運用モード
-#define PLC_IF_SIM_MODE_2		0x00000002		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+#define PLC_IF_REMOTE_OFF_MODE	0x00000000		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_SIM_MODE_0		0x00000001		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_SIM_MODE_1		0x00000003		//操作端末からの操作入力有効通常運用モード
+#define PLC_IF_SIM_MODE_2		0x00000004		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
 
 #define PLC_DRUM_LAYER_MAX		10				//ドラム層数最大値
 

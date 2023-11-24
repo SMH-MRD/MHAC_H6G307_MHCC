@@ -4,10 +4,12 @@
 ///# ベース設定
 
 //-Main Windowの配置設定
-#define MAIN_WND_INIT_SIZE_W		380					//-Main Windowの初期サイズ　W
-#define MAIN_WND_INIT_SIZE_H		192					//-Main Windowの初期サイズ　H
-#define MAIN_WND_INIT_POS_X			1050				//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			875					//-Main Windowの初期位置設定　Y
+
+#define MAIN_WND_INIT_SIZE_W		220		//-Main Windowの初期サイズ　W
+#define MAIN_WND_INIT_SIZE_H		180		//-Main Windowの初期サイズ　H
+#define MAIN_WND_INIT_POS_X			1150	//-Main Windowの初期位置設定　X
+#define MAIN_WND_INIT_POS_Y			600		//-Main Windowの初期位置設定　Y
+
 
 //-ID定義 Mainスレッド用　2000 + 100 +α
 #define ID_STATUS					2100

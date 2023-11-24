@@ -44,7 +44,7 @@ public:
 
     SOCKADDR_IN addrinc, addrins, addrfrom;         //MCプロトコル用ソケットアドレス
 
-    void set_mode(DWORD id) {
+    void set_mode(DWORD id) {                       //0bit:操作指令有効　1bit：センサ状態指令有効 　2bit：FULL SIMULATION
         mode &= 0x00000000;
         mode |= id;
         return;

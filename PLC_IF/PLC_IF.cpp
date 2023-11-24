@@ -212,6 +212,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             50, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M1, hInst, NULL);
         stMainWnd.h_redio_m2 = CreateWindow(L"BUTTON", L"M2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
             95, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M2, hInst, NULL);
+        stMainWnd.h_redio_moff = CreateWindow(L"BUTTON", L"OF", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+            140, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_OFF, hInst, NULL);
+
+        
         pProcObj->set_mode(PLC_IF_SIM_MODE_2);
         SendMessage(stMainWnd.h_redio_m2, BM_SETCHECK, BST_CHECKED, 0L);
         SetWindowText(stMainWnd.h_static0, L"SIM M2");
@@ -252,6 +256,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
             SetWindowText(stMainWnd.h_static0, L"SIM M2");
         }break;
+
+         case IDC_RADIO_RMT_OFF: {
+            pProcObj->set_mode(PLC_IF_REMOTE_OFF_MODE);
+            TCHAR tbuf[32];
+            wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+            SetWindowText(stMainWnd.h_static0, L"RMT OFF");
+        }break;
+            
 
         case IDC_CHK_IFCHK:
 

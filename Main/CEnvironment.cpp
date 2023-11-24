@@ -293,10 +293,6 @@ int CEnvironment::sys_mode_set() {
 	if (pSimStat->mode & SIM_ACTIVE_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_SIMULATOR;
 	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_SIMULATOR;
 
-	//PLCデバッグモードセット
-	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_PLC_DBGIO;
-	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO; 
-
 	return 0;
 
 }

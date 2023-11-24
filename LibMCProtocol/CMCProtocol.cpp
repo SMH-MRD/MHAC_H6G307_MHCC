@@ -72,7 +72,7 @@ HWND CMCProtocol::Initialize(HWND hwnd,SOCKADDR_IN* paddrinc, SOCKADDR_IN* paddr
 
 	//通信イベント処理用ウィンドウオープン
 	st_work_wnd.hWnd_parent = hwnd;								//親ウィンドウセット
-	st_work_wnd.hWnd = open_work_Wnd(st_work_wnd.hWnd_parent);	//親ウィンドOPEN
+	st_work_wnd.hWnd = open_work_Wnd(st_work_wnd.hWnd_parent);	//作業ウィンドOPEN
 
 	if (pMCSock->Initialize() != S_OK) {									//受信ソケット生成
 		msg_wos.str() = pMCSock->err_msg.str();

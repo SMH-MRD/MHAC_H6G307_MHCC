@@ -26,6 +26,7 @@
 #define IDC_RADIO_SIM_M0			2205	//モニタのみ　PLC書き込み無し
 #define IDC_RADIO_SIM_M1			2206	//遠隔モード　運転室操作関連のみ書き込み
 #define IDC_RADIO_SIM_M2			2207	//シミュレータモード　PLC書き込みフルモード
+#define IDC_RADIO_RMT_OFF			2208	//リモート無効モード
 
 //メインウィンドウ管理構造体
 typedef struct stMainWndTag {
@@ -36,7 +37,8 @@ typedef struct stMainWndTag {
 	HWND h_redio_m2 = NULL;		//ラジオボタンオブジェクトのハンドル
 	HWND h_redio_m0 = NULL;		//ラジオボタンオブジェクトのハンドル
 	HWND h_redio_m1 = NULL;		//ラジオボタンオブジェクトのハンドル
-	HWND h_chk_if = NULL;			//チェックボックスブジェクトのハンドル
+	HWND h_redio_moff = NULL;	//ラジオボタンオブジェクトのハンドル
+	HWND h_chk_if = NULL;		//チェックボックスブジェクトのハンドル
 
 	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
 	HWND hIOWnd = NULL;				//IO Checkウィンドウのハンドル

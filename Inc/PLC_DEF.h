@@ -24,28 +24,83 @@
 #define ID_MC_INV_MH1       4
 #define ID_MC_INV_MH2       5
 
-typedef struct ccinv_if_r_tag {
-    INT16 x[6];
-    INT16 Wr[6][4];
-}ST_CCINV_READ, * LPST_CCINV_READ;
-typedef struct ccinv_if_w_tag {
-    INT16 y[6];
-    INT16 Ww[6][4];
-}ST_CCINV_WRITE, * LPST_CCINV_WRITE;
+//INVERTOR CC LINK
+#define ID_CC_LINK_INV_GT                       0
+#define ID_CC_LINK_INV_AH                       1
+#define ID_CC_LINK_INV_SL                       2
+#define ID_CC_LINK_INV_BH                       3
+#define ID_CC_LINK_INV_MH1                      4
+#define ID_CC_LINK_INV_MH2                      5
+
+#define ID_CC_LINK_X                            0
+#define ID_CC_LINK_Y                            0
+#define ID_CC_LINK_W_COMMON                     0
+#define ID_CC_LINK_W_SPDREF                     1
+#define ID_CC_LINK_W_COMCODE                    2
+#define ID_CC_LINK_W_COMITEM                    3
+#define ID_CC_LINK_R_RESMON                     0
+#define ID_CC_LINK_R_SPDREF                     1
+#define ID_CC_LINK_R_RESCOM                     2
+#define ID_CC_LINK_R_RESITEM                    3
+
+//ノッチビットパターン
+#define PTN_NOTCH_0			0x0001
+#define PTN_NOTCH_F1		0x0002
+#define PTN_NOTCH_F2		0x000A
+#define PTN_NOTCH_F3		0x001A
+#define PTN_NOTCH_F4		0x003A
+#define PTN_NOTCH_R1		0x0004
+#define PTN_NOTCH_R2		0x000C
+#define PTN_NOTCH_R3		0x001C
+#define PTN_NOTCH_R4		0x003C
+
+//CC LINK
+#define CC_PRM_RPM100_MH    6666
+#define CC_PRM_RPM100_AH    10000
+#define CC_PRM_RPM100_BH    20000
+#define CC_PRM_RPM100_SLW   20000
+#define CC_PRM_RPM100_GT    20000
+
+
+
+
+#define PLC_IF_CAB_AI_FOOT_BRK      0
+#define PLC_IF_CAB_AI_BH_R          1
+#define PLC_IF_CAB_AI_MH_LOAD       2
+#define PLC_IF_CAB_AI_AH_LOAD       3
+#define PLC_IF_CAB_AI_BH_ANGLE      4
+
+#define PLC_IF_HCOUNT_MH            0
+#define PLC_IF_HCOUNT_AH            1
+#define PLC_IF_HCOUNT_BH            2
+#define PLC_IF_HCOUNT_SL            3
+
+#define PLC_IF_ABS_MH               0
+#define PLC_IF_ABS_AH               1
+
+#define PLC_IF_CCID_GT              0
+#define PLC_IF_CCID_AH              1
+#define PLC_IF_CCID_SL              2
+#define PLC_IF_CCID_BH              3
+#define PLC_IF_CCID_MH1             4
+#define PLC_IF_CCID_MH2             5
 
 typedef struct st_PLCwrite_tag {//制御PC→PLC
     INT16 helthy;               //PCヘルシー出力信号
     INT16 auto_ctrl;            //自動制御フラグ
-    INT32 cab_ai[5];            //運転室PLC AI信号【将来用】
+    INT32 cab_ai[8];            //運転室PLC AI信号【将来用】
     INT16 cab_di[6];            //運転室PLC→電気室PLC b出力
-    INT16 spare0[6];            //予備 
+    INT16 spare0[8];            //予備 
     INT32 hcounter[4];          //高速カウンタユニット 
     INT32 absocoder[2];         //アブソコーダ 
     INT16 spare1[4];            //予備
     INT16 pc_fault[2];          //PC検出異常マップ
     INT16 spare2[20];           //予備
     INT16 erm_x[8];             //予備
-    ST_CCINV_READ ccinv_r;      //インバータ読み込み値を上書き
+    INT16 inv_cc_x[6];          //インバータFB書き込み値　ｘデバイス
+    INT16 inv_cc_Wr1[6];        //インバータFB書き込み値　rpm
+    INT16 inv_cc_Wr2[6];        //インバータFB書き込み値　トルク0.1%
+    INT16 spare3[12];
  }ST_PLC_WRITE, * LPST_PLC_WRITE;
 
 union PLC_WRITE_BUF {
@@ -65,15 +120,20 @@ union PLC_WRITE_BUF {
 typedef struct st_PLCread_tag {
     INT16 helthy;               //PLCヘルシーカウンタ
     INT16 plc_ctrl;             // PLC運転モード
-    INT32 cab_ai[5];            //運転室PLC→電気室PLC W出力
+    INT16 cab_ai[6];            //運転室PLC→電気室PLC W出力
     INT16 cab_bi[6];            //運転室PLC→電気室PLC b出力
     INT16 erm_bo[6];            //電気室PLC b出力
     INT32 pos[5];               //各軸位置信号
-    INT16 spd[6];               //各軸速度信号
+    INT16 spare0[6];            //予備
     INT16 plc_fault[18];        //各軸速度信号
     INT16 erm_y[4];             //電気室PLC Y出力
     INT16 erm_x[8];             //電気室PLC X入力
-    ST_CCINV_WRITE ccinv_w;  //予備
+    INT16 inv_cc_y[6];          //インバータPLC DO指令
+    INT16 inv_cc_Ww1[6];        //インバータPLC 速度指令　rpm
+    INT16 inv_cc_x[6];          //インバータFB書き込み値　ｘデバイス
+    INT16 inv_cc_Wr1[6];        //インバータFB書き込み値　rpm
+    INT16 inv_cc_Wr2[6];        //インバータFB書き込み値　トルク0.1%
+    INT16 spare1[4];            //予備
 }ST_PLC_READ, * LPST_PLC_READ; 
 
 union PLC_READ_BUF {
@@ -340,36 +400,3 @@ struct ERMPLC_XIN_MAP {
     POINT spare24                           = { ID_ERMPLC_XC0,0x4000 };
     POINT spare25                           = { ID_ERMPLC_XC0,0x8000 };
 };
-//INVERTOR CC LINK
-#define ID_CC_LINK_INV_GT                       0
-#define ID_CC_LINK_INV_AH                       1
-#define ID_CC_LINK_INV_SL                       2
-#define ID_CC_LINK_INV_BH                       3
-#define ID_CC_LINK_INV_MH1                      4
-#define ID_CC_LINK_INV_MH2                      5
-
-#define ID_CC_LINK_X                            0
-#define ID_CC_LINK_Y                            0
-#define ID_CC_LINK_ITEM1                        1
-#define ID_CC_LINK_ITEM2                        2
-#define ID_CC_LINK_ITEM3                        3
-#define ID_CC_LINK_ITEM4                        4
-#define ID_CC_LINK_ITEM5                        5
-
-//ノッチビットパターン
-#define PTN_NOTCH_0			0x0001
-#define PTN_NOTCH_F1		0x0002
-#define PTN_NOTCH_F2		0x000A
-#define PTN_NOTCH_F3		0x001A
-#define PTN_NOTCH_F4		0x003A
-#define PTN_NOTCH_R1		0x0004
-#define PTN_NOTCH_R2		0x000C
-#define PTN_NOTCH_R3		0x001C
-#define PTN_NOTCH_R4		0x003C
-
-//CC LINK
-#define CC_PRM_MAX_RPM_MH   2250
-#define CC_PRM_MAX_RPM_AH   2250
-#define CC_PRM_MAX_RPM_BH   1750
-#define CC_PRM_MAX_RPM_SLW  1750
-#define CC_PRM_MAX_RPM_GT   2000

@@ -88,11 +88,15 @@ public:
     double a0[MOTION_ID_MAX];                       //加速度・角加速度(m)
     
     double np[MOTION_ID_MAX];                       //ドラム回転位置
-    double nv[MOTION_ID_MAX];                       //ドラム回転速度(rps)
-    double na[MOTION_ID_MAX];                       //ドラム回転加速度(rps2)
+    double nv[MOTION_ID_MAX];                       //ドラム回転速度(%rps)
+    double na[MOTION_ID_MAX];                       //ドラム回転加速度(%rps2)
+    double knv[MOTION_ID_MAX];                      //%rps→rps変換係数
  
     double v_ref[MOTION_ID_MAX];                    //速度・角速度指令
     double a_ref[MOTION_ID_MAX];                    //加速度・角加速度指令
+
+    double nv_ref[MOTION_ID_MAX];                    //ドラム回転速度・角速度指令
+    double na_ref[MOTION_ID_MAX];                    //ドラム加速度・角加速度指令
   
     bool is_fwd_endstop[MOTION_ID_MAX];             //正転極限判定
     bool is_rev_endstop[MOTION_ID_MAX];             //逆転極限判定

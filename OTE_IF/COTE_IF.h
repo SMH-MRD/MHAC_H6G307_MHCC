@@ -87,15 +87,15 @@
 #define OTE_WORK_WND_W						800					//OTEメインパネルWINDOW幅
 #define OTE_WORK_WND_H						600					//OTEメインパネルWINDOW高さ
 
-#define OTE_WORK_SUB_WND_X					OTE_WORK_WND_X+10		//メンテパネル表示位置X
-#define OTE_WORK_SUB_WND_Y					OTE_WORK_WND_Y+30	//メンテパネル表示位置Y
+#define OTE_WORK_SUB_WND_X					0					//メンテパネル表示位置X
+#define OTE_WORK_SUB_WND_Y					0					//メンテパネル表示位置Y
 #define OTE_WORK_SUB_WND_W					250					//メンテパネルWINDOW幅
 #define OTE_WORK_SUB_WND_H					270					//メンテパネルWINDOW高さ
 
-#define OTE_IFCHK_WND_X						OTE_WORK_WND_X							//IF CHECK WINDOW 表示位置X
-#define OTE_IFCHK_WND_Y						OTE_WORK_WND_Y + OTE_WORK_WND_H +5		//IF CHECK WINDOW 表示位置Y
-#define OTE_IFCHK_WND_W						OTE_WORK_WND_W							//IF CHECK WINDOW WINDOW幅
-#define OTE_IFCHK_WND_H						400										//IF CHECK WINDOW WINDOW高さ
+#define OTE_IFCHK_WND_X						OTE_WORK_WND_X		//IF CHECK WINDOW 表示位置X
+#define OTE_IFCHK_WND_Y						10					//IF CHECK WINDOW 表示位置Y
+#define OTE_IFCHK_WND_W						OTE_WORK_WND_W		//IF CHECK WINDOW WINDOW幅
+#define OTE_IFCHK_WND_H						400					//IF CHECK WINDOW WINDOW高さ
 
 #define OTE_N_SUB_WND						5
 

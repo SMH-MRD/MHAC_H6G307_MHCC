@@ -119,11 +119,11 @@ CJC::CJC() {
 }
 CJC::~CJC() {}
 void CJC::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref, double ah_ref) {
-	v_ref[ID_HOIST] = hoist_ref;
-	v_ref[ID_BOOM_H] = boomh_ref;
-	v_ref[ID_SLEW] = slew_ref;
-	v_ref[ID_GANTRY] = gantry_ref;
-	v_ref[ID_AHOIST] = ah_ref;
+	nv_ref[ID_HOIST] = hoist_ref;
+	nv_ref[ID_BOOM_H] = boomh_ref;
+	nv_ref[ID_SLEW] = slew_ref;
+	nv_ref[ID_GANTRY] = gantry_ref;
+	nv_ref[ID_AHOIST] = ah_ref;
 	return;
 }
 // ƒŸ∏T(NÅEmÅj= F x RÅ@= J x dÉ÷/dt  édéñó¶P=TÉ÷=MavÅ@a=TÉ÷/Mv=MT/r
@@ -147,104 +147,104 @@ void CJC::Ac() {	//â¡ë¨ìxåvéZ
 	// #éÂä™
 	{
 		//ÉuÉåÅ[ÉLï¬
-		if (!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
-		//ë¨ìxéwóﬂÇ…ñ¢íB
-		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) > accdec_cut_spd_range[ID_HOIST]) {
-			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][FWD][ACC];		//ê≥ì]â¡ë¨éwóﬂ
-			else a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][REV][DEC];		//ãtì]å∏ë¨éwóﬂ
+		if (!motion_break[ID_HOIST]) na_ref[ID_HOIST] = 0.0;
+		//ë¨ìxéwóﬂÇ…ñ¢íB(%ë¨ìxÅj
+		else if ((nv_ref[ID_HOIST] - pSimStat->nd[ID_HOIST].v) > accdec_cut_spd_range[ID_HOIST]) {
+			if (nv_ref[ID_HOIST] > 0.0) na_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][FWD][ACC];		//ê≥ì]â¡ë¨éwóﬂ
+			else na_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][REV][DEC];		//ãtì]å∏ë¨éwóﬂ
 		}
 		//ë¨ìxéwóﬂÇ…ñ¢íB
-		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
-			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][FWD][DEC];		//ê≥ì]å∏ë¨éwóﬂ
-			else a_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][REV][ACC];		//ãtì]â¡ë¨éwóﬂ
+		else if ((nv_ref[ID_HOIST] - pSimStat->nd[ID_HOIST].v) < -accdec_cut_spd_range[ID_HOIST]) {
+			if (nv_ref[ID_HOIST] > 0.0) na_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][FWD][DEC];		//ê≥ì]å∏ë¨éwóﬂ
+			else na_ref[ID_HOIST] = pspec->accdec100[ID_HOIST][REV][ACC];		//ãtì]â¡ë¨éwóﬂ
 		}
 		//ë¨ìxéwóﬂÇ…ìûíB
 		else {
-			a_ref[ID_HOIST] = 0.0;
+			na_ref[ID_HOIST] = 0.0;
 		}
 
 		//ã…å¿í‚é~
-		if ((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
-		if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+		if ((na_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) na_ref[ID_HOIST] = 0.0;
+		if ((na_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) na_ref[ID_HOIST] = 0.0;
 	}
 
 	// #ï‚ä™
 	{
 		//ÉuÉåÅ[ÉLï¬
-		if (!motion_break[ID_AHOIST]) a_ref[ID_AHOIST] = 0.0;
+		if (!motion_break[ID_AHOIST]) na_ref[ID_AHOIST] = 0.0;
 		//ë¨ìxéwóﬂÇ…ñ¢íB
-		else if ((v_ref[ID_AHOIST] - v0[ID_AHOIST]) > accdec_cut_spd_range[ID_AHOIST]) {
-			if (v_ref[ID_AHOIST] > 0.0) a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][FWD][ACC];		//ê≥ì]â¡ë¨éwóﬂ
-			else a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][REV][DEC];		//ãtì]å∏ë¨éwóﬂ
+		else if ((nv_ref[ID_AHOIST] - pSimStat->nd[ID_AHOIST].v) > accdec_cut_spd_range[ID_AHOIST]) {
+			if (nv_ref[ID_AHOIST] > 0.0) na_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][FWD][ACC];		//ê≥ì]â¡ë¨éwóﬂ
+			else na_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][REV][DEC];		//ãtì]å∏ë¨éwóﬂ
 		}
 		//ë¨ìxéwóﬂÇ…ñ¢íB
-		else if ((v_ref[ID_AHOIST] - v0[ID_AHOIST]) < -accdec_cut_spd_range[ID_AHOIST]) {
-			if (v_ref[ID_AHOIST] > 0.0) a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][FWD][DEC];		//ê≥ì]å∏ë¨éwóﬂ
-			else a_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][REV][ACC];		//ãtì]â¡ë¨éwóﬂ
+		else if ((nv_ref[ID_AHOIST] - pSimStat->nd[ID_AHOIST].v) < -accdec_cut_spd_range[ID_AHOIST]) {
+			if (nv_ref[ID_AHOIST] > 0.0) na_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][FWD][DEC];		//ê≥ì]å∏ë¨éwóﬂ
+			else na_ref[ID_AHOIST] = pspec->accdec100[ID_AHOIST][REV][ACC];		//ãtì]â¡ë¨éwóﬂ
 		}
 		//ë¨ìxéwóﬂÇ…ìûíB
 		else {
-			a_ref[ID_AHOIST] = 0.0;
+			na_ref[ID_AHOIST] = 0.0;
 		}
 
 		//ã…å¿í‚é~
-		if ((a_ref[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST])) a_ref[ID_AHOIST] = 0.0;
-		if ((a_ref[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST])) a_ref[ID_AHOIST] = 0.0;
+		if ((na_ref[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST])) na_ref[ID_AHOIST] = 0.0;
+		if ((na_ref[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST])) na_ref[ID_AHOIST] = 0.0;
 	}
 
 	// #ëñçs
 	{
-		if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
-		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
-			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][FWD][ACC];	//ê≥ì]â¡ë¨
+		if (!motion_break[ID_GANTRY]) na_ref[ID_GANTRY] = 0.0;
+		else if ((nv_ref[ID_GANTRY] - pSimStat->nd[ID_GANTRY].v) > accdec_cut_spd_range[ID_GANTRY]) {
+			if (nv_ref[ID_GANTRY] > 0.0) na_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][FWD][ACC];	//ê≥ì]â¡ë¨
 			else a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][REV][DEC];	//ãtì]å∏ë¨
 		}
-		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
-			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][FWD][DEC];	//ê≥ì]å∏ë¨
-			else a_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][REV][ACC];	//ãtì]â¡ë¨
+		else if ((nv_ref[ID_GANTRY] - pSimStat->nd[ID_GANTRY].v) < -accdec_cut_spd_range[ID_GANTRY]) {
+			if (nv_ref[ID_GANTRY] > 0.0) na_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][FWD][DEC];	//ê≥ì]å∏ë¨
+			else na_ref[ID_GANTRY] = pspec->accdec100[ID_GANTRY][REV][ACC];	//ãtì]â¡ë¨
 		}
 		else {
-			a_ref[ID_GANTRY] = 0.0;
+			na_ref[ID_GANTRY] = 0.0;
 		}
 
 		//ã…å¿í‚é~
-		if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
-		if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+		if ((na_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) na_ref[ID_GANTRY] = 0.0;
+		if ((na_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) na_ref[ID_GANTRY] = 0.0;
 	}
 
 	// #à¯çû
 	{
-		if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
-		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
-			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][FWD][ACC];	//ê≥ì]â¡ë¨
-			else a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][REV][DEC];	//ãtì]å∏ë¨
+		if (!motion_break[ID_BOOM_H]) na_ref[ID_BOOM_H] = 0.0;
+		else if ((nv_ref[ID_BOOM_H] - pSimStat->nd[ID_BOOM_H].v) > accdec_cut_spd_range[ID_BOOM_H]) {
+			if (nv_ref[ID_BOOM_H] > 0.0) na_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][FWD][ACC];	//ê≥ì]â¡ë¨
+			else na_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][REV][DEC];	//ãtì]å∏ë¨
 		}
-		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
-			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][FWD][DEC];	//ê≥ì]å∏ë¨
-			else a_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][REV][ACC];	//ãtì]â¡ë¨
+		else if ((nv_ref[ID_BOOM_H] - pSimStat->nd[ID_BOOM_H].v) < -accdec_cut_spd_range[ID_BOOM_H]) {
+			if (nv_ref[ID_BOOM_H] > 0.0) na_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][FWD][DEC];	//ê≥ì]å∏ë¨
+			else na_ref[ID_BOOM_H] = pspec->accdec100[ID_BOOM_H][REV][ACC];	//ãtì]â¡ë¨
 		}
 		else {
-			a_ref[ID_BOOM_H] = 0.0;
+			na_ref[ID_BOOM_H] = 0.0;
 		}
 
 		//ã…å¿í‚é~
-		if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
-		if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+		if ((na_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) na_ref[ID_BOOM_H] = 0.0;
+		if ((na_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) na_ref[ID_BOOM_H] = 0.0;
 	}
 
 	// #ê˘âÒ
 	{
-		if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
-		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
-			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][FWD][ACC];//ê≥ì]â¡ë¨
-			else a_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][REV][DEC];//ãtì]å∏ë¨
+		if (!motion_break[ID_SLEW]) na_ref[ID_SLEW] = 0.0;
+		else if ((nv_ref[ID_SLEW] - pSimStat->nd[ID_SLEW].v) > accdec_cut_spd_range[ID_SLEW]) {
+			if (nv_ref[ID_SLEW] > 0.0) na_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][FWD][ACC];//ê≥ì]â¡ë¨
+			else na_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][REV][DEC];//ãtì]å∏ë¨
 		}
-		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
-			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][FWD][DEC];//ê≥ì]å∏ë¨
-			else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//ãtì]â¡ë¨
+		else if ((nv_ref[ID_SLEW] - pSimStat->nd[ID_SLEW].v) < -accdec_cut_spd_range[ID_SLEW]) {
+			if (nv_ref[ID_SLEW] > 0.0) na_ref[ID_SLEW] = pspec->accdec100[ID_SLEW][FWD][DEC];//ê≥ì]å∏ë¨
+			else na_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//ãtì]â¡ë¨
 		}
 		else {
-			a_ref[ID_SLEW] = 0.0;
+			na_ref[ID_SLEW] = 0.0;
 		}
 	}
 
@@ -252,35 +252,35 @@ void CJC::Ac() {	//â¡ë¨ìxåvéZ
 	{
 		//éÂä™
 		if ((motion_break[ID_HOIST]) || (source_mode != MOB_MODE_SIM)) {
-			pSimStat->nd[ID_HOIST].a = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * pSimStat->nd[ID_HOIST].a )/ (dt + Tf[ID_HOIST]);
+			pSimStat->nd[ID_HOIST].a = (dt * na_ref[ID_HOIST] + Tf[ID_HOIST] * pSimStat->nd[ID_HOIST].a )/ (dt + Tf[ID_HOIST]);
 		}
 		else {
 			pSimStat->nd[ID_HOIST].a = 0.0;
 		}
 		//ï‚ä™
 		if ((motion_break[ID_AHOIST]) || (source_mode != MOB_MODE_SIM)) {
-			pSimStat->nd[ID_AHOIST].a = (dt * a_ref[ID_AHOIST] + Tf[ID_AHOIST] * pSimStat->nd[ID_AHOIST].a) / (dt + Tf[ID_AHOIST]);
+			pSimStat->nd[ID_AHOIST].a = (dt * na_ref[ID_AHOIST] + Tf[ID_AHOIST] * pSimStat->nd[ID_AHOIST].a) / (dt + Tf[ID_AHOIST]);
 		}
 		else {
 			pSimStat->nd[ID_AHOIST].a = 0.0;
 		}
 		//à¯çû
 		if ((motion_break[ID_BOOM_H]) || (source_mode != MOB_MODE_SIM)) {
-			pSimStat->nd[ID_BOOM_H].a = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * pSimStat->nd[ID_BOOM_H].a) / (dt + Tf[ID_BOOM_H]);
+			pSimStat->nd[ID_BOOM_H].a = (dt * na_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * pSimStat->nd[ID_BOOM_H].a) / (dt + Tf[ID_BOOM_H]);
 		}
 		else {
 			pSimStat->nd[ID_BOOM_H].a = 0.0;
 		}
 		//ê˘âÒ
 		if ((motion_break[ID_SLEW]) || (source_mode != MOB_MODE_SIM)) {
-			pSimStat->nd[ID_SLEW].a = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * pSimStat->nd[ID_SLEW].a) / (dt + Tf[ID_SLEW]);
+			pSimStat->nd[ID_SLEW].a = (dt * na_ref[ID_SLEW] + Tf[ID_SLEW] * pSimStat->nd[ID_SLEW].a) / (dt + Tf[ID_SLEW]);
 		}
 		else {
 			pSimStat->nd[ID_SLEW].a = 0.0;
 		}
 		//ëñçs
 		if ((motion_break[ID_GANTRY]) || (source_mode != MOB_MODE_SIM)) {
-			pSimStat->nd[ID_GANTRY].a = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * pSimStat->nd[ID_GANTRY].a) / (dt + Tf[ID_GANTRY]);
+			pSimStat->nd[ID_GANTRY].a = (dt * na_ref[ID_GANTRY] + Tf[ID_GANTRY] * pSimStat->nd[ID_GANTRY].a) / (dt + Tf[ID_GANTRY]);
 		}
 		else {
 			pSimStat->nd[ID_GANTRY].a = 0.0;
@@ -400,10 +400,10 @@ void CJC::init_crane(double _dt) {
 		init_mob(_dt, _r, vc);
 
 		//r0ÇÕÅAäeé≤ÉAÉuÉ\ÉRÅ[É_ÇÃíl,Å@rÇÕÅAí›ì_ÇÃxyzç¿ïWÇÃíl
-		r0[ID_HOIST] = pPLC->pos[ID_HOIST];
-		r0[ID_GANTRY] = rc.x;
-		r0[ID_SLEW] = pPLC->pos[ID_SLEW];
-		r0[ID_BOOM_H] = pPLC->pos[ID_BOOM_H];
+		r0[ID_HOIST]	= pPLC->pos[ID_HOIST];
+		r0[ID_GANTRY]	= rc.x;
+		r0[ID_SLEW]		= pPLC->pos[ID_SLEW];
+		r0[ID_BOOM_H]	= pPLC->pos[ID_BOOM_H];
 	}
 	else {
 		//ÉNÉåÅ[ÉìäÓèÄì_ÇÃèâä˙à íu,ë¨ìx
