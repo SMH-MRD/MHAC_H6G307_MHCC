@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "OTE_IF.h"
 #include "COTE_IF.h"
+#include "COTE.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <winsock2.h>
@@ -204,7 +205,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             5, 30, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
         SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
 
-        stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE0", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_OTE, hInst, NULL);
         SendMessage(stMainWnd.h_chk_local_ote, BM_SETCHECK, BST_UNCHECKED, 0L);
         
@@ -222,22 +223,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (wmId)
         {
         case IDC_CHK_IFCHK: {
-            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) {
-                if(pProcObj->hWnd_ifchk==NULL)pProcObj->open_ifchk_Wnd(pProcObj->hWnd_if);
-                else ShowWindow(pProcObj->hWnd_ifchk, SW_SHOW);
-            }
-            else {
-                DestroyWindow(pProcObj->hWnd_ifchk);
-                pProcObj->hWnd_ifchk = NULL;
-            }
-                //ShowWindow(pProcObj->hWnd_ifchk, SW_HIDE);
-
-        }break;
+            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) 
+                if(pProcObj->hWnd_work!=NULL)ShowWindow(pProcObj->hWnd_work, SW_SHOW);
+             else 
+                if (pProcObj->hWnd_work != NULL)ShowWindow(pProcObj->hWnd_work, SW_HIDE);
+         }break;
         case IDC_CHK_OTE: {
             if (BST_CHECKED == SendMessage(stMainWnd.h_chk_local_ote, BM_GETCHECK, 0, 0))
-                pProcObj->activate_local_ote(true);
+                ;// デフォルトオペレーションパネル起動
             else
-                pProcObj->activate_local_ote(false);
+                ;// デフォルトオペレーションパネルクローズ
         }break;
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);

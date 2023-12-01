@@ -3,27 +3,11 @@
 #include <windows.h>    // included for Windows Touch
 #include <windowsx.h>   // included for point conversion
 
-
-// There should be at least as many colors
-// as there can be touch points so that you
-// can have different colors for each point
-COLORREF colors[] = { RGB(153,255,51),
-					  RGB(153,0,0),
-					  RGB(0,153,0),
-					  RGB(255,255,0),
-					  RGB(255,51,204),
-					  RGB(0,0,0),
-					  RGB(0,153,0),
-					  RGB(153, 255, 255),
-					  RGB(153,153,255),
-					  RGB(0,51,153)
-};
-
 ///# ベース設定
 
 //-タスク設定
 #define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
-#define SYSTEM_TICK_ms				25		//メインスレッド周期 msec
+#define SYSTEM_TICK_ms				100		//メインスレッド周期 msec
 
 //タイマーID
 #define ID_MAIN_WINDOW_UPDATE_TIMER				10702

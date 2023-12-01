@@ -1,71 +1,29 @@
 #pragma once
 
-#include <winsock.h>
-#include <time.h>
-#include "OTE_DEF.h"
+//#include <winsock.h>
 
-#define OTE_IF_UNICAST_PORT_PC			10050	//端末ユニキャストIF受信ポート
-#define OTE_IF_UNICAST_PORT_OTE			10051	//端末ユニキャストIF受信ポート
+//IPアドレス
+#define OTE_IF_UNICAST_IP_PC				"192.168.1.100" 		//PCのOTE UNICAST　IF用IP	（受信,送信）
+#define OTE_IF_UNICAST_IP_OTE0				OTE_IF_UNICAST_IP_PC	//デフォルトOTEのUNICAST用IP（受信,送信）
 
-#define OTE_IF_PC_MULTICAST_PORT_PC		20080	//制御Pマルチキャスト受信ポート
-#define OTE_IF_OTE_MULTICAST_PORT_PC	20081	//制御Pマルチキャスト受信ポート
-#define OTE_IF_PC_MULTICAST_PORT_OTE	20082	//制御Pマルチキャスト受信ポート
-#define OTE_IF_OTE_MULTICAST_PORT_OTE	20083	//制御Pマルチキャスト受信ポート
+//#define IP_ADDR_PC_UNI_CAST_OTE		"192.168.1.100"
+//#define IP_ADDR_OTE_UNI_CAST_OTE		"127.0.0.1"
 
-#define ID_OTE_EVENT_CODE_CONST             0
-#define ID_OTE_EVENT_CODE_STAT_REPORT       1
-#define ID_OTE_EVENT_CODE_CONNECTED         1
+#define OTE_IF_MULTICAST_IP_PC				"239.1.0.2"					//PCマルチキャスト用IP
+#define OTE_IF_MULTICAST_IP_OTE				"239.1.0.1"					//OTEマルチキャスト用IP
 
-#define ID_TE_CONNECT_STATUS_OFF_LINE       0
-#define ID_TE_CONNECT_STATUS_STANDBY        3
-#define ID_TE_CONNECT_STATUS_ACTIVE         1
-#define ID_TE_CONNECT_STATUS_WAITING        2
+#define OTE_IF_UNICAST_PORT_PC				10050					//PCユニキャストIF受信ポート
+#define OTE_IF_UNICAST_PORT_OTE				10051					//端末ユニキャストIF受信ポート
 
-#define ID_PC_CONNECT_CODE_ENABLE           1
-#define ID_PC_CONNECT_CODE_DISABLE          0
-
-#define OTE_REQ_CODE_NA						0
-#define OTE_REQ_CODE_ONBOAD					1
-#define OTE_REQ_CODE_REMOTE					2
-#define OTE_REQ_CODE_CONNECTED				4
+#define OTE_IF_MULTICAST_PORT_PC			20080					//PC発信マルチキャスト受信ポート
+#define OTE_IF_MULTICAST_PORT_OTE			20081					//OTE発信マルチキャスト受信ポート
+//#define OTE_IF_MULTICAST_PORT_PC_OTE	20082					//PC発信マルチキャストOTE受信ポート
+//#define OTE_IF_MULTICAST_PORT_OTE_OTE	20083					//OTE発信マルチキャストOTE受信ポート
 
 #define ID_OTE_MODE_REMOTE_OPE				0x00000001
 #define ID_OTE_MODE_MONITOR					0x00000002
 #define ID_OTE_MODE_REMOTE_ACTIVE			0x00000010
 
-//RADIO NOTCH ID  OTE_ID_RADIO + 100xMOTION_ID + 10 + NOTCH(-5～+5）
-#define OTE_ID_PB_CHK_RADIO             21600
-//ラジオ
-#define OTE_INDEX_RADIO_CONNECT			0
-#define OTE_INDEX_RADIO_AUTO			1
-#define OTE_INDEX_RADIO_MODE			2
-#define OTE_INDEX_RADIO_FAULT			3
-#define OTE_INDEX_RADIO_MOMENT			4
-
-#define OTE_INDEX_RADIO_IFCHK_UNI		5
-#define OTE_INDEX_RADIO_IFCHK_MPC		6
-#define OTE_INDEX_RADIO_IFCHK_MTE		7
-
-//チェックボックス
-#define OTE_INDEX_CHK_ESTOP				8
-#define OTE_INDEX_CHK_REMOTE			9
-#define OTE_INDEX_CHK_CONNECT			10
-#define OTE_INDEX_CHK_OTE_MON			11
-//PB
-#define OTE_INDEX_PB_START				12	//釦オブジェクトの開始INDEX
-#define OTE_INDEX_PB_CTR_SOURCE			12
-#define OTE_INDEX_PB_FAULT_RESET		13
-#define OTE_INDEX_PB_END				13	//釦オブジェクトの終了INDEX
-
-#define OTE_ID_STATIC                   21700
-#define OTE_INDEX_STATIC_MSG_CNT			0
-#define OTE_INDEX_STATIC_COMMON_WND			1
-#define OTE_INDEX_STATIC_CONNECT_CNT		2
-#define OTE_INDEX_STATIC_OTE_IP_INF			3
-#define OTE_INDEX_STATIC_IFCHK_MSG_HEAD_S	4
-#define OTE_INDEX_STATIC_IFCHK_MSG_BODY_S	5
-#define OTE_INDEX_STATIC_IFCHK_MSG_HEAD_R	6
-#define OTE_INDEX_STATIC_IFCHK_MSG_BODY_R	7
 
 //**************************************************************************************
 //通信電文フォーマット
@@ -131,7 +89,13 @@ typedef struct OteUMsg {
 }ST_OTE_U_MSG, * LPST_OTE_U_MSG;
 
 
-#define OTE_N_PB_CHK_RADIO				64
-#define OTE_N_STATIC					64
-#define OTE_PB_HOLDTIME_MASK			0x00000007
+typedef struct StOTE_IO {
+	ST_OTE_U_BODY	ote_in;
+	ST_PC_U_BODY	ote_out;
+	INT32 OTEstatus;
+	INT32 OTEactive;				//接続中の端末ID　接続断の時0
+}ST_OTE_IO, * LPST_OTE_IO;
 
+//OTE PB INDEX pb_ope
+#define ID_OTE_PB_CTRL_SOURCE			0
+#define ID_OTE_PB_ESTOP					1

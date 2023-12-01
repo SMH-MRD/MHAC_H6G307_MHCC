@@ -1,6 +1,20 @@
 #pragma once
 #include "CSharedMem.h"
 
+WCHAR oteif_pb_text[32][128] = {
+	L"",L"",L"",L"",L"",L"",L"",L"",
+	L"",L"",L"",L"",L"",L"",L"",L"",
+	L"",L"",L"",L"",L"",L"",L"",L"",
+	L"",L"",L"",L"",L"",L"",L"",L""
+};
+WCHAR oteif_static_text[32][128] = {
+	L"",L"",L"",L"",L"",L"",L"",L"",
+	L"",L"",L"",L"",L"",L"",L"",L"",
+	L"",L"",L"",L"",L"",L"",L"",L"",
+	L"",L"",L"",L"",L"",L"",L"",L""
+};
+
+
 WCHAR pb_text[64][128]={
 L"îÒí‚",   // ID_PB_ESTOP				0
 L"êUé~",    // ID_PB_ANTISWAY_ON		1

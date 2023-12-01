@@ -109,14 +109,7 @@ typedef struct StPLC_IO {
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
 #pragma region OTE
 
-typedef struct StOTE_IO {
-	ST_OTE_U_BODY	ote_in;
-	ST_PC_U_BODY	ote_out;
-	INT32 OTEsim_status;
-	INT32 OTEactive;				//接続中の端末ID　接続断の時0
-	INT32 OTE_healty;				//OTEのヘルシー信号
 
-}ST_OTE_IO, * LPST_OTE_IO;
 #pragma endregion 操作端末卓信号定義構造体
 /****************************************************************************/
 /*   振れセンサ信号定義構造体                                  　         　*/
