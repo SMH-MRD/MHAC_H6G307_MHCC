@@ -392,7 +392,7 @@ HWND COteIF::open_work_Wnd(HWND hwnd) {
 /// <param name="lParam"></param>
 /// <returns></returns>
 static int tmp_counter=0;
-
+#if 0
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
 	int id;
@@ -486,7 +486,7 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 	return S_OK;
 }
-
+#endif
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message)
 	{
@@ -630,17 +630,18 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 	{
 		for (int i = ID_OTEIF_RADIO_SPU; i <= ID_OTEIF_RADIO_ROM; i++) {
 			if (i == ID_OTEIF_RADIO_SPU)// | WS_GROUP ‚ ‚è
-				st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][i] = CreateWindow(L"BUTTON", 
+				st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][i] = CreateWindow(L"BUTTON",
 					st_work_wnd.ctrl_text[ID_OTEIF_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
 					st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][i].y,
 					st_work_wnd.size_ctrl[ID_OTEIF_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_PB][i].cy,
 					hWnd, (HMENU)(BASE_ID_OTEIF_PB + (LONG64)i), hInst, NULL);
 			else
 				st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][i] = CreateWindow(L"BUTTON",
-					st_work_wnd.ctrl_text[ID_OTEIF_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
+					st_work_wnd.ctrl_text[ID_OTEIF_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
 					st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][i].y,
 					st_work_wnd.size_ctrl[ID_OTEIF_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_PB][i].cy,
 					hWnd, (HMENU)(BASE_ID_OTEIF_PB + (LONG64)i), hInst, NULL);
+		}
 	}
 	return;
 }

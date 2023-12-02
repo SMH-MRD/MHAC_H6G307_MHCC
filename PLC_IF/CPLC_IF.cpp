@@ -185,6 +185,7 @@ int CPLC_IF::parse_data_in() {
 
 int CPLC_IF::parse_ote_com() {
     //‰^“]ŽºPB
+#if 0
     //ŽåŠ²“ü
      if (pOTEio->ote_in.pb_ope[OTE_INDEX_PB_CTR_SOURCE])
         lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
@@ -204,7 +205,7 @@ int CPLC_IF::parse_ote_com() {
         lp_PLCwrite->cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
     else
      lp_PLCwrite->cab_di[cab_bout_map.cab_estp.x] |= cab_bout_map.cab_estp.y;
-
+#endif
     //ƒmƒbƒ`
     //ŽåŠª
     UINT16 notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_HOIST]);

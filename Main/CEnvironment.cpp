@@ -554,6 +554,7 @@ int CEnvironment::parse_for_auto_ctrl() {
 /*　 自動用情報セット											            */
 /****************************************************************************/
 int CEnvironment::parse_ote_status() {
+#if 0
 	if (pOTE_IO->OTE_healty > 0) {
 		stWorkCraneStat.OTE_req_status = ID_TE_CONNECT_STATUS_ACTIVE;
 	}
@@ -563,6 +564,7 @@ int CEnvironment::parse_ote_status() {
 	else {
 		stWorkCraneStat.OTE_req_status = ID_TE_CONNECT_STATUS_OFF_LINE;
 	}
+#endif
 	return 0;
 }
 

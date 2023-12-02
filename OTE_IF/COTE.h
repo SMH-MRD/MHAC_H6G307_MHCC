@@ -22,64 +22,29 @@
 #define ID_SOCK_EVENT_PC_MULTI_OTE 		    10654		//OTE受信ソケットイベント　PC MULTICASTメッセージ
 #define ID_SOCK_EVENT_OTE_MULTI_OTE 		10655		//OTE受信ソケットイベント　PC MULTICASTメッセージ
 
+#define OTE0_WND_X				10			//OTEメインパネル表示位置X
+#define OTE0_WND_Y				60			//OTEメインパネル表示位置Y0
+#define OTE0_WND_W				800			//OTEメインパネルWINDOW幅0
+#define OTE0_WND_H				600			//OTEメインパネルWINDOW高さ0
 
-#define OTE_N_PEN		            8
-#define OTE_N_BRUSH                 8
-#define CMON_RED_PEN                0
-#define CMON_BLUE_PEN               1
-#define CMON_GREEN_PEN              2
-#define CMON_GLAY_PEN               3
-#define CMON_YELLOW_PEN             4
-#define CMON_MAZENDA_PEN            5 
-#define CMON_MAZENDA_PEN2           6
+#define OTE0_SUB_WND_X			0			//SUBパネル表示位置X
+#define OTE0_SUB_WND_Y			0			//SUBパネル表示位置Y
+#define OTE0_SUB_WND_W			200			//SUBパネルWINDOW幅
+#define OTE0_SUB_WND_H			270			//SUBパネルWINDOW高さ
 
-#define OTE_WORK_WND_X						10					//OTEメインパネル表示位置X
-#define OTE_WORK_WND_Y						550					//OTEメインパネル表示位置Y
-#define OTE_WORK_WND_W						800					//OTEメインパネルWINDOW幅
-#define OTE_WORK_WND_H						600					//OTEメインパネルWINDOW高さ
+#define OTE0_SWY_WND_X			250			//振れパネル表示位置X
+#define OTE0_SWY_WND_Y			0			//振れパネル表示位置Y
+#define OTE0_SWY_WND_W			250			//振れパネルWINDOW幅
+#define OTE0_SWY_WND_H			270			//振れパネルWINDOW高さ
 
-#define OTE_WORK_SUB_WND_X					0					//メンテパネル表示位置X
-#define OTE_WORK_SUB_WND_Y					0					//メンテパネル表示位置Y
-#define OTE_WORK_SUB_WND_W					250					//メンテパネルWINDOW幅
-#define OTE_WORK_SUB_WND_H					270					//メンテパネルWINDOW高さ
 
-#define OTE_N_SUB_WND						5
-
-//RADIO NOTCH ID  OTE_ID_RADIO + 100xMOTION_ID + 10 + NOTCH(-5～+5）
-#define OTE_N_ID_PB_CHK_RADIO			32
-#define OTE_ID_PB_CHK_RADIO             21600
-//ラジオ
-#define OTE_INDEX_RADIO_CONNECT			0
-#define OTE_INDEX_RADIO_AUTO			1
-#define OTE_INDEX_RADIO_MODE			2
-#define OTE_INDEX_RADIO_FAULT			3
-#define OTE_INDEX_RADIO_MOMENT			4
-
-#define OTE_INDEX_RADIO_IFCHK_UNI		5
-#define OTE_INDEX_RADIO_IFCHK_MPC		6
-#define OTE_INDEX_RADIO_IFCHK_MTE		7
-
-//チェックボックス
-#define OTE_INDEX_CHK_ESTOP				8
-#define OTE_INDEX_CHK_REMOTE			9
-#define OTE_INDEX_CHK_CONNECT			10
-#define OTE_INDEX_CHK_OTE_MON			11
-//PB
-#define OTE_INDEX_PB_START				12	//釦オブジェクトの開始INDEX
-#define OTE_INDEX_PB_CTR_SOURCE			12
-#define OTE_INDEX_PB_FAULT_RESET		13
-#define OTE_INDEX_PB_END				13	//釦オブジェクトの終了INDEX
-
-//STATIC ID  OTE_ID_STATIC + ITEM ID
-#define OTE_N_ID_STATIC					32
-#define OTE_ID_STATIC					21700
-#define OTE_INDEX_STATIC_COMMON_WND		0
-#define OTE_INDEX_STATIC_CONNECT_CNT    1
-#define OTE_INDEX_STATIC_OTE_IP_INF     2
-
-#define OTE_N_PB_CHK_RADIO				64
-#define OTE_N_STATIC					64
-#define OTE_PB_HOLDTIME_MASK			0x00000007
+#define OTE0_N_SUB_WND			6
+#define ID_OTE0_SUB_WND_CONNECT	0
+#define ID_OTE0_SUB_WND_MODE	1
+#define ID_OTE0_SUB_WND_AUTO	2
+#define ID_OTE0_SUB_WND_FAULT	3
+#define ID_OTE0_SUB_WND_MOMENT	4
+#define ID_OTE0_SWY_WND	        5
 
 class COte 
 {
@@ -92,7 +57,8 @@ public:
 
 	static HWND hWnd_parent;				//親ウィンドウのハンドル
 	static HWND hWnd_work;					//操作端末メインウィンドウハンドル
-	static HWND hWnd_sub[OTE_N_SUB_WND];	//通信イベント処理用ウィンドウハンドル
+	static HWND hWnd_sub[OTE0_N_SUB_WND];	//サブウィンドウハンドル
+	static HWND hWnd_swy;					//振れウィンドウハンドル
 	static HWND hwnd_current_subwnd;		//表示中のサブウィンドハンドル
 
 	static ST_OTE_WORK_WND	st_work_wnd;	//パネルウィンドウ処理用構造体
@@ -130,6 +96,7 @@ public:
 	static HWND open_fault_Wnd(HWND hwnd);
 	static HWND open_moment_Wnd(HWND hwnd);
 	static HWND open_auto_Wnd(HWND hwnd);
+	static HWND open_swy_Wnd(HWND hwnd);
 
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -137,6 +104,7 @@ public:
 	static LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	static HRESULT close();
 	static int parse();//端末表示更新処理
