@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{124362fa-2022-46ca-8582-77a1490ae249}</ProjectGuid>
-    <RootNamespace>OTEIF</RootNamespace>
+    <ProjectGuid>{48bc5b5a-1b1a-49a8-951b-c804c9ea1fa8}</ProjectGuid>
+    <RootNamespace>OTE0</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -88,12 +88,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -104,14 +102,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -125,7 +121,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;LibOTEProtocol.lib;LibSockAlpha.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;LibSockAlpha.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\Lib\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -144,36 +140,33 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;LibOTEProtocol.lib;LibSockAlpha.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;winmm.lib;ws2_32.lib;LibSockAlpha.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\Lib\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="COTE_IF.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="OTEIFpanel.h" />
-    <ClInclude Include="OTEmsglist.h" />
-    <ClInclude Include="OTEpanel.h" />
-    <ClInclude Include="OTE_IF.h" />
+    <ClInclude Include="OTE0.h" />
+    <ClInclude Include="OTE0panel.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Source\CSharedMem.cpp" />
-    <ClCompile Include="COTE_IF.cpp" />
-    <ClCompile Include="OTE_IF.cpp" />
+    <ClCompile Include="COTE0.cpp" />
+    <ClCompile Include="OTE0.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="OTE_IF.rc" />
+    <ResourceCompile Include="OTE0.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Img\lamp0_glay.bmp" />
+    <Image Include="..\Img\lamp0_glay.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </Image>
     <Image Include="..\Img\lamp0_green.bmp" />
     <Image Include="..\Img\lamp0_red.bmp" />
     <Image Include="..\Img\lamp0_white.bmp" />
-    <Image Include="..\Img\pb_ctr_source_g.bmp" />
-    <Image Include="..\Img\pb_ctr_source_r.bmp" />
-    <Image Include="OTE_IF.ico" />
+    <Image Include="OTE0.ico" />
     <Image Include="small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

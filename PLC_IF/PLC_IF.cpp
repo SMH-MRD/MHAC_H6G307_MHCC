@@ -203,8 +203,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             5, 65, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
-        pProcObj->show_if_wnd();
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
+        pProcObj->hide_if_wnd();
 
         stMainWnd.h_redio_m0 = CreateWindow(L"BUTTON", L"M0", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
             5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M0, hInst, NULL);
@@ -214,7 +214,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             95, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M2, hInst, NULL);
         stMainWnd.h_redio_moff = CreateWindow(L"BUTTON", L"OF", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
             140, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_OFF, hInst, NULL);
-
         
         pProcObj->set_mode(PLC_IF_SIM_MODE_2);
         SendMessage(stMainWnd.h_redio_m2, BM_SETCHECK, BST_CHECKED, 0L);
@@ -264,10 +263,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
             SetWindowText(stMainWnd.h_static0, L"RMT OFF");
         }break;
-            
-
+    
         case IDC_CHK_IFCHK:
-
             if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) pProcObj->show_if_wnd();
             else pProcObj->hide_if_wnd();
 

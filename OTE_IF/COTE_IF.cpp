@@ -36,6 +36,10 @@ SOCKADDR_IN COteIF::addrin_ote_m_pc;		//OTEマルチキャスト受信アドレス(PC受信用)
 SOCKADDR_IN COteIF::addrin_pc_u_snd;		//PCユニキャスト送信先アドレス
 SOCKADDR_IN COteIF::addrin_pc_m_snd;		//PCマルチキャスト送信先アドレス
 
+SOCKADDR_IN COteIF::addrin_ote_u_from;	//OTEユニキャスト送信元アドレス（PC用)
+SOCKADDR_IN COteIF::addrin_pc_m_from;	//PCマルチキャスト送信元アドレス（PC用)
+SOCKADDR_IN COteIF::addrin_ote_m_from;	//OTEマルチキャスト送信元アドレス（PC用)
+
 
 SOCKADDR_IN COteIF::addr_active_ote;		//操作信号が有効な端末のアドレス
 
@@ -382,6 +386,14 @@ HWND COteIF::open_work_Wnd(HWND hwnd) {
 	return hWnd_work;
 }
 
+BOOL COteIF::show_if_wnd() {
+	return SetWindowPos(hWnd_work, HWND_TOP, OTEIF_WORK_WND_X, OTEIF_WORK_WND_Y, OTEIF_WORK_WND_W0, OTEIF_WORK_WND_H0, SWP_SHOWWINDOW);
+}
+BOOL COteIF::hide_if_wnd() {
+	return SetWindowPos(hWnd_work, HWND_TOP, OTEIF_WORK_WND_X, OTEIF_WORK_WND_Y, OTEIF_WORK_WND_W0, OTEIF_WORK_WND_H0, SWP_HIDEWINDOW);
+}
+
+
 //*********************************************************************************************
 /// <summary>
 /// ワークウィンドウコールバック関数
@@ -601,6 +613,11 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].y,
 			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].cy,
 			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_ROM), hInst, NULL);
+		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY] = CreateWindowW(TEXT("STATIC"),
+			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], WS_CHILD | WS_VISIBLE | SS_LEFT,
+			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].y,
+			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].cy,
+			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_BODY), hInst, NULL);
 	}
 
 	
@@ -645,7 +662,6 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 	}
 	return;
 }
-
 //*********************************************************************************************
 /// <summary>
 /// 
@@ -654,8 +670,6 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 void COteIF::wstr_out_inf(const std::wstring& srcw) {
 	return;
 }
-
-
 //*********************************************************************************************
 /// <summary>
 /// PC→OTE　Unicast　【PCのOTEからのユニキャスト受信ソケットで送信】
@@ -743,7 +757,6 @@ HRESULT COteIF::rcv_ote_m_pc(LPST_OTE_M_MSG pbuf) {
 	}
 	return S_OK;
 }
-
 /// <summary>
 /// 通信状態表示テキスト更新
 /// </summary>

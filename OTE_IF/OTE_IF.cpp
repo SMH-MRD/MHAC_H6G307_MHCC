@@ -4,7 +4,6 @@
 #include "framework.h"
 #include "OTE_IF.h"
 #include "COTE_IF.h"
-#include "COTE.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <winsock2.h>
@@ -84,8 +83,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return (int) msg.wParam;
 }
 
-
-
 //
 //  関数: MyRegisterClass()
 //
@@ -142,7 +139,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    pProcObj = new COteIF(hWnd);                              // メイン処理クラスのインスタンス化
    psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
    pProcObj->init_proc();
-
+   
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
@@ -187,8 +184,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 /// <returns></returns>
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    
-    switch (message)
+     switch (message)
     {
     case WM_CREATE:
     {
@@ -203,7 +199,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             5, 30, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
 
         stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE0", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_OTE, hInst, NULL);
@@ -223,10 +219,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (wmId)
         {
         case IDC_CHK_IFCHK: {
-            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) 
-                if(pProcObj->hWnd_work!=NULL)ShowWindow(pProcObj->hWnd_work, SW_SHOW);
-             else 
-                if (pProcObj->hWnd_work != NULL)ShowWindow(pProcObj->hWnd_work, SW_HIDE);
+            if (pProcObj->hWnd_work != NULL) {
+                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0))
+
+                    pProcObj->show_if_wnd();
+                else
+                    pProcObj->hide_if_wnd();
+            }
          }break;
         case IDC_CHK_OTE: {
             if (BST_CHECKED == SendMessage(stMainWnd.h_chk_local_ote, BM_GETCHECK, 0, 0))

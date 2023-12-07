@@ -25,9 +25,9 @@
 #define ID_SOCK_EVENT_OTE_UNI_PC	        10604		//PC受信ソケットイベント　OTE UNICASTメッセージ
 #define ID_SOCK_EVENT_OTE_MULTI_PC	        10605		//PC受信ソケットイベント　PC UNICASTメッセージ
 
-#define OTEIF_WORK_WND_X					1300				//WORK WINDOW 表示位置X
-#define OTEIF_WORK_WND_Y					10					//WORK WINDOW 表示位置Y
-#define OTEIF_WORK_WND_W0					600					//WORK WINDOW WINDOW幅(MSG無）
+#define OTEIF_WORK_WND_X					1380				//WORK WINDOW 表示位置X
+#define OTEIF_WORK_WND_Y					0					//WORK WINDOW 表示位置Y
+#define OTEIF_WORK_WND_W0					550					//WORK WINDOW WINDOW幅(MSG無）
 #define OTEIF_WORK_WND_H0					400					//WORK WINDOW WINDOW高さ(MSG有）
 #define OTEIF_WORK_WND_W1					1200				//WORK WINDOW WINDOW幅(MSG無）
 #define OTEIF_WORK_WND_H1					400					//WORK WINDOW WINDOW高さ(MSG有）
@@ -65,6 +65,10 @@ public:
    int input();                //入力処理
    int parse();                //メイン処理
    int output();               //出力処理
+
+       //追加メソッド
+   BOOL show_if_wnd();
+   BOOL hide_if_wnd();
 
    static LPST_OTE_IO		pOTEio;
    static LPST_CRANE_STATUS	pCraneStat;

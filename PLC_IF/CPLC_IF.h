@@ -11,10 +11,10 @@
 #define PLC_IF_OTE_MEM_NG           0x0400
 
 //-IF Windowの配置設定
-#define IF_WND_INIT_SIZE_W			560		//-IF Windowの初期サイズ　W
+#define IF_WND_INIT_SIZE_W			530		//-IF Windowの初期サイズ　W
 #define IF_WND_INIT_SIZE_H			600		//-IF Windowの初期サイズ　H
-#define IF_WND_INIT_POS_X			1365	//-IF Windowの初期位置設定　X
-#define IF_WND_INIT_POS_Y			20		//-IF Windowの初期位置設定　Y
+#define IF_WND_INIT_POS_X			858	//-IF Windowの初期位置設定　X
+#define IF_WND_INIT_POS_Y			0		//-IF Windowの初期位置設定　Y
 
 class CPLC_IF :    public CBasicControl
 {

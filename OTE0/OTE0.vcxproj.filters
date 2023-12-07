@@ -24,35 +24,23 @@
     <ClInclude Include="Resource.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="OTE_IF.h">
+    <ClInclude Include="OTE0.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="COTE_IF.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="OTEmsglist.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="OTEpanel.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="OTEIFpanel.h">
+    <ClInclude Include="OTE0panel.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="OTE_IF.cpp">
+    <ClCompile Include="OTE0.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="COTE_IF.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\CSharedMem.cpp">
+    <ClCompile Include="COTE0.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="OTE_IF.rc">
+    <ResourceCompile Include="OTE0.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
   </ItemGroup>
@@ -60,19 +48,13 @@
     <Image Include="small.ico">
       <Filter>リソース ファイル</Filter>
     </Image>
-    <Image Include="OTE_IF.ico">
-      <Filter>リソース ファイル</Filter>
-    </Image>
-    <Image Include="..\Img\pb_ctr_source_g.bmp">
-      <Filter>リソース ファイル</Filter>
-    </Image>
-    <Image Include="..\Img\pb_ctr_source_r.bmp">
-      <Filter>リソース ファイル</Filter>
-    </Image>
-    <Image Include="..\Img\lamp0_white.bmp">
+    <Image Include="OTE0.ico">
       <Filter>リソース ファイル</Filter>
     </Image>
     <Image Include="..\Img\lamp0_glay.bmp">
+      <Filter>リソース ファイル</Filter>
+    </Image>
+    <Image Include="..\Img\lamp0_white.bmp">
       <Filter>リソース ファイル</Filter>
     </Image>
     <Image Include="..\Img\lamp0_green.bmp">

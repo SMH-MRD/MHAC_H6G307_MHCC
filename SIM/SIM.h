@@ -7,8 +7,8 @@
 
 #define MAIN_WND_INIT_SIZE_W		220		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		180		//-Main Windowの初期サイズ　H
-#define MAIN_WND_INIT_POS_X			1150	//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			600		//-Main Windowの初期位置設定　Y
+#define MAIN_WND_INIT_POS_X			648	//-Main Windowの初期位置設定　X
+#define MAIN_WND_INIT_POS_Y			380		//-Main Windowの初期位置設定　Y
 
 
 //-ID定義 Mainスレッド用　2000 + 100 +α
