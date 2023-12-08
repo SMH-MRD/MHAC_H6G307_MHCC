@@ -35,9 +35,9 @@
 #define OTE0_SUB_WND_W			260			//SUBパネルWINDOW幅
 #define OTE0_SUB_WND_H			240			//SUBパネルWINDOW高さ
 
-#define OTE0_SWY_WND_X			275			//振れパネル表示位置X
+#define OTE0_SWY_WND_X			270			//振れパネル表示位置X
 #define OTE0_SWY_WND_Y			5			//振れパネル表示位置Y
-#define OTE0_SWY_WND_W			300			//振れパネルWINDOW幅
+#define OTE0_SWY_WND_W			280			//振れパネルWINDOW幅
 #define OTE0_SWY_WND_H			240			//振れパネルWINDOW高さ
 
 

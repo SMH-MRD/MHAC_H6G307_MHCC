@@ -47,10 +47,16 @@ LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 void set_OTE_panel_objects(HWND hWnd);			//OTEウィンドウ上へコントロール配置
-void draw_pb();									//オーナドローPB描画
 void disp_msg_cnt();
-void create_objects();							//DC,Bitmap,Brush,Pen削除
-void delete_objects();							//DC,Bitmap,Brush,Pen生成
+void create_objects(HWND hWnd);					//DC,Bitmap,Brush,Pen削除
+void delete_objects(HWND hWnd);					//DC,Bitmap,Brush,Pen生成
+
+void draw_lamp(HDC hdc);						//ノッチランプ描画
+void draw_graphic();
+void draw_info();
+void combine_map();
+
+
 
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
@@ -143,27 +149,38 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	   return FALSE;
    }
 
+   //表示ウィンドウエリアサイズ取得
    RECT rc;
    GetClientRect(hWnd_work, &rc);
    st_work_wnd.area_w = rc.right - rc.left;
    st_work_wnd.area_h = rc.bottom - rc.top;
 
+   //ノッチランプ領域セット
+   for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
+	   RECT rc_add;
+	   if (i == ID_SLEW) {
+		   rc_add.left = 0; rc_add.top = PRM_OTE_DEF_PB_H; rc_add.right = PRM_OTE_DEF_PB_W2; rc_add.bottom = PRM_OTE_DEF_PB_H/2;
+	   }
+	   else if (i == ID_GANTRY) {
+		   rc_add.left = 0; rc_add.top = -PRM_OTE_DEF_PB_H/2; rc_add.right = PRM_OTE_DEF_PB_W2; rc_add.bottom = PRM_OTE_DEF_PB_H/2;
+	   }
+	   else {
+		   rc_add.left = -PRM_OTE_DEF_PB_W2/2; rc_add.top = 0; rc_add.right = PRM_OTE_DEF_PB_W2 / 2; rc_add.bottom = PRM_OTE_DEF_PB_H;
+	   }
+	   for (int j = 0; j < N_OTE_NOTCH_ARRAY; j++) {
+		   st_work_wnd.notch_rect[i][j].left = st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][i * N_OTE_NOTCH_ARRAY + j].x + rc_add.left;
+		   st_work_wnd.notch_rect[i][j].top = st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][i * N_OTE_NOTCH_ARRAY + j].y + rc_add.top;
+		   st_work_wnd.notch_rect[i][j].right = st_work_wnd.notch_rect[i][j].left + rc_add.right;
+		   st_work_wnd.notch_rect[i][j].bottom = st_work_wnd.notch_rect[i][j].top + rc_add.bottom;
+	   }
+   }
+
+   //UIオブジェクト生成
+   create_objects(hWnd_work);
+
    //表示フォント設定
    st_work_wnd.hfont_inftext = CreateFont(6, 0, 0, 0, 0, FALSE, FALSE, FALSE, SHIFTJIS_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FIXED_PITCH | FF_MODERN, TEXT("Arial"));
-   //デバイスコンテキスト
-   HDC hdc = GetDC(hWnd_work);
-   st_work_wnd.hBmap[ID_OTE_HBMAP_MEM0] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
-   st_work_wnd.hdc[ID_OTE_HDC_MEM0] = CreateCompatibleDC(hdc);
-   SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM0], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM0]);
-   PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
 
-   st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_IF] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
-   st_work_wnd.hdc[ID_OTE_HDC_MEM_IF] = CreateCompatibleDC(hdc);
-   SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_IF]);
-   PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
-   TextOutW(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], 0, 0, L"<<Information>>", 15);
-
-   ReleaseDC(hWnd_work, hdc);
 
     // OTE0オブジェクトインスタンス化
    pOte0 = new COte(hWnd_work);                              // メイン処理クラスのインスタンス化
@@ -197,7 +214,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		//ウィンドウにコントロール追加
 		set_OTE_panel_objects(hWnd);
-		create_objects();
 		//サブウィンドウ追加
 		hwnd_current_subwnd = open_connect_Wnd(hWnd);		//接続表示子ウィンドウ
 		open_swy_Wnd(hWnd);										//振れウィンドウ追加
@@ -208,6 +224,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		SetTimer(hWnd, ID_OTE_UNICAST_TIMER, OTE_UNICAST_SCAN_MS, NULL);
 
 	}
+	case WM_CTLCOLORSTATIC: {
+#if 0
+		if ((HWND)lParam == st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_LAMP_HIJYOU]) {
+			SetTextColor((HDC)wParam, RGB(255, 0, 0));
+			SetWindowTextW((HWND)lParam, L"●");
+			return (INT_PTR)st_work_wnd.hbrush[OTE0_GLAY];
+		}
+#endif
+	}break;
 
 	case WM_TIMER: {
 
@@ -222,7 +247,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 		}
 		disp_msg_cnt();	//カウント表示更新
-		draw_pb();		//PBの表示更新
 
 	}break;
 
@@ -293,29 +317,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 
-		BOOL brtn = TransparentBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, OTE0_WND_W, OTE0_WND_H,		//DST
-			st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, OTE0_WND_W, OTE0_WND_H,	//SORCE
-			RGB(255, 255, 255));
+		draw_lamp(hdc);
 
-		BitBlt(hdc, 0, 0, OTE0_WND_W, OTE0_WND_H, st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, SRCCOPY);
+	//	BOOL brtn = TransparentBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, OTE0_WND_W, OTE0_WND_H,		//DST
+	//		st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, OTE0_WND_W, OTE0_WND_H,	//SOURCE
+	//		RGB(255, 255, 255));
+	//	combine_map();//コピー元描画生成
+	//	BitBlt(hdc, 0, 0, 800, 800, st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, SRCCOPY);
 		EndPaint(hWnd, &ps);
 	}break;
-		//スタティックコントロールの背景色処理
-	case WM_CTLCOLORSTATIC://	InvalidateRectで対象のSTATICの更新をするとこのイベントが飛んでくる
-		hdc = (HDC)wParam;
-		//ハンドルの照会処理
-		if (st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_LAMP_HIJYOU] == (HWND)lParam)
-		{
-			//SetBkColor((HDC)wParam, RGB(255, 0, 0));
-			//SetTextColor((HDC)wParam, RGB(255, 0, 0));
-			return (BOOL)st_work_wnd.hbrush[OTE0_RED];
-		}
-
-		break;
 	case WM_DESTROY: {
 		KillTimer(hWnd_work, ID_OTE_MULTICAST_TIMER);
 		KillTimer(hWnd_work, ID_OTE_UNICAST_TIMER);
-		delete_objects();
+		delete_objects(hWnd_work);
 		PostQuitMessage(0);
 	}break;
 
@@ -836,6 +850,13 @@ void set_OTE_panel_objects(HWND hWnd) {
 
 	HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
 
+	//ランプ
+	for (int i = ID_OTE_LAMP_HIJYOU; i <= ID_OTE_LAMP_N3; i++) {
+		st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][i] = CreateWindowW(TEXT("STATIC"), st_work_wnd.ctrl_text[ID_OTE_CTRL_STATIC][i], WS_CHILD | WS_VISIBLE | SS_LEFT,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][i].y,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_STATIC][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_STATIC][i].cy,
+			hWnd, (HMENU)(BASE_ID_OTE_STATIC + i), hInst, NULL);
+	}
 	//ラベル
 	for (int i = ID_OTE_LABEL_MH; i <= ID_OTE_INF_GT0; i++) {
 		st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][i] = CreateWindowW(TEXT("STATIC"), st_work_wnd.ctrl_text[ID_OTE_CTRL_STATIC][i], WS_CHILD | WS_VISIBLE | SS_LEFT,
@@ -860,13 +881,7 @@ void set_OTE_panel_objects(HWND hWnd) {
 				hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
 		}
 		
-		//ランプ
-		for (int i = ID_OTE_LAMP_HIJYOU; i <= ID_OTE_LAMP_MOMENT; i++) {
-			st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][i] = CreateWindowW(TEXT("STATIC"), st_work_wnd.ctrl_text[ID_OTE_CTRL_STATIC][i], WS_CHILD | WS_VISIBLE | SS_LEFT,
-				st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][i].y,
-				st_work_wnd.size_ctrl[ID_OTE_CTRL_STATIC][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_STATIC][i].cy,
-				hWnd, (HMENU)(BASE_ID_OTE_STATIC + i), hInst, NULL);
-		}
+
 		
 		//RADIO
 		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
@@ -962,13 +977,49 @@ void disp_msg_cnt() {
 
 	return;
 }
+void draw_graphic() {
+	;
+}
+void draw_info() {
+	;
+}
+void combine_map() {
+
+	//グラフィックを重ね合わせ
+	TransparentBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h,
+		st_work_wnd.hdc[ID_OTE_HBMAP_MEM_GR], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h,
+		RGB(255, 255, 255));
+	//テキストを重ね合わせ
+	TransparentBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h,
+		st_work_wnd.hdc[ID_OTE_HBMAP_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h,
+		RGB(255, 255, 255));
+}
+
 /// <summary>
-/// PBのオーナードロー
+/// ノッチランプの描画
 /// </summary>
-void draw_pb() {
+void draw_lamp(HDC hdc) {
 	HBITMAP hBitmap;
 	HDC hmdc;
 	HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
+
+	SelectObject(hdc, GetStockObject(NULL_PEN));
+
+	for (int i = 0; i < 9; i++) {
+		if (st_work_wnd.lamp_status[ID_OTE_NOTCH_MH + i] & OTE0_LAMP_ON_MASK) {
+			SelectObject(hdc, st_work_wnd.hbrush[OTE0_GREEN]);
+		}
+		else {
+			SelectObject(hdc, st_work_wnd.hbrush[OTE0_ORANGE]);
+		}
+		Rectangle(hdc, st_work_wnd.notch_rect[ID_HOIST][i].left,st_work_wnd.notch_rect[ID_HOIST][i].top,st_work_wnd.notch_rect[ID_HOIST][i].right,st_work_wnd.notch_rect[ID_HOIST][i].bottom);
+		Rectangle(hdc, st_work_wnd.notch_rect[ID_GANTRY][i].left, st_work_wnd.notch_rect[ID_GANTRY][i].top, st_work_wnd.notch_rect[ID_GANTRY][i].right, st_work_wnd.notch_rect[ID_GANTRY][i].bottom);
+		Rectangle(hdc, st_work_wnd.notch_rect[ID_BOOM_H][i].left, st_work_wnd.notch_rect[ID_BOOM_H][i].top, st_work_wnd.notch_rect[ID_BOOM_H][i].right, st_work_wnd.notch_rect[ID_BOOM_H][i].bottom);
+		Rectangle(hdc, st_work_wnd.notch_rect[ID_SLEW][i].left, st_work_wnd.notch_rect[ID_SLEW][i].top, st_work_wnd.notch_rect[ID_SLEW][i].right, st_work_wnd.notch_rect[ID_SLEW][i].bottom);
+		Rectangle(hdc, st_work_wnd.notch_rect[ID_AHOIST][i].left, st_work_wnd.notch_rect[ID_AHOIST][i].top, st_work_wnd.notch_rect[ID_AHOIST][i].right, st_work_wnd.notch_rect[ID_AHOIST][i].bottom);
+	}
+	
+
 
 //	hBitmap = (HBITMAP)LoadBitmap(hInst, L"IDB_BITMAP_LAMP0_GREEN");
 
@@ -985,7 +1036,7 @@ void draw_pb() {
 	return;
 } 
 
-void create_objects() {
+void create_objects(HWND hWnd) {
 	st_work_wnd.hbrush[OTE0_WHITE]		= CreateSolidBrush(RGB(255, 255, 255));
 	st_work_wnd.hbrush[OTE0_GLAY]		= CreateSolidBrush(RGB(192, 192, 192));
 	st_work_wnd.hbrush[OTE0_RED]		= CreateSolidBrush(RGB(255, 0, 0));
@@ -1003,9 +1054,47 @@ void create_objects() {
 	st_work_wnd.hpen[OTE0_YELLOW] = CreatePen(PS_SOLID, 2, RGB(255, 253, 85));
 	st_work_wnd.hpen[OTE0_MAZENDA] = CreatePen(PS_SOLID, 2, RGB(234, 63, 247));
 	st_work_wnd.hpen[OTE0_ORANGE] = CreatePen(PS_SOLID, 2, RGB(255, 142, 85));
+
+	HDC hdc = GetDC(hWnd);
+	st_work_wnd.hBmap[ID_OTE_HBMAP_MEM0] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc[ID_OTE_HBMAP_MEM0] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HBMAP_MEM0], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM0]);
+
+	st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_IF] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc[ID_OTE_HBMAP_MEM_IF] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HBMAP_MEM_IF], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_IF]);
+
+	st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_GR] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc[ID_OTE_HBMAP_MEM_GR] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HBMAP_MEM_GR], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_GR]);
+
+	PatBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM_GR], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	
+	ReleaseDC(hWnd_work, hdc);
+
+#if 0
+	//デバイスコンテキスト
+	HDC hdc = GetDC(hWnd_work);
+	st_work_wnd.hBmap[ID_OTE_HBMAP_MEM0] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc[ID_OTE_HDC_MEM0] = CreateCompatibleDC(hdc);
+	// SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM0], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM0]);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+
+	st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_IF] = CreateCompatibleBitmap(hdc, st_work_wnd.area_w, st_work_wnd.area_h);
+	st_work_wnd.hdc[ID_OTE_HDC_MEM_IF] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_IF]);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	TextOutW(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], 0, 0, L"<<Information>>", 15);
+
+	ReleaseDC(hWnd_work, hdc);
+#endif
 }
 
-void delete_objects() {
+void delete_objects(HWND hWnd) {
 	for(int i=0;i< N_OTE_BRUSH;i++)	DeleteObject(st_work_wnd.hbrush[i]);
 	for (int i = 0; i < N_OTE_PEN; i++)	DeleteObject(st_work_wnd.hpen[i]);
+	for(int i = 0; i < N_OTE_HDC; i++) 	DeleteDC(st_work_wnd.hdc[i]);
+	for (int i = 0; i < N_OTE_HBMAP; i++)	DeleteObject(st_work_wnd.hpen[i]);
 }

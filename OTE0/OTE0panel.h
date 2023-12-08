@@ -89,6 +89,12 @@
 #define ID_OTE_NOTCH_GT0		11110
 #define ID_OTE_NOTCH_SL0		11410
 
+#define ID_OTE_NOTCH_MH		0
+#define ID_OTE_NOTCH_AH		50		//表示更新停止
+#define ID_OTE_NOTCH_BH		30
+#define ID_OTE_NOTCH_GT		10
+#define ID_OTE_NOTCH_SL		40
+
 #define N_OTE_NOTCH_ARRAY		10			//ノッチ割り当て配列数
 #define N_OTE_NOTCH_MAX			4			
 
@@ -105,10 +111,12 @@
 #define N_OTE_HBMAP				8
 #define ID_OTE_HBMAP_MEM0		0
 #define ID_OTE_HBMAP_MEM_IF		1
+#define ID_OTE_HBMAP_MEM_GR		2
 
 #define N_OTE_HDC				8
 #define ID_OTE_HDC_MEM0			0
 #define ID_OTE_HDC_MEM_IF		1
+#define ID_OTE_HDC_MEM_GR		2
 
 #define ID_OTE_LAMP_WHITE		0
 #define ID_OTE_LAMP_GLAY		1
@@ -118,11 +126,9 @@
 #define PRM_OTE_DEF_PB_W		50
 #define PRM_OTE_DEF_PB_W2		30
 #define PRM_OTE_DEF_PB_H		20
-#define PRM_OTE_DEF_LAMP_W		5
+#define PRM_OTE_DEF_LAMP_W		15
 #define PRM_OTE_DEF_LAMP_H		20
 
-#define PRM_LAMP_CHK_CNT		20
-#define PRM_LAMP_FLICK_CNT		10	//ランプON判定カウント　counter%PRM_LAMP_CHK_CNTがこの値より大でOFF
 
 #define PRM_POINT_X_LABEL_BH	20
 #define PRM_POINT_X_LABEL_MH	760
@@ -131,14 +137,16 @@
 #define PRM_POINT_Y_LABEL_GT	530
 #define PRM_POINT_Y_NOTCH_SL	250
 
-#define OTE0_PB_SET_COUNT		100
-#define OTE0_LAMP_FLICK_COUNT	50
+#define OTE0_PB_OFF_DELAY_COUNT	10
+#define OTE0_LAMP_ON_MASK		0x0040	//ORでランプON
+
 
 //操作端末ウィンドウ構造体
 typedef struct _stOTEWorkWnd {
-	int area_x = 0, area_y = 0, area_w = 0, area_h = 0;     //メインウィンドウ上の表示エリア(デバイスコンテキスト用）
-	int bmp_w, bmp_h;             //グラフィックビットマップサイズ
-	int lamp_status[N_OTE_PNL_PB];						//ランプ状態
+	int area_x = 0, area_y = 0, area_w = 0, area_h = 0; //メインウィンドウ上の表示エリア(デバイスコンテキスト用）
+	int bmp_w, bmp_h;										//グラフィックビットマップサイズ
+	UINT32 lamp_status[N_OTE_PNL_PB];					//ランプ状態
+	UINT32 pb_stat[N_OTE_PNL_PB];						//PB状態
 	int connect_wnd_item = ID_OTE_RADIO_SOU;
 
 	HIMAGELIST hImgLamp0;									//釦ランプのイメージリストハンドル
@@ -151,27 +159,26 @@ typedef struct _stOTEWorkWnd {
 	HFONT	hfont_inftext = NULL;				                //テキスト用フォント
 	BLENDFUNCTION bf = { 0,0,0,0 };					        //半透過設定構造体
 
-	UINT32 pb_stat[N_OTE_PNL_PB];
 	INT32  notch_pos[MOTION_ID_MAX] = { 0,0,0,0,0,0,0,0 };
 
 	POINT pt_ctrl[N_OTE_CTRL_TYPE][N_OTE_PNL_ITEMS] = {
 		//#STATIC
 		//LAMP
 		  //メインパネル
-		  770,5,710,5,650,5,590,5,
-		  590,30,650,30,710,30,770,30,
-		  590,55,650,55,710,55,770,55,
-		  590,80,650,80,710,80,770,80,
-		  590,105,650,105,710,105,770,105,
+		  765,5,695,5,625,5,555,5,
+		  555,30,625,30,695,30,765,30,
+		  555,55,625,55,695,55,765,55,
+		  555,80,625,80,695,80,765,80,
+		  555,105,625,105,695,105,765,105,
 		  //CONNECTパネル　ID_OTE_RADIO_SOU	ID_OTE_RADIO_RPU ID_OTE_RADIO_SOM ID_OTE_RADIO_ROM ID_OTE_RADIO_RPM
 		  5,5,55,5,105,5,155,5,205,5,
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,				//16
 		//LABEL
 		//ID_OTE_LABEL_MH	         ID_OTE_LABEL_AH	         ID_OTE_LABEL_BH	     ID_OTE_LABEL_SL            ID_OTE_LABEL_GT
-		  780,PRM_POINT_Y_LABEL_BH,  720,PRM_POINT_Y_LABEL_BH , 20,PRM_POINT_Y_LABEL_BH,  90,PRM_POINT_Y_LABEL_SL,  90,PRM_POINT_Y_LABEL_GT,
+		  780,PRM_POINT_Y_LABEL_BH,  720,PRM_POINT_Y_LABEL_BH , 20,PRM_POINT_Y_LABEL_BH,  140,PRM_POINT_Y_LABEL_SL,  140,PRM_POINT_Y_LABEL_GT,
 		 //INF
-		 //ID_OTE_INF_MH0  ID_OTE_INF_AH0 ID_OTE_INF_BH0	 ID_OTE_INF_SL0	 ID_OTE_INF_GT0	 ID_OTE_INF_SWAY_MH	 ID_OTE_INF_SWAY_AH	
-		  400,300,         600,300,       100,300,          250,300,      500,475,            400,20,                550,20,
+		 //ID_OTE_INF_MH0  ID_OTE_INF_AH0 ID_OTE_INF_BH0 ID_OTE_INF_SL0	 ID_OTE_INF_GT0	 ID_OTE_INF_SWAY_MH	 ID_OTE_INF_SWAY_AH	
+		  400,300,         600,300,       100,300,          250,300,      570,500,            400,20,                550,20,
 		 //ID_OTE_SUB_CONNECT_HEAD   ID_OTE_SUB_CONNECT_BODY	
 		  5,30,                        5,85,
 		  0,0,0,0,												//16
@@ -179,11 +186,11 @@ typedef struct _stOTEWorkWnd {
 
 		  //#PB
 		  //メインパネル
-		  770,5,710,5,650,5,590,5,
-		  590,30,650,30,710,30,770,30,
-		  590,55,650,55,710,55,770,55,
-		  590,80,650,80,710,80,770,80,
-		  590,105,650,105,710,105,770,105,
+		  780,5,712,5,642,5,573,5,
+		  573,30,642,30,712,30,780,30,
+		  573,55,642,55,712,55,780,55,
+		  573,80,642,80,712,80,780,80,
+		  573,105,642,105,712,105,780,105,
 		  //CONNECTパネル　ID_OTE_RADIO_SOU	ID_OTE_RADIO_RPU ID_OTE_RADIO_SOM ID_OTE_RADIO_ROM ID_OTE_RADIO_RPM
 		  5,5,55,5,105,5,155,5,205,5,
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,				//16
@@ -192,10 +199,10 @@ typedef struct _stOTEWorkWnd {
 
 		  //#NOTCH
 		  800,520,800,495,800,470,800,445,800,420,800,395,800,370,800,345,800,320,0,0,//HOIST
-		  150,PRM_POINT_Y_LABEL_GT,205,PRM_POINT_Y_LABEL_GT,260,PRM_POINT_Y_LABEL_GT,315,PRM_POINT_Y_LABEL_GT,370,PRM_POINT_Y_LABEL_GT,425,PRM_POINT_Y_LABEL_GT,480,PRM_POINT_Y_LABEL_GT,535,PRM_POINT_Y_LABEL_GT,590,PRM_POINT_Y_LABEL_GT,0,0,//GT
+		  210,PRM_POINT_Y_LABEL_GT,250,PRM_POINT_Y_LABEL_GT,290,PRM_POINT_Y_LABEL_GT,330,PRM_POINT_Y_LABEL_GT,370,PRM_POINT_Y_LABEL_GT,410,PRM_POINT_Y_LABEL_GT,450,PRM_POINT_Y_LABEL_GT,490,PRM_POINT_Y_LABEL_GT,530,PRM_POINT_Y_LABEL_GT,0,0,//GT
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//-
 		  40,520,40,495,40,470,40,445,40,420,40,395,40,370,40,345,40,320,0,0,//BH
-		  150,PRM_POINT_Y_NOTCH_SL,205,PRM_POINT_Y_NOTCH_SL,260,PRM_POINT_Y_NOTCH_SL,315,PRM_POINT_Y_NOTCH_SL,370,PRM_POINT_Y_NOTCH_SL,425,PRM_POINT_Y_NOTCH_SL,480,PRM_POINT_Y_NOTCH_SL,535,PRM_POINT_Y_NOTCH_SL,590,PRM_POINT_Y_NOTCH_SL,0,0,//SL
+		  210,PRM_POINT_Y_NOTCH_SL,250,PRM_POINT_Y_NOTCH_SL,290,PRM_POINT_Y_NOTCH_SL,330,PRM_POINT_Y_NOTCH_SL,370,PRM_POINT_Y_NOTCH_SL,410,PRM_POINT_Y_NOTCH_SL,450,PRM_POINT_Y_NOTCH_SL,490,PRM_POINT_Y_NOTCH_SL,530,PRM_POINT_Y_NOTCH_SL,0,0,//SL
 		  740,520,740,495,740,470,740,445,740,420,740,395,740,370,740,345,740,320,0,0,//AH
 		  0,0,0,0,0,0,0,0
 	};
@@ -247,9 +254,12 @@ typedef struct _stOTEWorkWnd {
 		   0,0,0,0,0,0,0,0
 	};
 
+	RECT notch_rect[MOTION_ID_MAX][N_OTE_NOTCH_ARRAY];
+
+
 	WCHAR ctrl_text[N_OTE_CTRL_TYPE][N_OTE_PNL_STATIC][128] = {
 		//STATIC
-		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"〇",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 		L"MH",L"AH",L"BH",L"SL",L"GT",L"INF MH",L"INF AH",L"INF BH",L"INF SL",L"INF GT",L"",L"",L"HEAD -",L"BODY -",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
