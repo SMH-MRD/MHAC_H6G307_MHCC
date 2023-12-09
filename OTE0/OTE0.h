@@ -18,7 +18,7 @@
 #define ID_OTE_MULTICAST_TIMER				199
 #define ID_OTE_UNICAST_TIMER				198
 #define OTE_MULTICAST_SCAN_MS				1000	    // マルチキャスト IF送信周期
-#define OTE_UNICAST_SCAN_MS					100			// ユニキャスト IF送信周期
+#define OTE_UNICAST_SCAN_MS					100			// ユニキャスト IF送信周期　UI更新周期
 
 //ソケットイベントID
 #define ID_SOCK_EVENT_PC_UNI_OTE 		    10653		//OTE受信ソケットイベント　PC UNICASTメッセージ

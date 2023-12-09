@@ -5,8 +5,8 @@
 #define N_OTE_PEN				8
 #define N_OTE_BRUSH				8
 
-#define OTE0_WHITE              0
-#define OTE0_GLAY               1
+#define OTE0_GLAY               0
+#define OTE0_WHITE              1
 #define OTE0_RED                2
 #define OTE0_BLUE               3
 #define OTE0_GREEN              4
@@ -18,26 +18,6 @@
 //オブジェクトID
 #define BASE_ID_OTE_STATIC			10700
 //STATIC ID 0-31は、PBランプ用予約領域
-#define ID_OTE_LAMP_HIJYOU		0	//非常停止PB
-#define ID_OTE_LAMP_SYUKAN		1	//主幹PB
-#define ID_OTE_LAMP_KIDOU		2
-#define ID_OTE_LAMP_TEISHI		3
-#define ID_OTE_LAMP_AUTO		4
-#define ID_OTE_LAMP_FUREDOME	5
-#define ID_OTE_LAMP_S1			6
-#define ID_OTE_LAMP_S2			7
-#define ID_OTE_LAMP_S3			8
-#define ID_OTE_LAMP_N1			9
-#define ID_OTE_LAMP_N2			10
-#define ID_OTE_LAMP_N3			11
-#define ID_OTE_LAMP_WIDE		12
-#define ID_OTE_LAMP_ZOOM		13
-#define ID_OTE_LAMP_HOOK		14
-#define ID_OTE_LAMP_OPE			15
-#define ID_OTE_LAMP_COM			16
-#define ID_OTE_LAMP_MODE		17
-#define ID_OTE_LAMP_FAULT		18
-#define ID_OTE_LAMP_MOMENT		19
 
 #define ID_OTE_LABEL_MH				32
 #define ID_OTE_LABEL_AH				33
@@ -55,10 +35,10 @@
 #define ID_OTE_SUB_CONNECT_BODY		45
 
 #define BASE_ID_OTE_PB		10800
-#define ID_OTE_PB_HIJYOU		0	//非常停止PB
-#define ID_OTE_PB_SYUKAN		1	//主幹PB
-#define ID_OTE_PB_KIDOU			2
-#define ID_OTE_PB_TEISHI		3
+#define ID_OTE_PB_TEISHI		0
+#define ID_OTE_PB_KIDOU			1
+#define ID_OTE_PB_SYUKAN		2	//主幹PB
+#define ID_OTE_PB_HIJYOU		3	//非常停止PB
 #define ID_OTE_PB_AUTO			4
 #define ID_OTE_PB_FUREDOME		5
 #define ID_OTE_PB_S1			6
@@ -118,11 +98,6 @@
 #define ID_OTE_HDC_MEM_IF		1
 #define ID_OTE_HDC_MEM_GR		2
 
-#define ID_OTE_LAMP_WHITE		0
-#define ID_OTE_LAMP_GLAY		1
-#define ID_OTE_LAMP_RED			2
-#define ID_OTE_LAMP_GREEN		3
-
 #define PRM_OTE_DEF_PB_W		50
 #define PRM_OTE_DEF_PB_W2		30
 #define PRM_OTE_DEF_PB_H		20
@@ -138,18 +113,23 @@
 #define PRM_POINT_Y_NOTCH_SL	250
 
 #define OTE0_PB_OFF_DELAY_COUNT	10
-#define OTE0_LAMP_ON_MASK		0x0040	//ORでランプON
+#define OTE0_LAMP_ON_MASK		0x00000040	//ORでランプON
+#define OTE0_LAMP_FLICK_MASK	0x80000000	//フリッカ指定
+#define OTE0_LAMP_COLOR_MASK	0x0F000000	//ランプ色指定
+
+#define OTE0_LAMP_COM_MASK		0x8F000040	//ランプコマンドマスク
+#define OTE0_LAMP_STAT_HOLD		0			//ランプ状態　配列前回値
+#define OTE0_LAMP_STAT_NOW		1			//ランプ状態　配列今回値
 
 
 //操作端末ウィンドウ構造体
 typedef struct _stOTEWorkWnd {
 	int area_x = 0, area_y = 0, area_w = 0, area_h = 0; //メインウィンドウ上の表示エリア(デバイスコンテキスト用）
-	int bmp_w, bmp_h;										//グラフィックビットマップサイズ
-	UINT32 lamp_status[N_OTE_PNL_PB];					//ランプ状態
-	UINT32 pb_stat[N_OTE_PNL_PB];						//PB状態
+	int bmp_w, bmp_h;									//グラフィックビットマップサイズ
+	UINT32 pb_lamp_status[2][N_OTE_PNL_PB];				//ランプ状態　[0]:ON/OFF状態前回値　[1]カウント現在値　
+	UINT32 notch_lamp_status[2][N_OTE_PNL_PB];			//ランプ状態　[0]:ON/OFF状態前回値　[1]カウント現在値　
+	UINT32 pb_stat[N_OTE_PNL_PB];						//PB状態 OFFディレイカウント
 	int connect_wnd_item = ID_OTE_RADIO_SOU;
-
-	HIMAGELIST hImgLamp0;									//釦ランプのイメージリストハンドル
 
 	HBITMAP hBmap[N_OTE_HBMAP];								//ビットマップハンドル
 	HDC		hdc[N_OTE_HDC];			//メモリデバイスコンテキスト
@@ -165,13 +145,13 @@ typedef struct _stOTEWorkWnd {
 		//#STATIC
 		//LAMP
 		  //メインパネル
-		  765,5,695,5,625,5,555,5,
-		  555,30,625,30,695,30,765,30,
-		  555,55,625,55,695,55,765,55,
-		  555,80,625,80,695,80,765,80,
-		  555,105,625,105,695,105,765,105,
+		  0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,
 		  //CONNECTパネル　ID_OTE_RADIO_SOU	ID_OTE_RADIO_RPU ID_OTE_RADIO_SOM ID_OTE_RADIO_ROM ID_OTE_RADIO_RPM
-		  5,5,55,5,105,5,155,5,205,5,
+		  0,0,0,0,0,0,0,0,0,0,
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,				//16
 		//LABEL
 		//ID_OTE_LABEL_MH	         ID_OTE_LABEL_AH	         ID_OTE_LABEL_BH	     ID_OTE_LABEL_SL            ID_OTE_LABEL_GT
@@ -186,7 +166,7 @@ typedef struct _stOTEWorkWnd {
 
 		  //#PB
 		  //メインパネル
-		  780,5,712,5,642,5,573,5,
+		  573,5,642,5,712,5,780,5,
 		  573,30,642,30,712,30,780,30,
 		  573,55,642,55,712,55,780,55,
 		  573,80,642,80,712,80,780,80,
@@ -255,6 +235,7 @@ typedef struct _stOTEWorkWnd {
 	};
 
 	RECT notch_rect[MOTION_ID_MAX][N_OTE_NOTCH_ARRAY];
+	RECT pb_rect[N_OTE_PNL_ITEMS];
 
 
 	WCHAR ctrl_text[N_OTE_CTRL_TYPE][N_OTE_PNL_STATIC][128] = {
@@ -266,8 +247,13 @@ typedef struct _stOTEWorkWnd {
 
 
 		//PB
-		L"非常",L"主幹",L"起動",L"停止",L"自動",L"振止",L"S1",L"S2",L"S3",L"N1",L"N2",L"N3",L"WIDE",L"ZOOM",L"HOOK",L"OPE",
-		L"通信",L"MODE",L"故障",L"MOM",L"SOU",L"RPU",L"SOM",L"ROM",L"RPM",L"",L"",L"",L"",L"",L"",L"",
+		L"停止",L"起動",L"主幹",L"非常",
+		L"自動",L"振止",L"S1",L"S2",
+		L"S3",L"N1",L"N2",L"N3",
+		L"WIDE",L"ZOOM",L"HOOK",L"OPE",
+		L"通信",L"MODE",L"故障",L"MOM",
+		L"SOU",L"RPU",L"SOM",L"ROM",L"RPM",
+		L"",L"",L"",L"",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 
