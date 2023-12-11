@@ -264,10 +264,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetWindowText(stMainWnd.h_static0, L"RMT OFF");
         }break;
     
-        case IDC_CHK_IFCHK:
-            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) pProcObj->show_if_wnd();
-            else pProcObj->hide_if_wnd();
-
+         case IDC_CHK_IFCHK: {
+             if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) pProcObj->show_if_wnd();
+             else pProcObj->hide_if_wnd();
+             break;
+         }
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }

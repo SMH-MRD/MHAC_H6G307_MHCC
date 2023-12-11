@@ -92,11 +92,17 @@
 #define ID_OTE_HBMAP_MEM0		0
 #define ID_OTE_HBMAP_MEM_IF		1
 #define ID_OTE_HBMAP_MEM_GR		2
+#define ID_OTE_HBMAP_SWY_MEM0	3
+#define ID_OTE_HBMAP_SWY_MEM_IF	4
+#define ID_OTE_HBMAP_SWY_MEM_GR	5
 
 #define N_OTE_HDC				8
 #define ID_OTE_HDC_MEM0			0
 #define ID_OTE_HDC_MEM_IF		1
 #define ID_OTE_HDC_MEM_GR		2
+#define ID_OTE_HDC_SWY_MEM0		3
+#define ID_OTE_HDC_SWY_MEM_IF	4
+#define ID_OTE_HDC_SWY_MEM_GR	5
 
 #define PRM_OTE_DEF_PB_W		50
 #define PRM_OTE_DEF_PB_W2		30
@@ -109,7 +115,7 @@
 #define PRM_POINT_X_LABEL_MH	760
 #define PRM_POINT_Y_LABEL_SL	250
 #define PRM_POINT_Y_LABEL_BH	290
-#define PRM_POINT_Y_LABEL_GT	530
+#define PRM_POINT_Y_LABEL_GT	540
 #define PRM_POINT_Y_NOTCH_SL	250
 
 #define OTE0_PB_OFF_DELAY_COUNT	10
@@ -120,6 +126,16 @@
 #define OTE0_LAMP_COM_MASK		0x8F000040	//ランプコマンドマスク
 #define OTE0_LAMP_STAT_HOLD		0			//ランプ状態　配列前回値
 #define OTE0_LAMP_STAT_NOW		1			//ランプ状態　配列今回値
+
+#define OTE0_GR_AREA_X			80
+#define OTE0_GR_AREA_Y			280
+#define OTE0_GR_AREA_W			640
+#define OTE0_GR_AREA_H			250
+
+#define OTE0_IF_AREA_X			560
+#define OTE0_IF_AREA_Y			128
+#define OTE0_IF_AREA_W			270
+#define OTE0_IF_AREA_H			150
 
 
 //操作端末ウィンドウ構造体

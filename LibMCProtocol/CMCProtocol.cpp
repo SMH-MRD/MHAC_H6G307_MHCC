@@ -76,12 +76,12 @@ HWND CMCProtocol::Initialize(HWND hwnd,SOCKADDR_IN* paddrinc, SOCKADDR_IN* paddr
 
 	if (pMCSock->Initialize() != S_OK) {									//受信ソケット生成
 		msg_wos.str() = pMCSock->err_msg.str();
-		return NULL;
+		//return NULL;
 	}
 
 	if (pMCSock->init_sock(st_work_wnd.hWnd, st_work_wnd.addrinc) != S_OK) {//受信ソケット設定
 		msg_wos.str() = pMCSock->err_msg.str();
-		return NULL;
+	//	return NULL;
 	}
 
 	return st_work_wnd.hWnd;

@@ -238,9 +238,6 @@ HRESULT COte::close() {
 	delete pSockPcUniCastOte;		//PC->OTEユニキャスト受信用ソケット
 	delete pSockPcMultiCastOte;		//PC->OTEマルチキャスト受信用ソケット
 	delete pSockOteMultiCastOte;	//OTE→OTEマルチキャスト受信用ソケット
-
-
-
 	return S_OK;
 }
 

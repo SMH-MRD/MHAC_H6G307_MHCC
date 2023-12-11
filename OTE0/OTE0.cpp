@@ -57,6 +57,10 @@ void draw_graphic();
 void draw_info();
 void combine_map();
 
+void draw_graphic_swy();
+void draw_info_swy();
+void combine_map_swy();
+
 
 
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
@@ -266,6 +270,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			draw_graphic();
 			draw_info();
 			InvalidateRect(hWnd, NULL, FALSE);
+
 				//######
 
 		}
@@ -347,7 +352,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		draw_lamp(hdc, is_init_disp);
 		combine_map();
-		BitBlt(hdc, 100, 300, 600, 150, st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, SRCCOPY);
+		BitBlt(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, OTE0_GR_AREA_W, OTE0_GR_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, SRCCOPY);
+		BitBlt(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_W, OTE0_IF_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_IF_AREA_X, OTE0_IF_AREA_Y, SRCCOPY);
 
 		EndPaint(hWnd, &ps);
 	}break;
@@ -625,6 +631,14 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
+
+		draw_graphic_swy();
+		draw_info_swy();
+		combine_map_swy();
+
+		BitBlt(hdc, 0, 0, 100, 100, st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, SRCCOPY);
+
+
 		EndPaint(hWnd, &ps);
 	}break;
 	case WM_DESTROY: {
@@ -859,6 +873,23 @@ HWND open_swy_Wnd(HWND hwnd) {
 		OTE0_SWY_WND_X, OTE0_SWY_WND_Y, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
 		hwnd, nullptr, hInst, nullptr);
 
+	HDC hdc = GetDC(hWnd_sub[ID_OTE0_SWY_WND]);
+	st_work_wnd.hBmap[ID_OTE_HBMAP_SWY_MEM0] = CreateCompatibleBitmap(hdc, OTE0_SWY_WND_W, OTE0_SWY_WND_H);
+	st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], st_work_wnd.hBmap[ID_OTE_HBMAP_SWY_MEM0]);
+
+	st_work_wnd.hBmap[ID_OTE_HBMAP_SWY_MEM_IF] = CreateCompatibleBitmap(hdc, OTE0_SWY_WND_W, OTE0_SWY_WND_H);
+	st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_IF] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_IF], st_work_wnd.hBmap[ID_OTE_HBMAP_SWY_MEM_IF]);
+
+	st_work_wnd.hBmap[ID_OTE_HBMAP_SWY_MEM_GR] = CreateCompatibleBitmap(hdc, OTE0_SWY_WND_W, OTE0_SWY_WND_H);
+	st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR] = CreateCompatibleDC(hdc);
+	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR], st_work_wnd.hBmap[ID_OTE_HBMAP_SWY_MEM_GR]);
+
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, WHITENESS);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_IF], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, WHITENESS);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, WHITENESS);
+
 	InvalidateRect(hWnd_sub[ID_OTE0_SWY_WND], NULL, TRUE);//表示更新
 
 	ShowWindow(hWnd_sub[ID_OTE0_SWY_WND], SW_SHOW);
@@ -1006,22 +1037,20 @@ void disp_msg_cnt() {
 	return;
 }
 void draw_graphic() {
-
 	HDC hdc= st_work_wnd.hdc[ID_OTE_HDC_MEM_GR];
 	PatBlt(hdc, 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, PATCOPY);
-
 	//マップ背景ライン描画
-
-	SelectObject(hdc, st_work_wnd.hpen[OTE0_BLUE]);
-	//hdc = GetDC(hWnd_work);
-	MoveToEx(hdc, 0, 0, NULL);	//横軸
-	LineTo(hdc, 700, 500);
+	SelectObject(hdc, st_work_wnd.hpen[OTE0_RED]);
+	SelectObject(hdc, GetStockObject(NULL_BRUSH));
+	Rectangle(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, OTE0_GR_AREA_X+ OTE0_GR_AREA_W, OTE0_GR_AREA_Y + OTE0_GR_AREA_H);
+	Rectangle(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_X + OTE0_IF_AREA_W, OTE0_IF_AREA_Y + OTE0_IF_AREA_H);
 }
 void draw_info() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_MEM_IF];
 	wstring ws;
 	ws = L"PLC UI";
-	TextOutW(hdc, 50, 50, ws.c_str(), (int)ws.length());
+	TextOutW(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, ws.c_str(), (int)ws.length());
+	TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, ws.c_str(), (int)ws.length());
 }
 void combine_map() {
 
@@ -1036,6 +1065,33 @@ void combine_map() {
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h,
 		RGB(255, 255, 255));
 }
+
+void draw_graphic_swy() {
+	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR];
+	PatBlt(hdc, 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, PATCOPY);
+	//マップ背景ライン描画
+	SelectObject(hdc, st_work_wnd.hpen[OTE0_RED]);
+	SelectObject(hdc, st_work_wnd.hbrush[OTE0_GREEN]);
+	Rectangle(hdc, 50, 50, 100, 100);
+}
+void draw_info_swy() {
+	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_IF];
+	wstring ws;
+	ws = L"SWAY";
+	TextOutW(hdc, 0, 0, ws.c_str(), (int)ws.length());
+
+}
+void combine_map_swy() {
+	//グラフィックを重ね合わせ
+	TransparentBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+		st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+		RGB(255, 255, 255));
+	//テキストを重ね合わせ
+	TransparentBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+		st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_IF], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+		RGB(255, 255, 255));
+}
+
 
 /// <summary>
 /// ランプの描画
@@ -1124,12 +1180,11 @@ void create_objects(HWND hWnd) {
 	st_work_wnd.hdc[ID_OTE_HDC_MEM_GR] = CreateCompatibleDC(hdc);
 	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.hBmap[ID_OTE_HBMAP_MEM_GR]);
 
-	PatBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
-	PatBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
-	PatBlt(st_work_wnd.hdc[ID_OTE_HBMAP_MEM_GR], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
-	
-	ReleaseDC(hWnd_work, hdc);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_IF], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
+	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
 
+	ReleaseDC(hWnd_work, hdc);
 }
 
 void delete_objects(HWND hWnd) {
