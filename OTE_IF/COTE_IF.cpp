@@ -33,8 +33,9 @@ SOCKADDR_IN COteIF::addrin_ote_u_pc;		//PCユニキャスト用アドレス(PC受信用)
 SOCKADDR_IN COteIF::addrin_pc_m_pc;			//PCマルチキャスト受信アドレス(PC受信用)
 SOCKADDR_IN COteIF::addrin_ote_m_pc;		//OTEマルチキャスト受信アドレス(PC受信用)
 
-SOCKADDR_IN COteIF::addrin_pc_u_snd;		//PCユニキャスト送信先アドレス
-SOCKADDR_IN COteIF::addrin_pc_m_snd;		//PCマルチキャスト送信先アドレス
+SOCKADDR_IN COteIF::addrin_pc_u_snd;		//PCユニキャスト送信先アドレス（OTE受信用）
+SOCKADDR_IN COteIF::addrin_pc_m_ote_snd;	//PCマルチキャスト送信先アドレス（OTE受信用）
+SOCKADDR_IN COteIF::addrin_pc_m_pc_snd;		//PCマルチキャスト送信先アドレス（PC受信用）
 
 SOCKADDR_IN COteIF::addrin_ote_u_from;	//OTEユニキャスト送信元アドレス（PC用)
 SOCKADDR_IN COteIF::addrin_pc_m_from;	//PCマルチキャスト送信元アドレス（PC用)
@@ -43,7 +44,7 @@ SOCKADDR_IN COteIF::addrin_ote_m_from;	//OTEマルチキャスト送信元アドレス（PC用)
 
 SOCKADDR_IN COteIF::addr_active_ote;		//操作信号が有効な端末のアドレス
 
-LONG COteIF::cnt_snd_pc_u, COteIF::cnt_snd_pc_m;
+LONG COteIF::cnt_snd_pc_u, COteIF::cnt_snd_pc_m_pc, COteIF::cnt_snd_pc_m_ote;
 LONG COteIF::cnt_rcv_ote_u, COteIF::cnt_rcv_ote_m,COteIF::cnt_rcv_pc_m;
 
 ST_PC_U_MSG COteIF::st_msg_pc_u_snd;
@@ -74,7 +75,7 @@ COteIF::COteIF(HWND hWnd) {
     pAgentInfObj = new CSharedMem;
     pSwayIO_Obj = new CSharedMem;
 
-	cnt_snd_pc_u = cnt_snd_pc_m= 0;
+	cnt_snd_pc_u = cnt_snd_pc_m_pc = cnt_snd_pc_m_ote = 0;
 	cnt_rcv_ote_u = cnt_rcv_ote_m = cnt_rcv_pc_m = 0;
  };
 /*****************************************************************************/
@@ -151,17 +152,17 @@ int COteIF::init_proc() {
 
 	//### ソケットアドレスセット
 	memset(&addrin_ote_u_pc	, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_m_pc, 0, sizeof(SOCKADDR_IN));memset(&addrin_ote_m_pc, 0, sizeof(SOCKADDR_IN));
-	memset(&addrin_pc_m_snd, 0, sizeof(SOCKADDR_IN)); memset(&addrin_pc_u_snd, 0, sizeof(SOCKADDR_IN));
+	memset(&addrin_pc_m_pc_snd, 0, sizeof(SOCKADDR_IN));memset(&addrin_pc_m_ote_snd, 0, sizeof(SOCKADDR_IN)); 
 	
 	//受信アドレス
 	set_sock_addr(&addrin_ote_u_pc, OTE_IF_UNICAST_IP_PC, OTE_IF_UNICAST_PORT_PC);
-	set_sock_addr(&addrin_ote_m_pc, OTE_IF_UNICAST_IP_PC, OTE_IF_MULTICAST_PORT_OTE);
-	set_sock_addr(&addrin_pc_m_pc,	OTE_IF_UNICAST_IP_PC, OTE_IF_MULTICAST_PORT_PC);
+	set_sock_addr(&addrin_ote_m_pc, OTE_IF_UNICAST_IP_PC, OTE_IF_MULTICAST_PORT_OTE2PC);
+	set_sock_addr(&addrin_pc_m_pc,	OTE_IF_UNICAST_IP_PC, OTE_IF_MULTICAST_PORT_PC2PC);
 
-	//送信先アドレス	
-	set_sock_addr(&addrin_pc_m_snd , OTE_IF_MULTICAST_IP_PC, OTE_IF_MULTICAST_PORT_PC);
-	
- 	
+	//送信先アドレス
+	set_sock_addr(&addrin_pc_m_pc_snd , OTE_IF_MULTICAST_IP_PC, OTE_IF_MULTICAST_PORT_PC2PC);
+	set_sock_addr(&addrin_pc_m_ote_snd, OTE_IF_MULTICAST_IP_PC, OTE_IF_MULTICAST_PORT_PC2OTE);
+	 	
 	//### ソケット設定
 	pSockOteUniCastPc	= new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_SERVER, ID_SOCK_EVENT_OTE_UNI_PC);
 	pSockPcMultiCastPc	= new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_PC_MULTI_PC);
@@ -178,8 +179,10 @@ int COteIF::init_proc() {
 
 	//マルチキャスト用 init_sock_m():bind()まで実施 + マルチキャストグループへ登録
 	SOCKADDR_IN addr_tmp;
-	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_PC, NULL);//マルチキャスト受信IPセット,PORTはネットワーク設定（第2引数）のポート
+	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_PC, NULL);//PCマルチキャスト受信IPセット,PORTはネットワーク設定（第2引数）のポート
 	if (pSockPcMultiCastPc->init_sock_m(hWnd_work, addrin_pc_m_pc, addr_tmp) != S_OK) { msg_wos.str() = pSockPcMultiCastPc->err_msg.str(); return NULL; }
+
+	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_OTE, NULL);//OTEマルチキャスト受信IPセット,PORTはネットワーク設定（第2引数）のポート
 	if (pSockOteMultiCastPc->init_sock_m(hWnd_work, addrin_ote_m_pc, addr_tmp) != S_OK) { msg_wos.str() = pSockOteMultiCastPc->err_msg.str(); return NULL; }
 
 	//送信メッセージヘッダ設定（送信元受信アドレス：受信先の折り返し用）
@@ -212,8 +215,8 @@ int COteIF::parse() {
 /// </summary>
 /// <returns></returns>
 int COteIF::output() {                          //出力処理
-	//workbuf　→　ST_OTE_IO
-   if (out_size) memcpy_s(poutput, out_size, &ote_io_workbuf, out_size);
+	//マルチキャスト送信処理
+	if (out_size) memcpy_s(poutput, out_size, &ote_io_workbuf, out_size);
    return 0; 
 }
 /*****************************************************************************/
@@ -403,7 +406,6 @@ BOOL COteIF::hide_if_wnd() {
 /// <param name="wParam"></param>
 /// <param name="lParam"></param>
 /// <returns></returns>
-static int tmp_counter=0;
 #if 0
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
@@ -507,55 +509,111 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
 		//ウィンドウにコントロール追加
 		set_OTEIF_panel_objects(hWnd);
+
+		//マルチキャストタイマ起動 
+		SetTimer(hWnd, ID_PC_MULTICAST_TIMER, PC_MULTICAST_SCAN_MS, NULL);
+
 		break;
 	}
 	case WM_TIMER: {
-		break;
-	}
+		if (wParam == ID_PC_MULTICAST_TIMER) {
+			if (S_OK == snd_pc_m_pc(set_msg_pc_m())) {//OTEマルチキャスト送信
+				cnt_snd_pc_m_pc++;
+			}
+			if (S_OK == snd_pc_m_ote(set_msg_pc_m())) {//OTEマルチキャスト送信
+				cnt_snd_pc_m_ote++;
+			}
+
+			if_disp_update();
+		}
+	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
 		// 選択されたメニューの解析:
 		switch (wmId)
 		{
-		case BASE_ID_OTEIF_PB + ID_OTEIF_CHK_MSG: {
-			if(BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG], BM_GETCHECK, 0, 0)) st_work_wnd.is_disp_msg = true;
-			else st_work_wnd.is_disp_msg = false;
-		}break;
 
 		case BASE_ID_OTEIF_PB + ID_OTEIF_CHK_HOLD: {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD], BM_GETCHECK, 0, 0)) st_work_wnd.is_hold_disp = true;
 			else st_work_wnd.is_hold_disp = false;
 		}break;
 
-		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_SPU: {
-			st_work_wnd.id_disp_body = ID_OTEIF_RADIO_SPU;
+		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_PCM: {
+			st_work_wnd.id_disp_item = ID_OTEIF_RADIO_PCM;
 		}break;
 
-		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_ROU: {
-			st_work_wnd.id_disp_body = ID_OTEIF_RADIO_ROU;
+		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_UNI: {
+			st_work_wnd.id_disp_item = ID_OTEIF_RADIO_UNI;
 		}break;
 
-		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_SPM: {
-			st_work_wnd.id_disp_body = ID_OTEIF_RADIO_SPM;
-		}break;
-
-		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_RPM: {
-			st_work_wnd.id_disp_body = ID_OTEIF_RADIO_RPM;
-		}break;
-
-		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_ROM: {
-			st_work_wnd.id_disp_body = ID_OTEIF_RADIO_ROM;
+		case BASE_ID_OTEIF_PB + ID_OTEIF_RADIO_TEM: {
+			st_work_wnd.id_disp_item = ID_OTEIF_RADIO_TEM;
 		}break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}break;
+
+	case ID_SOCK_EVENT_OTE_UNI_PC: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+				cnt_rcv_ote_u++;
+				set_sock_addr(&addrin_pc_u_snd, OTE_IF_UNICAST_IP_OTE0, OTE_IF_UNICAST_PORT_OTE);
+				if(snd_pc_u_ote(set_msg_pc_u(), &addrin_pc_u_snd)==S_OK)cnt_snd_pc_u++;;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_PC_MULTI_PC: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_pc_m_pc(&st_msg_pc_m_pc_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+				cnt_rcv_pc_m++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_pc_m_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
+	case ID_SOCK_EVENT_OTE_MULTI_PC: {
+		int nEvent = WSAGETSELECTEVENT(lParam);
+		switch (nEvent) {
+		case FD_READ: {
+			if (rcv_ote_m_pc(&st_msg_ote_m_pc_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+				cnt_rcv_ote_m++;
+				disp_msg_cnt();
+			}
+			else {
+				msg_ws = L"ERROR : rcv_ote_m_pc()";	wstr_out_inf(msg_ws);
+			}
+		}break;
+		case FD_WRITE: break;
+		case FD_CLOSE: break;
+		}
+	}break;
+
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		EndPaint(hWnd, &ps);
 	}break;
 	case WM_DESTROY: {
+		KillTimer(hWnd, ID_PC_MULTICAST_TIMER);
 		PostQuitMessage(0);
 	}break;
 	default:
@@ -571,68 +629,21 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 
 	HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
 
-	//LABEL
-	{
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_0] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_0], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_0].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_0].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_0].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_0].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_LABEL_0), hInst, NULL);
-
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_1] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_1], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_1].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_1].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_1].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_LABEL_1].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_LABEL_1), hInst, NULL);
-	}
-
 	//IF STATIC
 	{
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_SPU), hInst, NULL);
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_ROU), hInst, NULL);
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_SPM), hInst, NULL);
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_RPM), hInst, NULL);
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_ROM), hInst, NULL);
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY] = CreateWindowW(TEXT("STATIC"),
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_INF_BODY), hInst, NULL);
+		for (int i = ID_OTEIF_INF_CNT_IP0; i <= ID_OTEIF_INF_BODYR; i++) {
+			st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][i] = CreateWindowW(TEXT("STATIC"),
+				st_work_wnd.ctrl_text[ID_OTEIF_CTRL_STATIC][i], WS_CHILD | WS_VISIBLE | SS_LEFT,
+				st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][i].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_STATIC][i].y,
+				st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][i].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_STATIC][i].cy,
+				hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + i), hInst, NULL);
+		}
+
 	}
 
 	
 	//CHK BOX
 	{
-		st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG] = CreateWindow(L"BUTTON",
-			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG].y,
-			st_work_wnd.size_ctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG].cx, st_work_wnd.size_ctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG].cy,
-			hWnd, (HMENU)(BASE_ID_OTEIF_STATIC + ID_OTEIF_CHK_MSG), hInst, NULL);
-
-		st_work_wnd.is_disp_msg = false;
-		SendMessage(st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_MSG], BM_SETCHECK, BST_UNCHECKED, 0L);
-
-
 		st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD] = CreateWindow(L"BUTTON",
 			st_work_wnd.ctrl_text[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD].y,
@@ -645,8 +656,8 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 
 	//RADIO BUTTON
 	{
-		for (int i = ID_OTEIF_RADIO_SPU; i <= ID_OTEIF_RADIO_ROM; i++) {
-			if (i == ID_OTEIF_RADIO_SPU)// | WS_GROUP あり
+		for (int i = ID_OTEIF_RADIO_UNI; i <= ID_OTEIF_RADIO_TEM; i++) {
+			if (i == ID_OTEIF_RADIO_UNI)// | WS_GROUP あり
 				st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][i] = CreateWindow(L"BUTTON",
 					st_work_wnd.ctrl_text[ID_OTEIF_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
 					st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTEIF_CTRL_PB][i].y,
@@ -694,7 +705,7 @@ HRESULT COteIF::snd_pc_u_ote(LPST_PC_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
 /// <param name="pto_addrin"></param>
 /// <returns></returns>
 HRESULT COteIF::snd_pc_m_pc(LPST_PC_M_MSG pbuf) {
-	if (pSockPcMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_snd) == SOCKET_ERROR) {
+	if (pSockPcMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_pc_snd) == SOCKET_ERROR) {
 		msg_wos.str() = pSockPcMultiCastPc->err_msg.str();
 		return S_FALSE;
 	}
@@ -708,7 +719,7 @@ HRESULT COteIF::snd_pc_m_pc(LPST_PC_M_MSG pbuf) {
 /// <param name="pbuf"></param>
 /// <returns></returns>
 HRESULT COteIF::snd_pc_m_ote(LPST_PC_M_MSG pbuf) {
-	if (pSockOteMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_snd) == SOCKET_ERROR) {
+	if (pSockOteMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_ote_snd) == SOCKET_ERROR) {
 		msg_wos.str() = pSockOteMultiCastPc->err_msg.str();
 		return S_FALSE;
 	}
@@ -761,159 +772,62 @@ HRESULT COteIF::rcv_ote_m_pc(LPST_OTE_M_MSG pbuf) {
 /// 通信状態表示テキスト更新
 /// </summary>
 /// <param name="is_msg"></param>
-void COteIF::disp_update_spu(bool is_hold, bool is_msg, bool is_body) {
+void COteIF::if_disp_update() {
 	
-	if (is_hold)return;
-	
+	SOCKADDR_IN* pmy_addr= &addrin_ote_u_pc, * psnd_addr = &addrin_ote_u_pc, * pfrom_addr = &addrin_ote_u_pc;
+	LPST_OTE_HEAD phead_snd= &st_msg_pc_u_snd.head,phead_rcv= &st_msg_pc_u_snd.head;
+	LONG* pcnt_snd= &cnt_snd_pc_u, * pcnt_rcv = &cnt_snd_pc_u;
+
+	//表示ホールドは更新無し
+	if (st_work_wnd.is_hold_disp)return;
+
+	switch (st_work_wnd.id_disp_item) {
+	case ID_OTEIF_RADIO_UNI: {
+		pmy_addr = &addrin_ote_u_pc; psnd_addr = &addrin_pc_u_snd; pfrom_addr=&addrin_ote_u_from;
+		phead_snd = &st_msg_pc_u_snd.head; phead_rcv=&st_msg_ote_u_rcv.head;
+		pcnt_snd = &cnt_snd_pc_u; pcnt_rcv = &cnt_rcv_ote_u;
+	}break;
+	case ID_OTEIF_RADIO_PCM: {
+		pmy_addr = &addrin_pc_m_pc; psnd_addr = &addrin_pc_m_pc_snd; pfrom_addr = &addrin_pc_m_from;
+		phead_snd = &st_msg_pc_m_snd.head; phead_rcv = &st_msg_pc_m_pc_rcv.head;
+		pcnt_snd = &cnt_snd_pc_u; pcnt_rcv = &cnt_rcv_ote_u;
+	}break;
+	case ID_OTEIF_RADIO_TEM: {
+		pmy_addr = &addrin_ote_m_pc; psnd_addr = &addrin_pc_m_ote_snd; pfrom_addr = &addrin_ote_m_from;
+		phead_snd = &st_msg_pc_m_snd.head; phead_rcv = &st_msg_pc_m_pc_rcv.head;
+		pcnt_snd = &cnt_snd_pc_m_ote; pcnt_rcv = &cnt_rcv_ote_m;
+	}break;
+	}
+
 	//送信カウント　送信先アドレス
 	msg_wos.str(L"");
-	msg_wos << L"SPU #:" << cnt_snd_pc_u << L" : " << addrin_pc_u_snd.sin_addr.S_un.S_un_b.s_b1 << L"." << addrin_pc_u_snd.sin_addr.S_un.S_un_b.s_b2 << L"." << addrin_pc_u_snd.sin_addr.S_un.S_un_b.s_b3 << L"." << addrin_pc_u_snd.sin_addr.S_un.S_un_b.s_b4 << L" "
-		<< htons(addrin_pc_u_snd.sin_port) << L" : ";
-	
+	msg_wos <<L"CNT S:"<< *pcnt_snd << L" R:" << *pcnt_rcv << L"    MyIP:" << pmy_addr->sin_addr.S_un.S_un_b.s_b1 << L"." << pmy_addr->sin_addr.S_un.S_un_b.s_b2 << L"." << pmy_addr->sin_addr.S_un.S_un_b.s_b3 << L"." << pmy_addr->sin_addr.S_un.S_un_b.s_b4 << L": "
+		<< htons(pmy_addr->sin_port);
+
+	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_CNT_IP0], msg_wos.str().c_str());
+#if 0	
 	//ヘッダ部情報追加
-	if (is_msg) {
-		msg_wos << L" (PC)" << st_msg_pc_u_snd.head.myid << L" (EVENT)" << st_msg_pc_u_snd.head.code
+	msg_wos << L" (PC)" << st_msg_pc_u_snd.head.myid << L" (EVENT)" << st_msg_pc_u_snd.head.code
 			<< L" (IP)" << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_u_snd.head.addr.sin_addr.S_un.S_un_b.s_b4
 			<< L" (PORT) " << htons(st_msg_pc_u_snd.head.addr.sin_port)
 			<< L" (COM)" << st_msg_pc_u_snd.head.status << L" (接続中OTE)" << st_msg_pc_u_snd.head.tgid;
-	}
 
 	//テキスト出力（基本情報部）
-	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU], msg_wos.str().c_str());
-
-	//ボディ部情報
-	if (is_body) {
-		msg_wos.str(L"");
-		//後で追加　msg_wos << L"SND BODY:";
-		SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], msg_wos.str().c_str());
-	}
-
-	InvalidateRect(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPU], NULL, TRUE);//表示更新
-
+	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][0], msg_wos.str().c_str());
+	msg_wos.str(L"");
+	//後で追加　msg_wos << L"SND BODY:";
+	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][0], msg_wos.str().c_str());
+#endif
+	InvalidateRect(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][0], NULL, TRUE);//表示更新
 	return;
 }
-void COteIF::disp_update_rou(bool is_hold, bool is_msg, bool is_body) {
 
-	if (is_hold)return;
 
-	//受信カウント　送信元アドレス
+void COteIF::disp_msg_cnt() {
 	msg_wos.str(L"");
-	msg_wos << L"SPU #:" << cnt_rcv_ote_u << L" : " << addrin_ote_u_from.sin_addr.S_un.S_un_b.s_b1 << L"." << addrin_ote_u_from.sin_addr.S_un.S_un_b.s_b2 << L"." << addrin_ote_u_from.sin_addr.S_un.S_un_b.s_b3 << L"." << addrin_ote_u_from.sin_addr.S_un.S_un_b.s_b4 << L" "
-		<< htons(addrin_ote_u_from.sin_port) << L" : ";
+	msg_wos << L"OTEIF     " << L"SPU:" << cnt_snd_pc_u << L"  ROU:" << cnt_rcv_ote_u << L"  SPMO:" << cnt_snd_pc_m_ote << L"  ROM:" << cnt_rcv_ote_m << L"  SPMP:" << cnt_snd_pc_m_pc << L"  RPM:" << cnt_rcv_pc_m;
+	SetWindowText(hWnd_work, msg_wos.str().c_str());
 
-	//ヘッダ部情報追加
-	if (is_msg) {
-		msg_wos << L" (OTE)" << st_msg_ote_u_rcv.head.myid << L" (EVENT)" << st_msg_ote_u_rcv.head.code
-			<< L" (IP)" << st_msg_ote_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_ote_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_ote_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_ote_u_rcv.head.addr.sin_addr.S_un.S_un_b.s_b4
-			<< L" (PORT) " << htons(st_msg_ote_u_rcv.head.addr.sin_port)
-			<< L" (COM)" << st_msg_ote_u_rcv.head.status << L" (接続中PC)" << st_msg_ote_u_rcv.head.tgid;
-	}
-
-	//テキスト出力（基本情報部）
-	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU], msg_wos.str().c_str());
-
-	//ボディ部情報
-	if (is_body) {
-		msg_wos.str(L"");
-		//OTEユニキャスト受信　BODY部
-		msg_wos <<L"#PB(主幹)" << st_msg_ote_u_rcv.body.pb_ope[ID_OTE_PB_CTRL_SOURCE] << L"(非停)" << st_msg_ote_u_rcv.body.pb_ope[ID_OTE_PB_ESTOP]
-			<< L" #ﾉｯﾁ(MH)" << st_msg_ote_u_rcv.body.notch_pos[ID_HOIST] << L" (BH)" << st_msg_ote_u_rcv.body.notch_pos[ID_BOOM_H] << L" (SL)" << st_msg_ote_u_rcv.body.notch_pos[ID_SLEW];
-		SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], msg_wos.str().c_str());
-	}
-
-	InvalidateRect(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROU], NULL, TRUE);//表示更新
-
-	return;
-}
-void COteIF::disp_update_spm(bool is_hold, bool is_msg, bool is_body) {
-
-	if (is_hold)return;
-
-	//送信カウント　送信先アドレス
-	msg_wos.str(L"");
-	msg_wos << L"SPU #:" << cnt_snd_pc_m << L" : " << addrin_pc_m_snd.sin_addr.S_un.S_un_b.s_b1 << L"." << addrin_pc_m_snd.sin_addr.S_un.S_un_b.s_b2 << L"." << addrin_pc_m_snd.sin_addr.S_un.S_un_b.s_b3 << L"." << addrin_pc_m_snd.sin_addr.S_un.S_un_b.s_b4 << L" "
-		<< htons(addrin_pc_m_snd.sin_port) << L" : ";
-
-	//ヘッダ部情報追加
-	if (is_msg) {
-		msg_wos << L" (PC)" << st_msg_pc_m_snd.head.myid << L" (EVENT)" << st_msg_pc_m_snd.head.code
-			<< L" (IP)" << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_m_snd.head.addr.sin_addr.S_un.S_un_b.s_b4
-			<< L" (PORT) " << htons(st_msg_pc_m_snd.head.addr.sin_port)
-			<< L" (COM)" << st_msg_pc_m_snd.head.status << L" (接続中OTE)" << st_msg_pc_m_snd.head.tgid;
-	}
-
-	//テキスト出力（基本情報部）
-	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM], msg_wos.str().c_str());
-
-	//ボディ部情報
-	if (is_body) {
-		msg_wos.str(L"");
-		//後で追加　msg_wos << L"SND BODY:";
-		SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], msg_wos.str().c_str());
-	}
-
-	InvalidateRect(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_SPM], NULL, TRUE);//表示更新
-
-	return;
-}
-void COteIF::disp_update_rpm(bool is_hold, bool is_msg, bool is_body) {
-	if (is_hold)return;
-
-	//送信カウント　送信先アドレス
-	msg_wos.str(L"");
-	msg_wos << L"RPU #:" << cnt_rcv_pc_m << L" : " << addrin_pc_m_from.sin_addr.S_un.S_un_b.s_b1 << L"." << addrin_pc_m_from.sin_addr.S_un.S_un_b.s_b2 << L"." << addrin_pc_m_from.sin_addr.S_un.S_un_b.s_b3 << L"." << addrin_pc_m_from.sin_addr.S_un.S_un_b.s_b4 << L" "
-		<< htons(addrin_pc_m_from.sin_port) << L" : ";
-
-	//ヘッダ部情報追加
-	if (is_msg) {
-		msg_wos << L" (PC)" << st_msg_pc_m_pc_rcv.head.myid << L" (EVENT)" << st_msg_pc_m_pc_rcv.head.code
-			<< L" (IP)" << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_pc_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b4
-			<< L" (PORT) " << htons(st_msg_pc_m_pc_rcv.head.addr.sin_port)
-			<< L" (COM)" << st_msg_pc_m_pc_rcv.head.status << L" (接続中OTE)" << st_msg_pc_m_pc_rcv.head.tgid;
-	}
-
-	//テキスト出力（基本情報部）
-	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM], msg_wos.str().c_str());
-
-	//ボディ部情報
-	if (is_body) {
-		msg_wos.str(L"");
-		//後で追加　msg_wos << L"RCV BODY:";
-		SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], msg_wos.str().c_str());
-	}
-
-	InvalidateRect(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_RPM], NULL, TRUE);//表示更新
-
-	return;
-}
-void COteIF::disp_update_rom(bool is_hold, bool is_msg, bool is_body) {
-
-	if (is_hold)return;
-
-	//送信カウント　送信先アドレス
-	msg_wos.str(L"");
-	msg_wos << L"ROM #:" << cnt_rcv_ote_m << L" : " << addrin_ote_m_from.sin_addr.S_un.S_un_b.s_b1 << L"." << addrin_ote_m_from.sin_addr.S_un.S_un_b.s_b2 << L"." << addrin_ote_m_from.sin_addr.S_un.S_un_b.s_b3 << L"." << addrin_ote_m_from.sin_addr.S_un.S_un_b.s_b4 << L" "
-		<< htons(addrin_ote_m_from.sin_port) << L" : ";
-
-	//ヘッダ部情報追加
-	if (is_msg) {
-		msg_wos << L" (PC)" << st_msg_ote_m_pc_rcv.head.myid << L" (EVENT)" << st_msg_ote_m_pc_rcv.head.code
-			<< L" (IP)" << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b1 << L"." << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b2 << L"." << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b3 << L"." << st_msg_ote_m_pc_rcv.head.addr.sin_addr.S_un.S_un_b.s_b4
-			<< L" (PORT) " << htons(st_msg_ote_m_pc_rcv.head.addr.sin_port)
-			<< L" (COM)" << st_msg_ote_m_pc_rcv.head.status << L" (接続中OTE)" << st_msg_ote_m_pc_rcv.head.tgid;
-	}
-
-	//テキスト出力（基本情報部）
-	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM], msg_wos.str().c_str());
-
-	//ボディ部情報
-	if (is_body) {
-		msg_wos.str(L"");
-		//後で追加　msg_wos << L"RCV BODY:";
-		SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODY], msg_wos.str().c_str());
-	}
-	
-	InvalidateRect(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_ROM], NULL, TRUE);//表示更新
 	return;
 }
 

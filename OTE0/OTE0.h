@@ -72,11 +72,12 @@ public:
 	CSockAlpha* pSockPcMultiCastOte;	//PC->OTEマルチキャスト受信用ソケット
 	CSockAlpha* pSockOteMultiCastOte;	//OTE→OTEマルチキャスト受信用ソケット
 
-	SOCKADDR_IN addrin_pc_u_ote;			//PCユニキャスト受信アドレス（OTE用)
-	SOCKADDR_IN addrin_pc_m_ote;			//PCマルチキャスト受信アドレス（OTE用)
+	SOCKADDR_IN addrin_pc_u_ote;		//PCユニキャスト受信アドレス（OTE用)
+	SOCKADDR_IN addrin_pc_m_ote;		//PCマルチキャスト受信アドレス（OTE用)
 	SOCKADDR_IN addrin_ote_m_ote;		//OTEマルチキャスト受信アドレス（OTE用)
 
-	SOCKADDR_IN addrin_ote_m_snd;		//OTEマルチキャスト送信アドレス（OTE用)
+	SOCKADDR_IN addrin_ote_m_ote_snd;	//OTEマルチキャスト送信アドレス（OTE用)
+	SOCKADDR_IN addrin_ote_m_pc_snd;	//OTEマルチキャスト送信アドレス（PC用)
 	SOCKADDR_IN addrin_ote_u_snd;		//OTEユニキャスト送信先アドレス（OTE用)
 
 	SOCKADDR_IN addrin_pc_u_from;	//OTEユニキャスト送信元アドレス（OTE用)
@@ -84,13 +85,13 @@ public:
 	SOCKADDR_IN addrin_ote_m_from;	//OTEマルチキャスト送信元アドレス（OTE用)
 
 	//送受信カウント
-	LONG cnt_snd_ote_u, cnt_snd_ote_m;
+	LONG cnt_snd_ote_u, cnt_snd_ote_m_ote, cnt_snd_ote_m_pc;
 	LONG cnt_rcv_pc_u, cnt_rcv_pc_m, cnt_rcv_ote_m;
 
 	ST_OTE_U_MSG st_msg_ote_u_snd;
 	ST_OTE_M_MSG st_msg_ote_m_snd;
 
-	ST_PC_U_MSG st_msg_ote_u_rcv;
+	ST_PC_U_MSG st_msg_pc_u_rcv;
 	ST_PC_M_MSG st_msg_pc_m_ote_rcv;
 	ST_OTE_M_MSG st_msg_ote_m_ote_rcv;
 

@@ -33,9 +33,6 @@
     <ClInclude Include="OTEmsglist.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="OTEpanel.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="OTEIFpanel.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

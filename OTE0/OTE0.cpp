@@ -23,7 +23,7 @@ HWND hWnd_work;					//操作端末メインウィンドウハンドル
 HWND hWnd_swy;					//振れウィンドウハンドル
 HWND hWnd_sub[OTE0_N_SUB_WND];	//
 HWND hwnd_current_subwnd;
-COte* pOte0;                    //OTE0オブジェクト
+COte* pCOte0;                    //OTE0オブジェクト
 static bool is_init_disp = true;
 
 static std::wostringstream msg_wos;
@@ -52,7 +52,9 @@ void disp_msg_cnt();
 void create_objects(HWND hWnd);					//DC,Bitmap,Brush,Pen削除
 void delete_objects(HWND hWnd);					//DC,Bitmap,Brush,Pen生成
 
-void draw_lamp(HDC hdc,bool is_init);						//ノッチランプ描画
+void set_lamp();								//ランプ指令セット
+void draw_lamp(HDC hdc,bool is_init);			//ランプ描画
+
 void draw_graphic();
 void draw_info();
 void combine_map();
@@ -198,8 +200,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 
     // OTE0オブジェクトインスタンス化
-   pOte0 = new COte(hWnd_work);                              // メイン処理クラスのインスタンス化
-   pOte0->init_proc();
+   pCOte0 = new COte(hWnd_work);                              // メイン処理クラスのインスタンス化
+   pCOte0->init_proc();
    
    ShowWindow(hWnd_work, nCmdShow);
    UpdateWindow(hWnd_work);
@@ -235,7 +237,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		hwnd_current_subwnd = open_connect_Wnd(hWnd);		//接続表示子ウィンドウ
 		open_swy_Wnd(hWnd);										//振れウィンドウ追加
 
-				  //マルチキャストタイマ起動 
+		//マルチキャストタイマ起動 
 		SetTimer(hWnd, ID_OTE_MULTICAST_TIMER, OTE_MULTICAST_SCAN_MS, NULL);
 		//ユニキャストタイマ起動
 		SetTimer(hWnd, ID_OTE_UNICAST_TIMER, OTE_UNICAST_SCAN_MS, NULL);
@@ -250,39 +252,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 #endif
 	}break;
-
 	case WM_TIMER: {
 
 		if (wParam == ID_OTE_MULTICAST_TIMER) {
-			if (S_OK == pOte0->snd_ote_m_pc(pOte0->set_msg_ote_m())) {//OTEマルチキャスト送信
-				pOte0->cnt_snd_ote_m++;
+			if (S_OK == pCOte0->snd_ote_m_pc(pCOte0->set_msg_ote_m())) {//OTEマルチキャスト送信
+				pCOte0->cnt_snd_ote_m_pc++;
 			}
-			//##### FOR DEBUG
-
-			if (tmp_counter % 6 > 3) {
-				st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][30] = 0x86000000;
-				st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][7] = 0x84000000;
+			if (S_OK == pCOte0->snd_ote_m_ote(pCOte0->set_msg_ote_m())) {//OTEマルチキャスト送信
+				pCOte0->cnt_snd_ote_m_ote++;
 			}
-			else {
-				st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][30] = 0x06000000;
-				st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][7] = 0x04000000;
-			}
+	
+			set_lamp();
 			draw_graphic();
 			draw_info();
+			draw_graphic_swy();
+			draw_info_swy();
+
 			InvalidateRect(hWnd, NULL, FALSE);
 
 				//######
 
 		}
 		if (wParam == ID_OTE_UNICAST_TIMER) {
-			if (S_OK == pOte0->snd_ote_u_pc(pOte0->set_msg_ote_u(), &pOte0->addrin_ote_u_snd)) {//OTEユニキャスト送信
-				pOte0->cnt_snd_ote_m++;
+			if (S_OK == pCOte0->snd_ote_u_pc(pCOte0->set_msg_ote_u(), &pCOte0->addrin_ote_u_snd)) {//OTEユニキャスト送信
+				pCOte0->cnt_snd_ote_u++;
 			}
 		}
 		disp_msg_cnt();	//カウント表示更新
 
 	}break;
-
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
 		// 選択されたメニューの解析:
@@ -293,18 +291,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}break;
-
 		//ソケットIF
 	case ID_SOCK_EVENT_PC_UNI_OTE: {
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (pOte0->rcv_pc_u_ote(&pOte0->st_msg_ote_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
-				pOte0->cnt_rcv_pc_u++;
+			if (pCOte0->rcv_pc_u_ote(&pCOte0->st_msg_pc_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+				pCOte0->cnt_rcv_pc_u++;
 				disp_msg_cnt();
 			}
 			else {
-				pOte0->msg_ws = L"ERROR : rcv_ote_u_pc()";	pOte0->wstr_out_inf(pOte0->msg_ws);
+				pCOte0->msg_ws = L"ERROR : rcv_ote_u_pc()";	pCOte0->wstr_out_inf(pCOte0->msg_ws);
 			}
 		}break;
 		case FD_WRITE: break;
@@ -316,12 +313,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (pOte0->rcv_pc_m_ote(&pOte0->st_msg_pc_m_ote_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
-				pOte0->cnt_rcv_pc_m++;
+			if (pCOte0->rcv_pc_m_ote(&pCOte0->st_msg_pc_m_ote_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+				pCOte0->cnt_rcv_pc_m++;
 				disp_msg_cnt();
 			}
 			else {
-				pOte0->msg_ws = L"ERROR : rcv_ote_u_pc()";	pOte0->wstr_out_inf(pOte0->msg_ws);
+				pCOte0->msg_ws = L"ERROR : rcv_ote_u_pc()";	pCOte0->wstr_out_inf(pCOte0->msg_ws);
 			}
 		}break;
 		case FD_WRITE: break;
@@ -333,12 +330,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (pOte0->rcv_ote_m_ote(&pOte0->st_msg_ote_m_ote_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
-				pOte0->cnt_rcv_ote_m++;
+			if (pCOte0->rcv_ote_m_ote(&pCOte0->st_msg_ote_m_ote_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+				pCOte0->cnt_rcv_ote_m++;
 				disp_msg_cnt();
 			}
 			else {
-				pOte0->msg_ws = L"ERROR : rcv_ote_m_ote()";	pOte0->wstr_out_inf(pOte0->msg_ws);
+				pCOte0->msg_ws = L"ERROR : rcv_ote_m_ote()";	pCOte0->wstr_out_inf(pCOte0->msg_ws);
 			}
 		}break;
 		case FD_WRITE: break;
@@ -632,8 +629,6 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 
-		draw_graphic_swy();
-		draw_info_swy();
 		combine_map_swy();
 
 		BitBlt(hdc, 0, 0, 100, 100, st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, SRCCOPY);
@@ -1028,10 +1023,8 @@ void set_OTE_panel_objects(HWND hWnd) {
 	return;
 }
 void disp_msg_cnt() {
-	
-	tmp_counter++;
 	msg_wos.str(L"");
-	msg_wos << L"OTE0     " << L"SOU:" << tmp_counter << L"  RPU:" << L"  SOM:" << L"  ROM:" << L"  RPM:";
+	msg_wos << L"OTE0     " << L"SOU:" << pCOte0->cnt_snd_ote_u << L"  RPU:"<< pCOte0->cnt_rcv_pc_u << L"  SOMO:" << pCOte0->cnt_snd_ote_m_ote << L"  ROM:" << pCOte0->cnt_rcv_ote_m  << L"  SOMP:" << pCOte0->cnt_snd_ote_m_pc << L"  RPM:"<<pCOte0->cnt_rcv_pc_m;
 	SetWindowText(hWnd_work, msg_wos.str().c_str());
 
 	return;
@@ -1068,7 +1061,6 @@ void combine_map() {
 
 void draw_graphic_swy() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR];
-	PatBlt(hdc, 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, PATCOPY);
 	//マップ背景ライン描画
 	SelectObject(hdc, st_work_wnd.hpen[OTE0_RED]);
 	SelectObject(hdc, st_work_wnd.hbrush[OTE0_GREEN]);
@@ -1092,6 +1084,23 @@ void combine_map_swy() {
 		RGB(255, 255, 255));
 }
 
+/// <summary>
+/// ランプの描画
+/// </summary>
+void set_lamp() {
+	//##### FOR 
+	tmp_counter++;
+
+	if (tmp_counter % 6 > 3) {
+		st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][30] = 0x86000000;
+		st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][7] = 0x84000000;
+	}
+	else {
+		st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][30] = 0x06000000;
+		st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][7] = 0x04000000;
+	}
+	return;
+}
 
 /// <summary>
 /// ランプの描画

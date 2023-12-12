@@ -220,11 +220,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
         case IDC_CHK_IFCHK: {
             if (pProcObj->hWnd_work != NULL) {
-                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0))
-
+                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) {
                     pProcObj->show_if_wnd();
-                else
+                }
+                else {
                     pProcObj->hide_if_wnd();
+                    pProcObj->set_if_disp_hold(false);
+                }
             }
          }break;
         case IDC_CHK_OTE: {

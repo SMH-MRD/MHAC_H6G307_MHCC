@@ -12,6 +12,7 @@
 #include "OTEIFpanel.h"
 
 //タイマー
+#define ID_PC_MULTICAST_TIMER				10600	    // マルチキャスト IF送信周期
 #define PC_MULTICAST_SCAN_MS				1000	    // マルチキャスト IF送信周期
 
 //共有メモリ異常フラグ
@@ -66,6 +67,17 @@ public:
    int parse();                //メイン処理
    int output();               //出力処理
 
+   void set_if_disp_hold(bool flg) {
+       if (flg) {
+           st_work_wnd.is_hold_disp = true; 
+           SendMessage(st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD], BM_SETCHECK, BST_CHECKED, 0L);
+        }
+       else {
+            st_work_wnd.is_hold_disp = false; 
+            SendMessage(st_work_wnd.hctrl[ID_OTEIF_CTRL_PB][ID_OTEIF_CHK_HOLD], BM_SETCHECK, BST_UNCHECKED, 0L);
+       }
+   }
+
        //追加メソッド
    BOOL show_if_wnd();
    BOOL hide_if_wnd();
@@ -88,8 +100,9 @@ public:
    static SOCKADDR_IN addrin_pc_m_pc;			//PC->PC PCマルチキャスト受信アドレス（PC用)
    static SOCKADDR_IN addrin_ote_m_pc;			//OTE→PC OTEマルチキャスト受信アドレス（PC用)
    
-   static SOCKADDR_IN addrin_pc_u_snd;		    //PC->OTE PCユニチキャスト送信先アドレス（PC用)
-   static SOCKADDR_IN addrin_pc_m_snd;			//PC->PC PCマルチキャスト送信先アドレス（PC用)
+   static SOCKADDR_IN addrin_pc_u_snd;		    //PC->OTE PCユニチキャスト送信先アドレス（PC受信用)
+   static SOCKADDR_IN addrin_pc_m_pc_snd;		//PC->PC PCマルチキャスト送信先アドレス（PC受信用)
+   static SOCKADDR_IN addrin_pc_m_ote_snd;		//PC->OTE PCマルチキャスト送信先アドレス（OTE受信用)
 
    static SOCKADDR_IN addrin_ote_u_from;		//OTEユニキャスト送信元アドレス（PC用)
    static SOCKADDR_IN addrin_pc_m_from;		    //PCマルチキャスト送信元アドレス（PC用)
@@ -98,7 +111,7 @@ public:
    static SOCKADDR_IN addr_active_ote;			//操作信号が有効な端末のアドレス
 
 
-   static LONG cnt_snd_pc_u, cnt_snd_pc_m;
+   static LONG cnt_snd_pc_u, cnt_snd_pc_m_ote, cnt_snd_pc_m_pc;
    static LONG cnt_rcv_ote_u, cnt_rcv_ote_m, cnt_rcv_pc_m;
 
    static ST_PC_U_MSG st_msg_pc_u_snd;
@@ -129,14 +142,12 @@ public:
    static HRESULT rcv_pc_m_pc(LPST_PC_M_MSG pbuf);								//PC→PC　	マルチキャスト受信処理
    static HRESULT rcv_ote_m_pc(LPST_OTE_M_MSG pbuf);							//OTE->PC	マルチキャスト受信処理
    
-   static void disp_update_spu(bool is_hold, bool is_msg, bool is_body);
-   static void disp_update_rou(bool is_hold, bool is_msg, bool is_body);
-   static void disp_update_spm(bool is_hold, bool is_msg, bool is_body);
-   static void disp_update_rpm(bool is_hold, bool is_msg, bool is_body);
-   static void disp_update_rom(bool is_hold, bool is_msg, bool is_body);
+   static void if_disp_update();
+  
+   static void disp_msg_cnt();
    
    static void set_OTEIF_panel_objects(HWND hWnd);
-   void set_sock_addr(SOCKADDR_IN *paddr, PCSTR ip,USHORT port){
+   static void set_sock_addr(SOCKADDR_IN *paddr, PCSTR ip,USHORT port){
 	   paddr->sin_family = AF_INET;
 	   paddr->sin_port = htons(port);
 	   inet_pton(AF_INET, ip, &(paddr->sin_addr.s_addr));

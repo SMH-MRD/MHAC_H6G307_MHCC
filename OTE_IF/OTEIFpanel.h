@@ -4,23 +4,19 @@
 
 //ワークウィンドウオブジェクトID
 #define BASE_ID_OTEIF_STATIC				10630
-#define ID_OTEIF_LABEL_0					0		//情報タイトル　CNT　IP　PORT　MSG
-#define ID_OTEIF_LABEL_1					1		//表示説明
-#define ID_OTEIF_INF_SPU					2
-#define ID_OTEIF_INF_ROU					3
-#define ID_OTEIF_INF_SPM					4
-#define ID_OTEIF_INF_RPM					5
-#define ID_OTEIF_INF_ROM					6
-#define ID_OTEIF_INF_BODY					7
+#define ID_OTEIF_INF_CNT_IP0				0
+#define ID_OTEIF_INF_IP_SND_FROM			1
+#define ID_OTEIF_INF_HEADS					2
+#define ID_OTEIF_INF_HEADR					3
+#define ID_OTEIF_INF_BODYS					4
+#define ID_OTEIF_INF_BODYR					5
 			
 #define BASE_ID_OTEIF_PB					10650
-#define ID_OTEIF_CHK_MSG					0		//メッセージ表示選択
-#define ID_OTEIF_CHK_HOLD					1		//表示更新停止
-#define ID_OTEIF_RADIO_SPU					2
-#define ID_OTEIF_RADIO_ROU					3
-#define ID_OTEIF_RADIO_SPM					4
-#define ID_OTEIF_RADIO_RPM					5
-#define ID_OTEIF_RADIO_ROM					6
+#define ID_OTEIF_RADIO_UNI					0
+#define ID_OTEIF_RADIO_PCM					1
+#define ID_OTEIF_RADIO_TEM					2
+#define ID_OTEIF_CHK_HOLD					3
+
 
 #define N_OTEIF_CTRL_TYPE					2
 #define ID_OTEIF_CTRL_STATIC				0
@@ -32,17 +28,6 @@
 #define N_OTEIF_PEN							8
 #define N_OTEIF_BRUSH						8
 
-#define OTEIF_X0							10
-#define OTEIF_X1							20
-#define OTEIF_Y0							5
-#define OTEIF_Y1							20
-#define OTEIF_W0							300
-#define OTEIF_W1							600
-#define OTEIF_W2							100
-#define OTEIF_W3							10
-
-#define OTEIF_H0							20
-#define OTEIF_H1							25
 
 //操作端末ウィンドウ構造体
 typedef struct _stOTEifWorkWnd {
@@ -50,7 +35,7 @@ typedef struct _stOTEifWorkWnd {
 	BOOL is_disp_msg	= false;	//メッセージを表示
 	BOOL is_hold_disp	= false;	//表示更新ホールド
 
-	UINT32 id_disp_body;
+	UINT32 id_disp_item;
 
 	int area_x = 0, area_y = 0, area_w = 0, area_h = 0;     //メインウィンドウ上の表示エリア
 	int bmp_w = 0, bmp_h = 0;                               //グラフィックビットマップサイズ
@@ -65,36 +50,43 @@ typedef struct _stOTEifWorkWnd {
 	
 	POINT pt_ctrl[N_OTEIF_CTRL_TYPE][N_OTEIF_PNL_ITEMS] = {
 	//#STATIC
-		//LABEL
-		OTEIF_X0,OTEIF_Y0,  OTEIF_X0,OTEIF_Y0 + OTEIF_H1 * 6,
-		//MSG(HEAD)
-		OTEIF_X0,OTEIF_Y0 + OTEIF_H1,  OTEIF_X0,OTEIF_Y0 + OTEIF_H1*2,  OTEIF_X0,OTEIF_Y0 + OTEIF_H1 * 3,  OTEIF_X0,OTEIF_Y0 + OTEIF_H1 * 4,  OTEIF_X0,OTEIF_Y0 + OTEIF_H1 * 5,
-		//MSG(BODY)
-		OTEIF_X0,OTEIF_Y0 + OTEIF_H1 * 8,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		5,30,	//ID_OTEIF_INF_CNT_IP0	
+		5,55,	//ID_OTEIF_INF_IP_SND_FROM		
+		5,100,	//ID_OTEIF_INF_HEADS	 
+		5,145,	//ID_OTEIF_INF_HEADR		
+		5,190,	//ID_OTEIF_INF_BODYS	 
+		5,275,	//ID_OTEIF_INF_BODYR
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	//#PB
-		OTEIF_X0 + 300,OTEIF_Y0, OTEIF_X0 + 380,OTEIF_Y0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		5 ,5, 65,5,125,5,450,5,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	};
 
 	SIZE size_ctrl[N_OTEIF_CTRL_TYPE][N_OTEIF_PNL_STATIC] = {
 		//STATIC
-		OTEIF_W1,OTEIF_H0, OTEIF_W1,OTEIF_H0 *2,
-		OTEIF_W1,OTEIF_H0, OTEIF_W1,OTEIF_H0,  OTEIF_W1,OTEIF_H0,  OTEIF_W1,OTEIF_H0,  OTEIF_W1,OTEIF_H0,
-		OTEIF_W1,OTEIF_H0*7,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		520,20, //ID_OTEIF_INF_CNT_IP0	
+		520,40,	//ID_OTEIF_INF_IP_SND_FROM
+		520,40, //ID_OTEIF_INF_HEADS 
+		520,40, //ID_OTEIF_INF_HEADR 
+		520,80, //ID_OTEIF_INF_BODYS 
+		520,80,	//ID_OTEIF_INF_BODYR
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		//PB
-		OTEIF_W1,OTEIF_H0,  OTEIF_W2,OTEIF_H0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		50,20, 50,20,50,20, 60,20,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	};
 
 	WCHAR ctrl_text[N_OTEIF_CTRL_TYPE][N_OTEIF_PNL_STATIC][128] = {
 	//STATIC
-	L"HEADER↓CNT　:　IP PORT　:　MSG",L"(S:SND R:RCV P:PC O:OTE U:UNI M:MULTI\nBODY",
-	L"SPU #",L"ROU #",L"SPM #",L"RPM #",L"ROM #",
-	L"BODY",L"",L"",L"",L"",L"",L"",L"",L"",
+	L"CNT IP0",
+	L"IPS,IPFROM",
+	L"HEAD(S):",
+	L"HEAD(R):",
+	L"BODY(S)",
+	L"BODY(R)",
+	L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 	//PB
-	L"MSG",L"HOLD",L"",L"",L"",L"",L"",L"",
+	L"UNI",L"PCM",L"TEM",L"HOLD",L"",L"",L"",L"",
 	L"",L"",L"",L"",L"",L"",L"",L""
 	};
 

@@ -7,45 +7,6 @@
 #include <iomanip>
 #include <sstream>
 
-/*
-std::wstring COte::msg_ws;
-std::wostringstream COte::msg_wos;
-
-HWND COte::hWnd_parent;				//親ウィンドウのハンドル
-HWND COte::hWnd_work;				//操作端末メインウィンドウハンドル
-HWND COte::hWnd_sub[OTE0_N_SUB_WND];	//通信イベント処理用ウィンドウハンドル
-HWND COte::hwnd_current_subwnd;		//表示中のサブウィンドハンドル
-
-ST_OTE_WORK_WND	COte::st_work_wnd;
-
-CSockAlpha* COte::pSockPcUniCastOte;	//OTEユニキャスト用ソケット
-CSockAlpha* COte::pSockPcMultiCastOte;	//PCマルチキャストOTE受信用ソケット
-CSockAlpha* COte::pSockOteMultiCastOte;	//OTEマルチキャストOTE受信用ソケット
-
-SOCKADDR_IN COte::addrin_pc_u_ote;		//OTEユニキャスト用アドレス(OTE受信用)
-SOCKADDR_IN COte::addrin_pc_m_ote;		//PCマルチキャスト受信アドレス(OTE受信用)
-SOCKADDR_IN COte::addrin_ote_m_ote;		//OTEマルチキャスト受信アドレス(OTE受信用)
-
-SOCKADDR_IN COte::addrin_ote_m_snd;		//OTEマルチキャスト送信先アドレス
-SOCKADDR_IN COte::addrin_ote_u_snd;		//OTEマルチキャスト受信アドレス
-
-SOCKADDR_IN COte::addrin_pc_u_from;	//OTEユニキャスト送信元アドレス（OTE用)
-SOCKADDR_IN COte::addrin_pc_m_from;	//PCマルチキャスト送信元アドレス（OTE用)
-SOCKADDR_IN COte::addrin_ote_m_from;	//OTEマルチキャスト送信元アドレス（OTE用)
-
-
-LONG COte::cnt_snd_ote_u, COte::cnt_snd_ote_m;
-LONG COte::cnt_rcv_pc_u, COte::cnt_rcv_pc_m, COte::cnt_rcv_ote_m;
-
-ST_OTE_U_MSG COte::st_msg_ote_u_snd;
-ST_OTE_M_MSG COte::st_msg_ote_m_snd;
-
-ST_PC_M_MSG COte::st_msg_pc_m_ote_rcv;
-ST_OTE_M_MSG COte::st_msg_ote_m_ote_rcv;
-ST_PC_U_MSG COte::st_msg_ote_u_rcv;
-
-*/
-
 /*****************************************************************************/
 /// <summary>
 /// コンストラクタ
@@ -53,7 +14,7 @@ ST_PC_U_MSG COte::st_msg_ote_u_rcv;
 /// <param name="hWnd">親ウィンドウのハンドル</param>
 COte::COte(HWND hWnd) {
 	hWnd_parent = hWnd;
-	cnt_snd_ote_u = cnt_snd_ote_m = 0;
+	cnt_snd_ote_u = cnt_snd_ote_m_ote = cnt_snd_ote_m_pc = 0;
 	cnt_rcv_pc_u = cnt_rcv_pc_m = cnt_rcv_ote_m = 0;
 };
 /*****************************************************************************/
@@ -70,15 +31,16 @@ COte::~COte() {
 int COte::init_proc() {
 
 	//### ソケットアドレスセット
-	memset(&addrin_pc_u_ote, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_m_ote, 0, sizeof(SOCKADDR_IN)); memset(&addrin_ote_m_ote, 0, sizeof(SOCKADDR_IN));
-	memset(&addrin_ote_m_snd, 0, sizeof(SOCKADDR_IN));	memset(&addrin_ote_u_snd, 0, sizeof(SOCKADDR_IN));
+	memset(&addrin_pc_u_ote, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_u_ote, 0, sizeof(SOCKADDR_IN)); memset(&addrin_ote_m_ote, 0, sizeof(SOCKADDR_IN));
+	memset(&addrin_ote_m_pc_snd, 0, sizeof(SOCKADDR_IN));	memset(&addrin_ote_m_pc_snd, 0, sizeof(SOCKADDR_IN));
 
 	set_sock_addr(&addrin_pc_u_ote, OTE_IF_UNICAST_IP_OTE0, OTE_IF_UNICAST_PORT_OTE);
-	set_sock_addr(&addrin_ote_m_ote, OTE_IF_UNICAST_IP_OTE0, OTE_IF_MULTICAST_PORT_OTE);
-	set_sock_addr(&addrin_pc_m_ote, OTE_IF_UNICAST_IP_OTE0, OTE_IF_MULTICAST_PORT_PC);
+	set_sock_addr(&addrin_ote_m_ote, OTE_IF_UNICAST_IP_OTE0, OTE_IF_MULTICAST_PORT_OTE2OTE);
+	set_sock_addr(&addrin_pc_m_ote, OTE_IF_UNICAST_IP_OTE0, OTE_IF_MULTICAST_PORT_PC2OTE);
 
 	set_sock_addr(&addrin_ote_u_snd, OTE_IF_UNICAST_IP_PC, OTE_IF_UNICAST_PORT_PC);
-	set_sock_addr(&addrin_ote_m_snd, OTE_IF_MULTICAST_IP_OTE, OTE_IF_MULTICAST_PORT_OTE);
+	set_sock_addr(&addrin_ote_m_ote_snd, OTE_IF_MULTICAST_IP_OTE, OTE_IF_MULTICAST_PORT_OTE2OTE);
+	set_sock_addr(&addrin_ote_m_pc_snd, OTE_IF_MULTICAST_IP_OTE, OTE_IF_MULTICAST_PORT_OTE2PC);
 
 	//### ソケット設定
 	pSockPcUniCastOte = new CSockAlpha(UDP_PROTOCOL, ACCESS_TYPE_CLIENT, ID_SOCK_EVENT_PC_UNI_OTE);
@@ -97,8 +59,9 @@ int COte::init_proc() {
 
 	//マルチキャスト用
 	SOCKADDR_IN addr_tmp;
-	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_OTE, NULL);
+	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_PC, NULL);
 	if (pSockPcMultiCastOte->init_sock_m(hWnd_parent, addrin_pc_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockPcMultiCastOte->err_msg.str(); return NULL; }
+	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_OTE, NULL);
 	if (pSockOteMultiCastOte->init_sock_m(hWnd_parent, addrin_ote_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockOteMultiCastOte->err_msg.str(); return NULL; }
 
 	//送信メッセージヘッダ設定（送信元受信アドレス：受信先の折り返し用）
@@ -306,7 +269,7 @@ HRESULT COte::snd_ote_u_pc(LPST_OTE_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
 /// <param name="pto_addrin"></param>
 /// <returns></returns>
 HRESULT COte::snd_ote_m_pc(LPST_OTE_M_MSG pbuf) {
-	if (pSockPcMultiCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG), addrin_ote_m_snd) == SOCKET_ERROR) {
+	if (pSockPcMultiCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG), addrin_ote_m_pc_snd) == SOCKET_ERROR) {
 		msg_wos.str() = pSockPcMultiCastOte->err_msg.str();
 		return S_FALSE;
 	}
@@ -319,7 +282,7 @@ HRESULT COte::snd_ote_m_pc(LPST_OTE_M_MSG pbuf) {
 /// <param name="pbuf"></param>
 /// <returns></returns>
 HRESULT COte::snd_ote_m_ote(LPST_OTE_M_MSG pbuf) {
-	if (pSockOteMultiCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG), addrin_ote_m_snd) == SOCKET_ERROR) {
+	if (pSockOteMultiCastOte->snd_udp_msg((char*)pbuf, sizeof(ST_OTE_M_MSG), addrin_ote_m_ote_snd) == SOCKET_ERROR) {
 		msg_wos.str() = pSockOteMultiCastOte->err_msg.str();
 		return S_FALSE;
 	}

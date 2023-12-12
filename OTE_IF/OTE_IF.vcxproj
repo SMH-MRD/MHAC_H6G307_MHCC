@@ -153,7 +153,6 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="OTEIFpanel.h" />
     <ClInclude Include="OTEmsglist.h" />
-    <ClInclude Include="OTEpanel.h" />
     <ClInclude Include="OTE_IF.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />

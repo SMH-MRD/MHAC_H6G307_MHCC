@@ -15,10 +15,10 @@
 #define OTE_IF_UNICAST_PORT_PC				10050					//PCユニキャストIF受信ポート
 #define OTE_IF_UNICAST_PORT_OTE				10051					//端末ユニキャストIF受信ポート
 
-#define OTE_IF_MULTICAST_PORT_PC			20080					//PC発信マルチキャスト受信ポート
-#define OTE_IF_MULTICAST_PORT_OTE			20081					//OTE発信マルチキャスト受信ポート
-//#define OTE_IF_MULTICAST_PORT_PC_OTE	20082					//PC発信マルチキャストOTE受信ポート
-//#define OTE_IF_MULTICAST_PORT_OTE_OTE	20083					//OTE発信マルチキャストOTE受信ポート
+#define OTE_IF_MULTICAST_PORT_PC2OTE		20080					//PC発信マルチキャスト受信ポート
+#define OTE_IF_MULTICAST_PORT_OTE2PC		20081					//OTE発信マルチキャスト受信ポート
+#define OTE_IF_MULTICAST_PORT_PC2PC			20082					//PC発信マルチキャストOTE受信ポート
+#define OTE_IF_MULTICAST_PORT_OTE2OTE		20083					//OTE発信マルチキャストOTE受信ポート
 
 #define ID_OTE_MODE_REMOTE_OPE				0x00000001
 #define ID_OTE_MODE_MONITOR					0x00000002
