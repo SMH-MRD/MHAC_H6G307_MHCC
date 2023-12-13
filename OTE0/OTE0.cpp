@@ -163,7 +163,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    st_work_wnd.area_h = rc.bottom - rc.top;
 
    //PBチランプ領域セット
-   for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_N3; i++) {
+   for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
 		RECT rc_add;
 		rc_add.left = -PRM_OTE_DEF_LAMP_W; rc_add.top = 0; rc_add.right = PRM_OTE_DEF_LAMP_W; rc_add.bottom = PRM_OTE_DEF_LAMP_H;
 		st_work_wnd.pb_rect[i].left = st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x + rc_add.left;
@@ -284,12 +284,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
 		// 選択されたメニューの解析:
+		if ((wmId >= ID_OTE_NOTCH_MH_MIN) && (wmId <= ID_OTE_NOTCH_AH_MAX)) {
+			if(wmId< ID_OTE_NOTCH_MH_MAX)		st_work_wnd.notch_pos[ID_HOIST]		= wmId - ID_OTE_NOTCH_MH_MIN - ID_OTE_0NOTCH_POS;
+			else if (wmId < ID_OTE_NOTCH_GT_MAX)st_work_wnd.notch_pos[ID_GANTRY]	= wmId - ID_OTE_NOTCH_GT_MIN - ID_OTE_0NOTCH_POS;
+			else if (wmId < ID_OTE_NOTCH_BH_MAX)st_work_wnd.notch_pos[ID_BOOM_H]	= wmId - ID_OTE_NOTCH_BH_MIN - ID_OTE_0NOTCH_POS;
+			else if (wmId < ID_OTE_NOTCH_SL_MAX)st_work_wnd.notch_pos[ID_SLEW]		= wmId - ID_OTE_NOTCH_SL_MIN - ID_OTE_0NOTCH_POS;
+			else								st_work_wnd.notch_pos[ID_AHOIST]	= wmId - ID_OTE_NOTCH_AH_MIN - ID_OTE_0NOTCH_POS;
+		}
+		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_COM) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_MOMENT)) {
+			DestroyWindow(hwnd_current_subwnd);
+			switch (wmId - BASE_ID_OTE_PB) {
+			case ID_OTE_RADIO_COM:hwnd_current_subwnd = open_connect_Wnd(hWnd); break;
+			case ID_OTE_RADIO_MODE:hwnd_current_subwnd = open_mode_Wnd(hWnd); break;
+			case ID_OTE_RADIO_FAULT:hwnd_current_subwnd = open_fault_Wnd(hWnd); break;
+			case ID_OTE_RADIO_MOMENT:hwnd_current_subwnd = open_moment_Wnd(hWnd); break;
+			default:break;
+			}
+		}
+
 		switch (wmId)
 		{
-		case 1:break;
+		case BASE_ID_OTE_PB:break;
+
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
+
+
+
 	}break;
 		//ソケットIF
 	case ID_SOCK_EVENT_PC_UNI_OTE: {
@@ -921,105 +943,64 @@ void set_OTE_panel_objects(HWND hWnd) {
 
 	//PB
 	{
-		for (LONGLONG i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_N3; i++) {
+		for (LONGLONG i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME; i++) {
 			st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE ,
 				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
 				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
 				hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
 		}
 		//CHECK BOX
-		for (LONGLONG i = ID_OTE_CHK_WIDE; i <= ID_OTE_CHK_OPE; i++) {
-			st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
-				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
-				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
-				hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
+		for (LONGLONG i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
+				st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE  | BS_AUTOCHECKBOX | BS_PUSHLIKE,
+					st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
+					st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
+					hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
 		}
-		
 
-		
+
 		//RADIO
-		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM].cy,
-			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_RADIO_COM), hInst, NULL);
-
-		for (LONGLONG i = ID_OTE_RADIO_MODE; i <= ID_OTE_RADIO_MOMENT; i++) {
-			st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
-				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
-				hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
+		for (LONGLONG i = ID_OTE_RADIO_WIDE; i <= ID_OTE_RADIO_MOMENT; i++) {
+			if ((i == ID_OTE_RADIO_WIDE) ||(i == ID_OTE_RADIO_COM)){
+				st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
+					st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
+					st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
+					hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
+			}
+			else {
+				st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+					st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
+					st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
+					hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
+			}
 		}
+		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_WIDE], BM_SETCHECK, BST_CHECKED, 0L);
+		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_COM], BM_SETCHECK, BST_CHECKED, 0L);
+	
 	}
 
 	//ノッチラジオボタン
 	//主巻
-	{	st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-		st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY].y,
-		st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY].cy,
-		hWnd, (HMENU)(ID_OTE_NOTCH_MH0 - 4), hInst, NULL);
-
-	for (LONGLONG i = 1; i <= 8; i++) {
-		st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i].cy,
-			hWnd, (HMENU)(ID_OTE_NOTCH_MH0 - 4 + i), hInst, NULL);
-	}
-	}
-
-
-	//補巻
-	{
-		st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY].cy,
-			hWnd, (HMENU)(ID_OTE_NOTCH_AH0 - 4), hInst, NULL);
-
-		for (LONGLONG i = 1; i <= 8; i++) {
-			st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-				st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i].y,
-				st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i].cy,
-				hWnd, (HMENU)(ID_OTE_NOTCH_AH0 - 4 + i), hInst, NULL);
+	
+	for (int j = 0; j <= ID_AHOIST;j++) {
+		if (j == 2)continue;//TOROLLY IDはパス
+		for (LONGLONG i = 0; i <= 8; i++) {
+			if (i == 0) {
+				st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][j* N_OTE_NOTCH_ARRAY] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
+					st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY + i].y,
+					st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY].cy,
+					hWnd, (HMENU)(BASE_ID_OTE_NOTCH + j* N_OTE_NOTCH_ARRAY + i), hInst, NULL);
+			}
+			else {
+				st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY+i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY + i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
+					st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY + i].y,
+					st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY].cy,
+					hWnd, (HMENU)(BASE_ID_OTE_NOTCH + j * N_OTE_NOTCH_ARRAY + i), hInst, NULL);
+			}
 		}
+		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][j * N_OTE_NOTCH_ARRAY + ID_OTE_0NOTCH_POS], BM_SETCHECK, BST_CHECKED, 0L);
+		st_work_wnd.notch_pos[j] = 0;
 	}
-	//引込
-	{	st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-		st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY].y,
-		st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY].cy,
-		hWnd, (HMENU)(ID_OTE_NOTCH_BH0 - 4), hInst, NULL);
 
-	for (LONGLONG i = 1; i <= 8; i++) {
-		st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i].cy,
-			hWnd, (HMENU)(ID_OTE_NOTCH_BH0 - 4 + i), hInst, NULL);
-	}
-	}
-	//旋回
-	{	st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_SLEW] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-		st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY].y,
-		st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY].cy,
-		hWnd, (HMENU)(ID_OTE_NOTCH_SL0 - 4), hInst, NULL);
-
-	for (LONGLONG i = 1; i <= 8; i++) {
-		st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_SLEW] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i].cy,
-			hWnd, (HMENU)(ID_OTE_NOTCH_SL0 - 4 + i), hInst, NULL);
-	}
-	}
-	//走行
-	{	st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-		st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY].y,
-		st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY].cy,
-		hWnd, (HMENU)(ID_OTE_NOTCH_GT0 - 4), hInst, NULL);
-
-	for (LONGLONG i = 1; i <= 8; i++) {
-		st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i].cy,
-			hWnd, (HMENU)(ID_OTE_NOTCH_GT0 - 4 + i), hInst, NULL);
-	}
-	}
 	return;
 }
 void disp_msg_cnt() {
@@ -1031,12 +1012,12 @@ void disp_msg_cnt() {
 }
 void draw_graphic() {
 	HDC hdc= st_work_wnd.hdc[ID_OTE_HDC_MEM_GR];
-	PatBlt(hdc, 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, PATCOPY);
+//	PatBlt(hdc, 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, PATCOPY);
 	//マップ背景ライン描画
-	SelectObject(hdc, st_work_wnd.hpen[OTE0_RED]);
-	SelectObject(hdc, GetStockObject(NULL_BRUSH));
-	Rectangle(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, OTE0_GR_AREA_X+ OTE0_GR_AREA_W, OTE0_GR_AREA_Y + OTE0_GR_AREA_H);
-	Rectangle(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_X + OTE0_IF_AREA_W, OTE0_IF_AREA_Y + OTE0_IF_AREA_H);
+//	SelectObject(hdc, st_work_wnd.hpen[OTE0_RED]);
+//	SelectObject(hdc, GetStockObject(NULL_BRUSH));
+//	Rectangle(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, OTE0_GR_AREA_X+ OTE0_GR_AREA_W, OTE0_GR_AREA_Y + OTE0_GR_AREA_H);
+//	Rectangle(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_X + OTE0_IF_AREA_W, OTE0_IF_AREA_Y + OTE0_IF_AREA_H);
 }
 void draw_info() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_MEM_IF];
@@ -1089,8 +1070,19 @@ void combine_map_swy() {
 /// </summary>
 void set_lamp() {
 	//##### FOR 
+	for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
+		if (i == 2)continue;
+		for (int j = 0; j < 9; j++) {
+			if (st_work_wnd.notch_pos[i] == j - 4) {
+				st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][i * N_OTE_NOTCH_ARRAY + j] = 0x07000040;
+			}
+			else {
+				st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][i * N_OTE_NOTCH_ARRAY + j] = 0;
+			}
+		}
+	}
+#if 0
 	tmp_counter++;
-
 	if (tmp_counter % 6 > 3) {
 		st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][30] = 0x86000000;
 		st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][7] = 0x84000000;
@@ -1099,6 +1091,7 @@ void set_lamp() {
 		st_work_wnd.notch_lamp_status[OTE0_LAMP_STAT_NOW][30] = 0x06000000;
 		st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][7] = 0x04000000;
 	}
+#endif
 	return;
 }
 
@@ -1113,7 +1106,7 @@ void draw_lamp(HDC hdc,bool is_init) {
 	SelectObject(hdc, GetStockObject(NULL_PEN));
 
 	//PBランプ
-	for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_N3; i++) {
+	for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
 		plamp_com_hold = &st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_HOLD][i];
 		plamp_com_now = &st_work_wnd.pb_lamp_status[OTE0_LAMP_STAT_NOW][i];
 		lamp_com_delta = (*plamp_com_hold ^ *plamp_com_now) & OTE0_LAMP_COM_MASK;						//ランプ点灯指令変化有無

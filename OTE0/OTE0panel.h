@@ -41,42 +41,44 @@
 #define ID_OTE_PB_HIJYOU		3	//îÒèÌí‚é~PB
 #define ID_OTE_PB_AUTO			4
 #define ID_OTE_PB_FUREDOME		5
-#define ID_OTE_PB_S1			6
-#define ID_OTE_PB_S2			7
-#define ID_OTE_PB_S3			8
-#define ID_OTE_PB_N1			9
-#define ID_OTE_PB_N2			10
-#define ID_OTE_PB_N3			11
-#define ID_OTE_CHK_WIDE			12
-#define ID_OTE_CHK_ZOOM			13
-#define ID_OTE_CHK_HOOK			14
-#define ID_OTE_CHK_OPE			15
-#define ID_OTE_RADIO_COM		16
-#define ID_OTE_RADIO_MODE		17
-#define ID_OTE_RADIO_FAULT		18
-#define ID_OTE_RADIO_MOMENT		19
-#define ID_OTE_RADIO_SOU		20
-#define ID_OTE_RADIO_RPU		21
-#define ID_OTE_RADIO_SOM		22
-#define ID_OTE_RADIO_ROM		23
-#define ID_OTE_RADIO_RPM		24
+#define ID_OTE_CHK_S1			6
+#define ID_OTE_CHK_S2			7
+#define ID_OTE_CHK_S3			8
+#define ID_OTE_CHK_N1			9
+#define ID_OTE_CHK_N2			10
+#define ID_OTE_CHK_N3			11
+#define ID_OTE_RADIO_WIDE		12
+#define ID_OTE_RADIO_ZOOM		13
+#define ID_OTE_RADIO_HOOK		14
+#define ID_OTE_RADIO_OPE1		15
+#define ID_OTE_RADIO_OPE2		16
+#define ID_OTE_RADIO_COM		17
+#define ID_OTE_RADIO_MODE		18
+#define ID_OTE_RADIO_FAULT		19
+#define ID_OTE_RADIO_MOMENT		20
+#define ID_OTE_RADIO_SOU		21
+#define ID_OTE_RADIO_RPU		22
+#define ID_OTE_RADIO_SOM		23
+#define ID_OTE_RADIO_ROM		24
+#define ID_OTE_RADIO_RPM		25
 
-//ÉmÉbÉ`IDÅ@BASE + 10*MOTION_ID + NOTCH
-#define BASE_ID_OTE_NOTCH		11010
-#define ID_OTE_NOTCH_MH0		11010
-#define ID_OTE_NOTCH_AH0		11510		//ï\é¶çXêVí‚é~
-#define ID_OTE_NOTCH_BH0		11310
-#define ID_OTE_NOTCH_GT0		11110
-#define ID_OTE_NOTCH_SL0		11410
+//ÉmÉbÉ`IDÅ@BASE + 10*MOTION_ID + NOTCH + ID_OTE_0NOTCH_POS
+#define BASE_ID_OTE_NOTCH		10900
+#define ID_OTE_NOTCH_MH_MIN		10900
+#define ID_OTE_NOTCH_MH_MAX		10909
+#define ID_OTE_NOTCH_GT_MIN		10910
+#define ID_OTE_NOTCH_GT_MAX		10919
+#define ID_OTE_NOTCH_BH_MIN		10930
+#define ID_OTE_NOTCH_BH_MAX		10939
+#define ID_OTE_NOTCH_SL_MIN		10940
+#define ID_OTE_NOTCH_SL_MAX		10949
+#define ID_OTE_NOTCH_AH_MIN		10950
+#define ID_OTE_NOTCH_AH_MAX		10959
 
-#define ID_OTE_NOTCH_MH		0
-#define ID_OTE_NOTCH_AH		50		//ï\é¶çXêVí‚é~
-#define ID_OTE_NOTCH_BH		30
-#define ID_OTE_NOTCH_GT		10
-#define ID_OTE_NOTCH_SL		40
 
 #define N_OTE_NOTCH_ARRAY		10			//ÉmÉbÉ`äÑÇËìñÇƒîzóÒêî
-#define N_OTE_NOTCH_MAX			4			
+#define N_OTE_NOTCH_MAX			4
+#define ID_OTE_0NOTCH_POS		4
 
 #define N_OTE_CTRL_TYPE			3
 #define ID_OTE_CTRL_STATIC		0
@@ -156,6 +158,9 @@ typedef struct _stOTEWorkWnd {
 	BLENDFUNCTION bf = { 0,0,0,0 };					        //îºìßâﬂê›íËç\ë¢ëÃ
 
 	INT32  notch_pos[MOTION_ID_MAX] = { 0,0,0,0,0,0,0,0 };
+	INT32  camera_sel= ID_OTE_RADIO_WIDE;
+	INT32  subpanel_sel = ID_OTE_RADIO_WIDE;
+
 
 	POINT pt_ctrl[N_OTE_CTRL_TYPE][N_OTE_PNL_ITEMS] = {
 		//#STATIC
@@ -185,11 +190,11 @@ typedef struct _stOTEWorkWnd {
 		  573,5,642,5,712,5,780,5,
 		  573,30,642,30,712,30,780,30,
 		  573,55,642,55,712,55,780,55,
-		  573,80,642,80,712,80,780,80,
-		  573,105,642,105,712,105,780,105,
+		  570,80,620,80,670,80,720,80,770,80,
+		  570,105,620,105,670,105,720,105,
 		  //CONNECTÉpÉlÉãÅ@ID_OTE_RADIO_SOU	ID_OTE_RADIO_RPU ID_OTE_RADIO_SOM ID_OTE_RADIO_ROM ID_OTE_RADIO_RPM
 		  5,5,55,5,105,5,155,5,205,5,
-		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,				//16
+		  0,0,0,0,0,0,0,0,0,0,0,0,				//16
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//16
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//16
 
@@ -232,11 +237,11 @@ typedef struct _stOTEWorkWnd {
 		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
 		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
 		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
-		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
+		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
 		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
 		   //CONNECTÉpÉlÉãÅ@ID_OTE_RADIO_SOU ID_OTE_RADIO_RPU                  ID_OTE_RADIO_SOM                ID_OTE_RADIO_ROM                        ID_OTE_RADIO_RPM
 		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
-		   0,0,0,0,0,0,0,0,0,0,0,0,0,0,				//16
+		   0,0,0,0,0,0,0,0,0,0,0,0,				//16
 		   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//16
 		   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//16
 
@@ -256,7 +261,7 @@ typedef struct _stOTEWorkWnd {
 
 	WCHAR ctrl_text[N_OTE_CTRL_TYPE][N_OTE_PNL_STATIC][128] = {
 		//STATIC
-		L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"ÅZ",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 		L"MH",L"AH",L"BH",L"SL",L"GT",L"INF MH",L"INF AH",L"INF BH",L"INF SL",L"INF GT",L"",L"",L"HEAD -",L"BODY -",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
@@ -266,10 +271,10 @@ typedef struct _stOTEWorkWnd {
 		L"í‚é~",L"ãNìÆ",L"éÂä≤",L"îÒèÌ",
 		L"é©ìÆ",L"êUé~",L"S1",L"S2",
 		L"S3",L"N1",L"N2",L"N3",
-		L"WIDE",L"ZOOM",L"HOOK",L"OPE",
+		L"WIDE",L"ZOOM",L"HOOK",L"OPE1",L"OPE2",
 		L"í êM",L"MODE",L"åÃè·",L"MOM",
 		L"SOU",L"RPU",L"SOM",L"ROM",L"RPM",
-		L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 

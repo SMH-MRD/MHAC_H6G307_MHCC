@@ -54,9 +54,9 @@ typedef struct OteMMsg {
 	ST_OTE_M_BODY    body;
 }ST_OTE_M_MSG, * LPST_OTE_M_MSG;
 /******* PCユニキャストメッセージ構造体 ***********/
-#define PLC_IO_MONT_WORD_NUM		150
+#define PLC_IO_MONT_WORD_NUM		100
 typedef struct PcUBody {
-	INT16      plc_in[PLC_IO_MONT_WORD_NUM];	//位置FB
+	INT16      plc_in[PLC_IO_MONT_WORD_NUM];	//PLC IFデータ
 	INT32      pos[8];							//位置FB
 	INT32      v_fb[8];							//速度FB
 	INT32      v_ref[8];						//速度指令
