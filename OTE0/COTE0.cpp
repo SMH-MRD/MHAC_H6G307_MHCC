@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "OTE0panel.h"
+
 /*****************************************************************************/
 /// <summary>
 /// コンストラクタ
@@ -28,7 +30,9 @@ COte::~COte() {
 /// 初期化処理（オーバーライド関数）
 /// </summary>
 /// <returns></returns>
-int COte::init_proc() {
+int COte::init_proc(LPST_OTE_WORK_WND pst) {
+	//ウィンド処理用構造体アドレスセット
+	pst_work_wnd = pst;
 
 	//### ソケットアドレスセット
 	memset(&addrin_pc_u_ote, 0, sizeof(SOCKADDR_IN));	memset(&addrin_pc_u_ote, 0, sizeof(SOCKADDR_IN)); memset(&addrin_ote_m_ote, 0, sizeof(SOCKADDR_IN));
@@ -58,11 +62,20 @@ int COte::init_proc() {
 	if (pSockPcUniCastOte->init_sock(hWnd_parent, addrin_pc_u_ote) != S_OK) { msg_wos.str() = pSockPcUniCastOte->err_msg.str(); return NULL; }
 
 	//マルチキャスト用
+
+#if 0
 	SOCKADDR_IN addr_tmp;
 	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_PC, NULL);
 	if (pSockPcMultiCastOte->init_sock_m(hWnd_parent, addrin_pc_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockPcMultiCastOte->err_msg.str(); return NULL; }
 	set_sock_addr(&addr_tmp, OTE_IF_MULTICAST_IP_OTE, NULL);
 	if (pSockOteMultiCastOte->init_sock_m(hWnd_parent, addrin_ote_m_ote, addr_tmp) != S_OK) { msg_wos.str() = pSockOteMultiCastOte->err_msg.str(); return NULL; }
+#else
+	set_sock_addr(&addrin_pc_m_rcv, OTE_IF_MULTICAST_IP_PC, NULL);
+	if (pSockPcMultiCastOte->init_sock_m(hWnd_parent, addrin_pc_m_ote, addrin_pc_m_rcv) != S_OK) { msg_wos.str() = pSockPcMultiCastOte->err_msg.str(); return NULL; }
+	set_sock_addr(&addrin_ote_m_rcv, OTE_IF_MULTICAST_IP_OTE, NULL);
+	if (pSockOteMultiCastOte->init_sock_m(hWnd_parent, addrin_ote_m_ote, addrin_ote_m_rcv) != S_OK) { msg_wos.str() = pSockOteMultiCastOte->err_msg.str(); return NULL; }
+#endif
+
 
 	//送信メッセージヘッダ設定（送信元受信アドレス：受信先の折り返し用）
 	st_msg_ote_u_snd.head.addr = addrin_pc_u_ote;
@@ -85,71 +98,21 @@ int COte::parse() {
 /// </summary>
 /// <returns></returns>
 LPST_OTE_U_MSG COte::set_msg_ote_u() {
-#if 0 
 	//Header部
-	if (mode) {
-		ote_io_workbuf.ote_io.snd_msg_u.head.addr = addrin_u;
-		ote_io_workbuf.ote_io.snd_msg_u.head.myid = pCraneStat->spec.device_code.no;
-	}
-	ote_io_workbuf.ote_io.snd_msg_u.head.tgid = ote_io_workbuf.id_connected_te;;
-	ote_io_workbuf.ote_io.snd_msg_u.head.code = code;
-	ote_io_workbuf.ote_io.snd_msg_u.head.status = ote_io_workbuf.status_connected_te;
+	st_msg_ote_u_snd.head.addr = addrin_pc_u_ote;
+	st_msg_ote_u_snd.head.myid =ID_OTE0;
+	st_msg_ote_u_snd.head.tgid = st_msg_pc_u_rcv.head.myid;
+	st_msg_ote_u_snd.head.code = 0x01;
+	st_msg_ote_u_snd.head.status = 0x2;
 
 	//Body部
-	//ランプ
-	for (int i = 0; i < N_UI_LAMP; i++) ote_io_workbuf.ote_io.snd_msg_u.body.lamp[i] = pCSInf->ui_lamp[i];
-	//ノッチ指令
-	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[i] = pPLCio->status.notch_ref[i];
-	//各軸位置
-	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.pos[i] = (INT32)(pPLCio->status.pos[i] * 1000.0);
-	//各軸速度FB
-	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[i] = (INT32)(pPLCio->status.v_fb[i] * 1000.0);
-	//各軸速度指令
-	for (int i = 0; i < MOTION_ID_MAX; i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_ref[i] = (INT32)(pPLCio->status.v_ref[i] * 1000.0);
+	//PB
+	memcpy(st_msg_ote_u_snd.body.pb_ope, pst_work_wnd->pb_stat, 128);
 
-	//吊点位置
-	ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[0] = pCSInf->hunging_point_for_view[0];
-	ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[1] = pCSInf->hunging_point_for_view[1];
-	ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[2] = pCSInf->hunging_point_for_view[2];
-
-	//吊荷位置(吊点との相対位置）
-	ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pSway_IO->th[ID_SLEW] * 1000.0);
-	ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[1] = (INT32)(pSway_IO->th[ID_BOOM_H] * 1000.0);
-	ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[2] = (INT32)(pCraneStat->mh_l * 1000.0);
-
-	//吊荷速度
-	ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[0] = (INT32)(pSway_IO->dth[ID_SLEW] * 1000.0);
-	ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[1] = (INT32)(pSway_IO->dth[ID_BOOM_H] * 1000.0);
-	ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = (INT32)(pPLCio->status.v_fb[ID_HOIST] * 1000.0);
-
-	//自動目標位置
-	double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m, h;
-
-	h = pCSInf->ote_camera_height_m;
-	tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
-	tg_x_rad = tg_x_m / h;
-	tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
-	tg_y_rad = tg_y_m / h;
-
-	ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
-	ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
-	ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pCSInf->semi_auto_selected_target.pos[ID_HOIST] * 1000.0);
-
-	//半自動目標位置
-	for (int i = 0; i < 6; i++) {
-		ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][0] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_BOOM_H] * 1000.0);
-		ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][1] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_SLEW] * 1000.0);
-		ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][2] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_HOIST] * 1000.0);
-	}
-
-	//VIEWカメラセット高さ
-	ote_io_workbuf.ote_io.snd_msg_u.body.cam_inf[ID_OTE_CAMERA_HEIGHT] = (INT16)(pCraneStat->spec.boom_high * 1000.0);
-
-	ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_LAMP_OTE_NOTCH_MODE] = ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
-
-	//PLCデータ
-	for (int i = 0; i < PLC_IO_MONT_WORD_NUM; i++) ote_io_workbuf.ote_io.snd_msg_u.body.plc_data[i] = pPLCio->plc_data[i];
-#endif  
+	//ノッチデータ
+	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_HOLD], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_HOLD], 16);
+	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_TRIG], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_TRIG], 16);
+  
 	return &st_msg_ote_u_snd;
 }
 

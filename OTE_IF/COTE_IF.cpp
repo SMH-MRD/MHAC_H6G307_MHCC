@@ -7,9 +7,12 @@
 #include <iomanip>
 #include <sstream>
 
+#include "OTE0panel.h"
+
+ST_OTE_WORK_WND st_ote_work;
 
 std::wstring COteIF::msg_ws;
-std::wostringstream COteIF::msg_wos;
+std::wostringstream COteIF::msg_wos, COteIF::msg_wos2;
 
 ST_OTE_IO COteIF::ote_io_workbuf;
 
@@ -225,16 +228,28 @@ int COteIF::output() {                          //出力処理
 /// </summary>
 /// <returns></returns>
 LPST_PC_U_MSG COteIF:: set_msg_pc_u() {
-#if 0 
-   //Header部
-    if (mode) {
-        ote_io_workbuf.ote_io.snd_msg_u.head.addr = addrin_u;
-        ote_io_workbuf.ote_io.snd_msg_u.head.myid = pCraneStat->spec.device_code.no;
-    }
-    ote_io_workbuf.ote_io.snd_msg_u.head.tgid = ote_io_workbuf.id_connected_te;;
-    ote_io_workbuf.ote_io.snd_msg_u.head.code = code;
-    ote_io_workbuf.ote_io.snd_msg_u.head.status = ote_io_workbuf.status_connected_te;
 
+   //Header部
+	st_msg_pc_u_snd.head.addr = addrin_ote_u_pc;
+	st_msg_pc_u_snd.head.myid = pCraneStat->spec.device_code.no;
+	st_msg_pc_u_snd.head.tgid = st_msg_ote_u_rcv.head.myid;
+	st_msg_pc_u_snd.head.code = st_msg_ote_u_rcv.head.code;
+	st_msg_pc_u_snd.head.status = CODE_ITE_RES_ACK;
+
+	//Body部
+	for (int i = 0; i < N_OTE_PNL_PB; i++) {
+		st_msg_pc_u_snd.body.pb_lamp[i].com = OTE_LAMP_COM_FLICK;
+		st_msg_pc_u_snd.body.pb_lamp[i].color = OTE0_ORANGE;
+	}
+	for (int i = 0; i < N_OTE_PNL_NOTCH; i++) {
+		st_msg_pc_u_snd.body.notch_lamp[i].com = OTE_LAMP_COM_FLICK;
+		st_msg_pc_u_snd.body.notch_lamp[i].color = OTE0_BLUE;
+	}
+
+	//PLC入力データ
+	memcpy(&st_msg_pc_u_snd.body.plc_in, &(pPLCio->input),sizeof(st_msg_pc_u_snd.body.plc_in));
+
+#if 0 
     //Body部
     //ランプ
     for (int i = 0;i < N_UI_LAMP;i++) ote_io_workbuf.ote_io.snd_msg_u.body.lamp[i] = pCSInf->ui_lamp[i];
@@ -558,7 +573,7 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
+			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//OTEからのユニキャストメッセージ受信
 				cnt_rcv_ote_u++;
 				addrin_ote_u_from = pSockOteUniCastPc->addr_in_from;
 				set_sock_addr(&addrin_pc_u_snd, OTE_IF_UNICAST_IP_OTE0, OTE_IF_UNICAST_PORT_OTE);
@@ -694,8 +709,6 @@ void COteIF::wstr_out_inf(const std::wstring& srcw) {
 /// <returns></returns>
 HRESULT COteIF::snd_pc_u_ote(LPST_PC_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
 
-	pbuf->body.lamp[ID_OTE_PB_CTRL_SOURCE] = pPLCio->input.rbuf.erm_bo[ID_MC_ERM_BO_160] & MC_SETBIT_LAMP_CONTROL_SOURCE;
-
 	if (pSockOteUniCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG), *p_addrin_to) == SOCKET_ERROR) {
 		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
 		return S_FALSE;
@@ -818,7 +831,6 @@ void COteIF::if_disp_update() {
 	msg_wos << L"  From:" << pfrom_addr->sin_addr.S_un.S_un_b.s_b1 << L"." << pfrom_addr->sin_addr.S_un.S_un_b.s_b2 << L"." << pfrom_addr->sin_addr.S_un.S_un_b.s_b3 << L"." << pfrom_addr->sin_addr.S_un.S_un_b.s_b4 << L": "
 		<< htons(pfrom_addr->sin_port);
 
-
 	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_IP_SND_FROM], msg_wos.str().c_str());
 
 	//ヘッダ部情報追加
@@ -830,14 +842,61 @@ void COteIF::if_disp_update() {
 	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_HEADS], msg_wos.str().c_str());
 	
 	msg_wos.str(L"");
-	msg_wos << L" HEAD(R):(PC)" << phead_rcv->myid << L" (EVENT)" << phead_rcv->code
+	msg_wos << L" HEAD(R):(OTE)" << phead_rcv->myid << L" (EVENT)" << phead_rcv->code
 		<< L" (IP)" << phead_rcv->addr.sin_addr.S_un.S_un_b.s_b1 << L"." << phead_rcv->addr.sin_addr.S_un.S_un_b.s_b2 << L"." << phead_rcv->addr.sin_addr.S_un.S_un_b.s_b3 << L"." << phead_rcv->addr.sin_addr.S_un.S_un_b.s_b4
 		<< L" (PORT) " << htons(phead_rcv->addr.sin_port)
-		<< L" (COM)" << phead_rcv->status << L" \n(接続中OTE)" << phead_rcv->tgid;
+		<< L" (COM)" << phead_rcv->status << L" \n(接続中PC)" << phead_rcv->tgid;
 	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_HEADR], msg_wos.str().c_str());
+			
+	msg_wos.str(L""); msg_wos2.str(L"");
+	switch (st_work_wnd.id_disp_item) {
+	case ID_OTEIF_RADIO_UNI: {
+		LPST_PC_U_BODY pbody_s = &st_msg_pc_u_snd.body;
+		msg_wos << L"BODYS 非常"<<pbody_s->pb_lamp[ID_OTE_PB_HIJYOU].color<< L"主幹" << pbody_s->pb_lamp[ID_OTE_PB_SYUKAN].color;
+		msg_wos << L" Notch MH" << pbody_s->notch_lamp[0].color << pbody_s->notch_lamp[1].color << pbody_s->notch_lamp[2].color << pbody_s->notch_lamp[3].color << pbody_s->notch_lamp[4].color << pbody_s->notch_lamp[5].color << pbody_s->notch_lamp[6].color << pbody_s->notch_lamp[7].color << pbody_s->notch_lamp[8].color;
+
+		LPST_OTE_U_BODY pbody_r = &st_msg_ote_u_rcv.body;
+
+		msg_wos2 << L"BODYS PB:  ";
+		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
+			msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][i] << L":" << pbody_r->pb_ope[i] << L" ";
+		} 
+		msg_wos2 << L"\n";
+		msg_wos2 << L" Notch MH HOLD  ";
+		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
+			msg_wos2  << pbody_r->notch_pos[ID_OTE_NOTCH_POS_HOLD][i] << L":" ;
+		}
+		msg_wos2 << L"\n";
+		msg_wos2 << L" Notch MH TRIG  ";
+		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
+			msg_wos2 << pbody_r->notch_pos[ID_OTE_NOTCH_POS_TRIG][i] << L":" ;
+		}
+
+	}break;
+	case ID_OTEIF_RADIO_PCM: {
+		LPST_PC_M_BODY pbody_s = &(st_msg_pc_m_snd.body);
+		msg_wos << L"BODYS MH:" << pbody_s->pos[ID_HOIST] << L"GT:" << pbody_s->pos[ID_GANTRY] << L"BH:" << pbody_s->pos[ID_BOOM_H];
+		msg_wos << L"SL:" << pbody_s->pos[ID_SLEW] << L"AH:" << pbody_s->pos[ID_AHOIST] ;
+
+		LPST_PC_M_BODY pbody_r = &(st_msg_pc_m_pc_rcv.body);
+		msg_wos2 << L"BODYR MH:" << pbody_r->pos[ID_HOIST] << L"GT:" << pbody_r->pos[ID_GANTRY] << L"BH:" << pbody_r->pos[ID_BOOM_H];
+		msg_wos2 << L"SL:" << pbody_r->pos[ID_SLEW] << L"AH:" << pbody_r->pos[ID_AHOIST];
+
+	}break;
+	case ID_OTEIF_RADIO_TEM: {
+		msg_wos << L"BODYS -" ;
+
+		LPST_OTE_M_BODY pbody_r = &(st_msg_ote_m_pc_rcv.body);
+		msg_wos2 << L"BODYR  OKPC:";
+		for(int i=0;i<32;i++) msg_wos2 << pbody_r->pc_enable[i] << L",";
+		msg_wos2 << L"\n RMT CNT:" << pbody_r->n_remote_wait << L" SEQ B:" << pbody_r->onbord_seqno << L" SEQ RMT:" << pbody_r->remote_seqno << L" MY SEQ:" << pbody_r->my_seqno;
+	}break;
+	}
+	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODYS], msg_wos.str().c_str());
+	SetWindowText(st_work_wnd.hctrl[ID_OTEIF_CTRL_STATIC][ID_OTEIF_INF_BODYR], msg_wos2.str().c_str());
+
 	return;
 }
-
 
 void COteIF::disp_msg_cnt() {
 	msg_wos.str(L"");

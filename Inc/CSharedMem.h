@@ -8,6 +8,7 @@
 #include "OTE_DEF.h"
 #include "PLC_DEF.h"
 
+
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
 #define SMEM_OPERATION_STATUS_NAME		L"OPERATION_STATUS"
@@ -108,7 +109,11 @@ typedef struct StPLC_IO {
 /*   操作端末卓信号定義構造体                                  　         　*/
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
 #pragma region OTE
-
+typedef struct StOTE_IO {
+	ST_OTE_U_BODY	ote_in;		//端末からの受信データ（ユニキャスト）
+	ST_PC_U_BODY	ote_out;	//端末への送信データ（ユニキャスト）
+	UINT32			id_ote;		//ユニキャスト接続端末ID
+}ST_OTE_IO, * LPST_OTE_IO;
 
 #pragma endregion 操作端末卓信号定義構造体
 /****************************************************************************/
@@ -213,6 +218,7 @@ typedef struct stEnvSubproc {
 	bool is_plcio_join = false;
 	bool is_sim_join = false;
 	bool is_sway_join = false;
+	bool is_ote_join = false;
 
 } ST_ENV_SUBPROC, LPST_ENV_SUBPROC;
 
@@ -362,12 +368,10 @@ typedef struct stMotionRecipe {					//移動パターン
 
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
-
 /********************************************************************************/
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
-
 
 /*** コマンド種類 ***/
 #define COM_TYPE_MASK			0x0F00      
@@ -472,7 +476,6 @@ typedef struct stJobSet {
 	SYSTEMTIME time_end;
 }ST_JOB_SET, * LPST_JOB_SET;
 
-
 //JOB LIST
 typedef struct _stJobList {
 	int id;
@@ -481,7 +484,6 @@ typedef struct _stJobList {
 	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
 	ST_JOB_SET job[JOB_REGIST_MAX];				//登録job
 }ST_JOB_LIST, * LPST_JOB_LIST;
-
 
 #define N_JOB_LIST						2				//JOB LIST登録数
 #define ID_JOBTYPE_JOB					0				//JOB Type index番号
@@ -509,8 +511,8 @@ typedef struct stJobIO {
 
 typedef struct stCSInfo {
 	//UI関連
-	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
-	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
+	UINT16 ote_pb_lamp[N_OTE_PNL_PB];									//端末表示出力用
+	UINT16 ote_notch_lamp[N_OTE_PNL_NOTCH];								//端末表示出力用
 	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置
 	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）
@@ -527,7 +529,6 @@ typedef struct stCSInfo {
 	int antisway_mode;													//振れ止めモード
 	int estop_active;													//非常停止動作中
 	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
-
 
 	double ote_camera_height_m;											//操作端末VIEWのカメラ設置高さ
 

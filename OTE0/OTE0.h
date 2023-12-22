@@ -13,7 +13,6 @@
 #include "OTE_DEF.h"
 #include "OTE0panel.H"
 
-
 //タイマー
 #define ID_OTE_MULTICAST_TIMER				199
 #define ID_OTE_UNICAST_TIMER				198
@@ -49,6 +48,8 @@
 #define ID_OTE0_SUB_WND_MOMENT	4
 #define ID_OTE0_SWY_WND	        5
 
+#define OTE_CODE_FLICKER_FREQ	0x0040
+
 class COte
 {
 public:
@@ -56,12 +57,12 @@ public:
 	COte(HWND hWnd);
 	~COte();
 
-	int init_proc();            //初期化処理
+	int init_proc(LPST_OTE_WORK_WND pst);            //初期化処理
 
 	HWND hWnd_parent;
 	HWND hwnd_current_subwnd;		//表示中のサブウィンドハンドル
 
-	ST_OTE_WORK_WND	st_work_wnd;	//パネルウィンドウ処理用構造体
+	LPST_OTE_WORK_WND	pst_work_wnd;	//パネルウィンドウ処理用構造体
 
 	WORD helthy_cnt = 0;
 
@@ -83,6 +84,9 @@ public:
 	SOCKADDR_IN addrin_pc_u_from;	//OTEユニキャスト送信元アドレス（OTE用)
 	SOCKADDR_IN addrin_pc_m_from;	//PCマルチキャスト送信元アドレス（OTE用)
 	SOCKADDR_IN addrin_ote_m_from;	//OTEマルチキャスト送信元アドレス（OTE用)
+
+	SOCKADDR_IN addrin_pc_m_rcv;	//OTEマルチキャスト受信アドレス
+	SOCKADDR_IN addrin_ote_m_rcv;	//PCマルチキャスト受信アドレス
 
 	//送受信カウント
 	LONG cnt_snd_ote_u, cnt_snd_ote_m_ote, cnt_snd_ote_m_pc;

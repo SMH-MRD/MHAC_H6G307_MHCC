@@ -90,7 +90,7 @@ public:
    static LPST_SWAY_IO		pSway_IO;
 
    static std::wstring			msg_ws;
-   static std::wostringstream	msg_wos;
+   static std::wostringstream	msg_wos, msg_wos2;
 
    static CSockAlpha* pSockOteUniCastPc;		//OTE→PCユニキャスト受信用ソケット
    static CSockAlpha* pSockPcMultiCastPc;		//PC->PCマルチキャスト受信用ソケット
