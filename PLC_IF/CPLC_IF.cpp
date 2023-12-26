@@ -208,31 +208,31 @@ int CPLC_IF::parse_ote_com() {
 #endif
     //ƒmƒbƒ`
     //ŽåŠª
-    UINT16 notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]);
+    UINT16 notch_code = get_notch_code(pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]);
     notch_code = notch_code << cab_bout_map.notch_mh.y;
     lp_PLCwrite->cab_di[cab_bout_map.notch_mh.x] &= 0xffc0;
     lp_PLCwrite->cab_di[cab_bout_map.notch_mh.x] |= notch_code;
 
     //•âŠª
-    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]);
+    notch_code = get_notch_code(pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]);
     notch_code = notch_code << cab_bout_map.notch_ah.y;
     lp_PLCwrite->cab_di[cab_bout_map.notch_ah.x] &= 0x03ff;
     lp_PLCwrite->cab_di[cab_bout_map.notch_ah.x] |= notch_code;
 
     //‘–s
-    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY]);
+    notch_code = get_notch_code(pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY]);
     notch_code = notch_code << cab_bout_map.notch_gt.y;
     lp_PLCwrite->cab_di[cab_bout_map.notch_gt.x] &= 0x81ff;
     lp_PLCwrite->cab_di[cab_bout_map.notch_gt.x] |= notch_code;
 
     //ˆøž
-    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H]);
+    notch_code = get_notch_code(pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H]);
     notch_code = notch_code << cab_bout_map.notch_bh.y;
     lp_PLCwrite->cab_di[cab_bout_map.notch_bh.x] &= 0xffc0;
     lp_PLCwrite->cab_di[cab_bout_map.notch_bh.x] |= notch_code;
 
     //ù‰ñ
-    notch_code = get_notch_code(pOTEio->ote_in.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW]);
+    notch_code = get_notch_code(pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW]);
     notch_code = notch_code << cab_bout_map.notch_sl.y;
     lp_PLCwrite->cab_di[cab_bout_map.notch_sl.x] &= 0x81ff;
     lp_PLCwrite->cab_di[cab_bout_map.notch_sl.x] |= notch_code;

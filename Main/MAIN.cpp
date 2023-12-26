@@ -34,6 +34,7 @@ wstring         wstrPathImgFolder;				// 画像ファイル格納フォルダの
 
 vector<void*>	VectpCTaskObj;	                //タスクオブジェクトのポインタ
 ST_iTask        g_itask;	                    //タスクオブジェクトのインデックス
+ST_SPEC spec;
 
 //-共有メモリオブジェクトポインタ:
 CSharedMem*  pCraneStatusObj;

@@ -36,6 +36,8 @@
 
 #define CS_N_MSG_HOLD                       10
 
+#define CS_OTE_U_MSG_TIMEOUT                10
+
 class CClientService :public CTaskObj
 {
 public:
@@ -60,17 +62,10 @@ public:
 private:
 
     int parce_onboard_input(int mode);
-    int parce_ote_imput(int mode);
-    int can_ote_activate();
-
-    bool chk_trig_ote_touch_pos_target();
-    bool chk_trig_ote_touch_dist_target();
-    int update_ote_touch_pos_tg(); 
-
-    int set_selected_target_for_view();
-    int set_hp_pos_for_view();
-
-    //クライアントからのメッセージ解析
+    int can_ote_activate();         //操作端末有効判定
+    int ote_handle_proc();          //操作端末処理
+ 
+     //クライアントからのメッセージ解析
     int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);
     
     //レシピセット
@@ -89,10 +84,7 @@ private:
     CEnvironment* pEnvironment;
 
     ST_CS_INFO CS_workbuf;
-
-
-
- 
+    
     ST_CLIENT_COM_RCV_MSG client_rcv_msg[CS_N_MSG_HOLD];
 
    void input();               //外部データ取り込み

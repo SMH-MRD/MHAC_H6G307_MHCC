@@ -209,7 +209,9 @@ int COteIF::input() {
 /// </summary>
 /// <returns></returns>
 int COteIF::parse() { 
-	//ST_OTE_IO workbuf設定
+	
+	pOTEio->ote_u_silent_cnt++;//メッセージ受信イベントでクリア
+
     return 0;
 }    
 /*****************************************************************************/
@@ -218,8 +220,8 @@ int COteIF::parse() {
 /// </summary>
 /// <returns></returns>
 int COteIF::output() {                          //出力処理
-	//マルチキャスト送信処理
-	if (out_size) memcpy_s(poutput, out_size, &ote_io_workbuf, out_size);
+	//通信メッセージはイベント処理で出力
+	//if (out_size) memcpy_s(poutput, out_size, &ote_io_workbuf, out_size);
    return 0; 
 }
 /*****************************************************************************/
@@ -229,84 +231,37 @@ int COteIF::output() {                          //出力処理
 /// <returns></returns>
 LPST_PC_U_MSG COteIF:: set_msg_pc_u() {
 
-   //Header部
+   //#Header部
 	st_msg_pc_u_snd.head.addr = addrin_ote_u_pc;
 	st_msg_pc_u_snd.head.myid = pCraneStat->spec.device_code.no;
 	st_msg_pc_u_snd.head.tgid = st_msg_ote_u_rcv.head.myid;
 	st_msg_pc_u_snd.head.code = st_msg_ote_u_rcv.head.code;
 	st_msg_pc_u_snd.head.status = CODE_ITE_RES_ACK;
 
-	//Body部
-	for (int i = 0; i < N_OTE_PNL_PB; i++) {
-		st_msg_pc_u_snd.body.pb_lamp[i].com = OTE_LAMP_COM_FLICK;
-		st_msg_pc_u_snd.body.pb_lamp[i].color = OTE0_ORANGE;
-	}
-	for (int i = 0; i < N_OTE_PNL_NOTCH; i++) {
-		st_msg_pc_u_snd.body.notch_lamp[i].com = OTE_LAMP_COM_FLICK;
-		st_msg_pc_u_snd.body.notch_lamp[i].color = OTE0_BLUE;
-	}
-
+	//#Body部
+	//操作端ランプ指令
+	memcpy(st_msg_pc_u_snd.body.pb_lamp, pCSInf->ote_pb_lamp, sizeof(ST_OTE_LAMP_COM) * N_OTE_PNL_PB);
+	memcpy(st_msg_pc_u_snd.body.notch_lamp, pCSInf->ote_notch_lamp, sizeof(ST_OTE_LAMP_COM) * N_OTE_PNL_NOTCH);
 	//PLC入力データ
 	memcpy(&st_msg_pc_u_snd.body.plc_in, &(pPLCio->input),sizeof(st_msg_pc_u_snd.body.plc_in));
 
-#if 0 
-    //Body部
-    //ランプ
-    for (int i = 0;i < N_UI_LAMP;i++) ote_io_workbuf.ote_io.snd_msg_u.body.lamp[i] = pCSInf->ui_lamp[i];
-    //ノッチ指令
-    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[i] = pPLCio->status.notch_ref[i];
-    //各軸位置
-    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.pos[i] = (INT32)(pPLCio->status.pos[i] * 1000.0);
-    //各軸速度FB
-    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[i] = (INT32)(pPLCio->status.v_fb[i] * 1000.0);
-    //各軸速度指令
-    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_ref[i] = (INT32)(pPLCio->status.v_ref[i] * 1000.0);
-
-    //吊点位置
-    ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[0] = pCSInf->hunging_point_for_view[0];
-    ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[1] = pCSInf->hunging_point_for_view[1];
-    ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[2] = pCSInf->hunging_point_for_view[2];
-
-    //吊荷位置(吊点との相対位置）
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pSway_IO->th[ID_SLEW]* 1000.0);
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[1] = (INT32)(pSway_IO->th[ID_BOOM_H] * 1000.0);
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[2] = (INT32)(pCraneStat->mh_l*1000.0);
-
-    //吊荷速度
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[0] = (INT32)(pSway_IO->dth[ID_SLEW] * 1000.0);
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[1] = (INT32)(pSway_IO->dth[ID_BOOM_H] * 1000.0);
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = (INT32)(pPLCio->status.v_fb[ID_HOIST] * 1000.0);
-
-    //自動目標位置
-    double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m,h;
-
-        h = pCSInf->ote_camera_height_m;
-        tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
-        tg_x_rad = tg_x_m / h;
-        tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
-        tg_y_rad = tg_y_m / h;
-
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pCSInf->semi_auto_selected_target.pos[ID_HOIST] * 1000.0);
-  
-    //半自動目標位置
-    for (int i = 0;i < 6;i++) {
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][0] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_BOOM_H] * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][1] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_SLEW] * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][2] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_HOIST] * 1000.0);
-    }
-
-    //VIEWカメラセット高さ
-    ote_io_workbuf.ote_io.snd_msg_u.body.cam_inf[ID_OTE_CAMERA_HEIGHT] = (INT16)(pCraneStat->spec.boom_high * 1000.0);
-
-    ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_LAMP_OTE_NOTCH_MODE] = ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
-
-    //PLCデータ
-    for (int i = 0;i < PLC_IO_MONT_WORD_NUM;i++) ote_io_workbuf.ote_io.snd_msg_u.body.plc_data[i] = pPLCio->plc_data[i];
-#endif  
     return &st_msg_pc_u_snd;
 } 
+//*********************************************************************************************
+/// <summary>
+/// PC→OTE　Unicast　【PCのOTEからのユニキャスト受信ソケットで送信】
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_pc_u_ote(LPST_PC_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
+
+	if (pSockOteUniCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG), *p_addrin_to) == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
 /*****************************************************************************/
 /// <summary>
 /// PCマルチキャストメッセージ送信バッファセット
@@ -344,6 +299,86 @@ LPST_PC_M_MSG COteIF::set_msg_pc_m() {
 #endif
     return &st_msg_pc_m_snd;
 }
+//*********************************************************************************************
+/// <summary>
+/// PC->PC マルチキャスト　【PCのPCからのマルチキャスト受信ソケットで送信】
+/// </summary>
+/// <param name="pbuf"></param>
+/// <param name="pto_addrin"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_pc_m_pc(LPST_PC_M_MSG pbuf) {
+	if (pSockPcMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_pc_snd) == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcMultiCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+//*********************************************************************************************
+/// <summary>
+/// PC->OTE マルチキャスト　【PCのOTEからのマルチキャスト受信ソケットで送信】
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::snd_pc_m_ote(LPST_PC_M_MSG pbuf) {
+	if (pSockOteMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_ote_snd) == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteMultiCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}//OTEマルチキャスト送信処理
+
+
+//受信処理用
+//*********************************************************************************************
+/// <summary>
+///PCユニキャスト電文受信処理 (OTEユニキャストメッセージを受信）
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_ote_u_pc(LPST_OTE_U_MSG pbuf) {
+	int nRtn = pSockOteUniCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_OTE_U_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+///PCマルチキャスト電文受信処理  (PCマルチキャストメッセージを受信）
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_pc_m_pc(LPST_PC_M_MSG pbuf) {
+	int nRtn = pSockPcMultiCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockPcMultiCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+//*********************************************************************************************
+/// <summary>
+/// OTEユニキャスト電文受信処理(PCユニキャストメッセージを受信）
+/// </summary>
+/// <param name="pbuf"></param>
+/// <returns></returns>
+HRESULT COteIF::rcv_ote_m_pc(LPST_OTE_M_MSG pbuf) {
+	int nRtn = pSockOteMultiCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG));
+	if (nRtn == SOCKET_ERROR) {
+		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
+		return S_FALSE;
+	}
+	return S_OK;
+}
+/// <summary>
+/// 通信状態表示テキスト更新
+/// </summary>
+/// <param name="is_msg"></param>
+
+
+
 
 //****************************************************************************　
 /// <summary>
@@ -410,7 +445,6 @@ BOOL COteIF::show_if_wnd() {
 BOOL COteIF::hide_if_wnd() {
 	return SetWindowPos(hWnd_work, HWND_TOP, OTEIF_WORK_WND_X, OTEIF_WORK_WND_Y, OTEIF_WORK_WND_W0, OTEIF_WORK_WND_H0, SWP_HIDEWINDOW);
 }
-
 
 //*********************************************************************************************
 /// <summary>
@@ -516,6 +550,8 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	return S_OK;
 }
 #endif
+
+
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message)
 	{
@@ -538,9 +574,9 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			if (S_OK == snd_pc_m_ote(set_msg_pc_m())) {//OTEマルチキャスト送信
 				cnt_snd_pc_m_ote++;
 			}
-
 			if_disp_update();
 		}
+
 	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
@@ -573,8 +609,11 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		int nEvent = WSAGETSELECTEVENT(lParam);
 		switch (nEvent) {
 		case FD_READ: {
-			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//OTEからのユニキャストメッセージ受信
+			
+			//	if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//OTEからのユニキャストメッセージ受信
+			if (rcv_ote_u_pc(&pOTEio->ote_umsg_in) == S_OK) {				//OTEからのユニキャストメッセージ受信
 				cnt_rcv_ote_u++;
+				pOTEio->ote_u_silent_cnt = 0;
 				addrin_ote_u_from = pSockOteUniCastPc->addr_in_from;
 				set_sock_addr(&addrin_pc_u_snd, OTE_IF_UNICAST_IP_OTE0, OTE_IF_UNICAST_PORT_OTE);
 				if(snd_pc_u_ote(set_msg_pc_u(), &addrin_pc_u_snd)==S_OK)cnt_snd_pc_u++;;
@@ -701,95 +740,6 @@ void COteIF::set_OTEIF_panel_objects(HWND hWnd) {
 void COteIF::wstr_out_inf(const std::wstring& srcw) {
 	return;
 }
-//*********************************************************************************************
-/// <summary>
-/// PC→OTE　Unicast　【PCのOTEからのユニキャスト受信ソケットで送信】
-/// </summary>
-/// <param name="pbuf"></param>
-/// <returns></returns>
-HRESULT COteIF::snd_pc_u_ote(LPST_PC_U_MSG pbuf, SOCKADDR_IN* p_addrin_to) {
-
-	if (pSockOteUniCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG), *p_addrin_to) == SOCKET_ERROR) {
-		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
-		return S_FALSE;
-	}
-	return S_OK;
-}
-//*********************************************************************************************
-/// <summary>
-/// PC->PC マルチキャスト　【PCのPCからのマルチキャスト受信ソケットで送信】
-/// </summary>
-/// <param name="pbuf"></param>
-/// <param name="pto_addrin"></param>
-/// <returns></returns>
-HRESULT COteIF::snd_pc_m_pc(LPST_PC_M_MSG pbuf) {
-	if (pSockPcMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_pc_snd) == SOCKET_ERROR) {
-		msg_wos.str() = pSockPcMultiCastPc->err_msg.str();
-		return S_FALSE;
-	}
-	return S_OK;
-}
-
-//*********************************************************************************************
-/// <summary>
-/// PC->OTE マルチキャスト　【PCのOTEからのマルチキャスト受信ソケットで送信】
-/// </summary>
-/// <param name="pbuf"></param>
-/// <returns></returns>
-HRESULT COteIF::snd_pc_m_ote(LPST_PC_M_MSG pbuf) {
-	if (pSockOteMultiCastPc->snd_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG), addrin_pc_m_ote_snd) == SOCKET_ERROR) {
-		msg_wos.str() = pSockOteMultiCastPc->err_msg.str();
-		return S_FALSE;
-	}
-	return S_OK;
-}//OTEマルチキャスト送信処理
-//受信処理用
-//*********************************************************************************************
-/// <summary>
-///PCユニキャスト電文受信処理 (OTEユニキャストメッセージを受信）
-/// </summary>
-/// <param name="pbuf"></param>
-/// <returns></returns>
-HRESULT COteIF::rcv_ote_u_pc(LPST_OTE_U_MSG pbuf) {
-	int nRtn = pSockOteUniCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_OTE_U_MSG));
-	if (nRtn == SOCKET_ERROR) {
-		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
-		return S_FALSE;
-	}
-	return S_OK;
-}
-//*********************************************************************************************
-/// <summary>
-///PCマルチキャスト電文受信処理  (PCマルチキャストメッセージを受信）
-/// </summary>
-/// <param name="pbuf"></param>
-/// <returns></returns>
-HRESULT COteIF::rcv_pc_m_pc(LPST_PC_M_MSG pbuf) {
-	int nRtn = pSockPcMultiCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_M_MSG));
-	if (nRtn == SOCKET_ERROR) {
-		msg_wos.str() = pSockPcMultiCastPc->err_msg.str();
-		return S_FALSE;
-	}
-	return S_OK;
-}
-//*********************************************************************************************
-/// <summary>
-/// OTEユニキャスト電文受信処理(PCユニキャストメッセージを受信）
-/// </summary>
-/// <param name="pbuf"></param>
-/// <returns></returns>
-HRESULT COteIF::rcv_ote_m_pc(LPST_OTE_M_MSG pbuf) {
-	int nRtn = pSockOteMultiCastPc->rcv_udp_msg((char*)pbuf, sizeof(ST_PC_U_MSG));
-	if (nRtn == SOCKET_ERROR) {
-		msg_wos.str() = pSockOteUniCastPc->err_msg.str();
-		return S_FALSE;
-	}
-	return S_OK;
-}
-/// <summary>
-/// 通信状態表示テキスト更新
-/// </summary>
-/// <param name="is_msg"></param>
 void COteIF::if_disp_update() {
 	
 	SOCKADDR_IN* pmy_addr= &addrin_ote_u_pc, * psnd_addr = &addrin_ote_u_pc, * pfrom_addr = &addrin_ote_u_pc;
@@ -802,8 +752,9 @@ void COteIF::if_disp_update() {
 	switch (st_work_wnd.id_disp_item) {
 	case ID_OTEIF_RADIO_UNI: {
 		pmy_addr = &addrin_ote_u_pc; psnd_addr = &addrin_pc_u_snd; pfrom_addr=&addrin_ote_u_from;
-		phead_snd = &st_msg_pc_u_snd.head; phead_rcv=&st_msg_ote_u_rcv.head;
-		pcnt_snd = &cnt_snd_pc_u; pcnt_rcv = &cnt_rcv_ote_u;
+		phead_snd = &st_msg_pc_u_snd.head; pcnt_snd = &cnt_snd_pc_u;
+		phead_rcv=&pOTEio->ote_umsg_in.head; pcnt_rcv = &cnt_rcv_ote_u;
+		
 	}break;
 	case ID_OTEIF_RADIO_PCM: {
 		pmy_addr = &addrin_pc_m_pc; psnd_addr = &addrin_pc_m_pc_snd; pfrom_addr = &addrin_pc_m_from;
@@ -855,19 +806,18 @@ void COteIF::if_disp_update() {
 		msg_wos << L"BODYS 非常"<<pbody_s->pb_lamp[ID_OTE_PB_HIJYOU].color<< L"主幹" << pbody_s->pb_lamp[ID_OTE_PB_SYUKAN].color;
 		msg_wos << L" Notch MH" << pbody_s->notch_lamp[0].color << pbody_s->notch_lamp[1].color << pbody_s->notch_lamp[2].color << pbody_s->notch_lamp[3].color << pbody_s->notch_lamp[4].color << pbody_s->notch_lamp[5].color << pbody_s->notch_lamp[6].color << pbody_s->notch_lamp[7].color << pbody_s->notch_lamp[8].color;
 
-		LPST_OTE_U_BODY pbody_r = &st_msg_ote_u_rcv.body;
-
+		LPST_OTE_U_BODY pbody_r = &pOTEio->ote_umsg_in.body;
 		msg_wos2 << L"BODYS PB:  ";
 		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
 			msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][i] << L":" << pbody_r->pb_ope[i] << L" ";
 		} 
 		msg_wos2 << L"\n";
-		msg_wos2 << L" Notch MH HOLD  ";
+		msg_wos2 << L" Notch HOLD  ";
 		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 			msg_wos2  << pbody_r->notch_pos[ID_OTE_NOTCH_POS_HOLD][i] << L":" ;
 		}
 		msg_wos2 << L"\n";
-		msg_wos2 << L" Notch MH TRIG  ";
+		msg_wos2 << L" Notch TRIG  ";
 		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 			msg_wos2 << pbody_r->notch_pos[ID_OTE_NOTCH_POS_TRIG][i] << L":" ;
 		}
@@ -897,7 +847,6 @@ void COteIF::if_disp_update() {
 
 	return;
 }
-
 void COteIF::disp_msg_cnt() {
 	msg_wos.str(L"");
 	msg_wos << L"OTEIF     " << L"SPU:" << cnt_snd_pc_u << L"  ROU:" << cnt_rcv_ote_u << L"  SPMO:" << cnt_snd_pc_m_ote << L"  ROM:" << cnt_rcv_ote_m << L"  SPMP:" << cnt_snd_pc_m_pc << L"  RPM:" << cnt_rcv_pc_m;

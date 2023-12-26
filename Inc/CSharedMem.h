@@ -110,9 +110,10 @@ typedef struct StPLC_IO {
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
 #pragma region OTE
 typedef struct StOTE_IO {
-	ST_OTE_U_BODY	ote_in;		//端末からの受信データ（ユニキャスト）
-	ST_PC_U_BODY	ote_out;	//端末への送信データ（ユニキャスト）
-	UINT32			id_ote;		//ユニキャスト接続端末ID
+	ST_OTE_U_MSG	ote_umsg_in;		//端末からの受信データ（ユニキャスト）
+	ST_PC_U_MSG		ote_umsg_out;		//端末への送信データ（ユニキャスト）
+	UINT32			id_ote;				//ユニキャスト接続端末ID
+	UINT32			ote_u_silent_cnt;  	//受信カウント変化無しでカウントアップ
 }ST_OTE_IO, * LPST_OTE_IO;
 
 #pragma endregion 操作端末卓信号定義構造体
@@ -509,15 +510,23 @@ typedef struct stJobIO {
 
 #define CS_ID_SEMIAUTO_TOUCH_PT			8
 
+#define CS_ID_NOTCH_POS_HOLD			0
+#define CS_ID_NOTCH_POS_TRIG			1
+
+
 typedef struct stCSInfo {
 	//UI関連
-	UINT16 ote_pb_lamp[N_OTE_PNL_PB];									//端末表示出力用
-	UINT16 ote_notch_lamp[N_OTE_PNL_NOTCH];								//端末表示出力用
+	ST_OTE_LAMP_COM ote_pb_lamp[N_OTE_PNL_PB];							//端末ランプ表示指令
+	ST_OTE_LAMP_COM ote_notch_lamp[N_OTE_PNL_NOTCH];					//端末ランプ表示指令
+	int	semi_auto_selected;												//選択中の半自動ID
+	INT16		notch_pos[2][MOTION_ID_MAX];							//ノッチ指定値
+
+
 	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置
 	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）
 	INT32 hunging_point_for_view[MOTION_ID_MAX];						//半自動選択目標位置(カメラ座標）	
-	int	semi_auto_selected;												//選択中の半自動ID
+
 	int command_type;													//PARK,PICK,GRND
 	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値
 	int target_set_z = CS_SEMIAUTO_TG_SEL_FIXED, target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;		//Z座標目標位置確定
