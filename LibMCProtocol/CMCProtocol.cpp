@@ -664,7 +664,7 @@ void CMCProtocol::wstr_out_inf(const std::wstring& srcw) {
 	if (st_work_wnd.w_ptr_inf > st_work_wnd.h_row * st_work_wnd.n_max_row_inf)st_work_wnd.w_ptr_inf = MC_PRM_INFTXT_ORG_Y;
 	//éüÇÃçsÉNÉäÉA
 	PatBlt(st_work_wnd.hdc_mem_inf, st_work_wnd.x_org, st_work_wnd.w_ptr_inf, st_work_wnd.area_w, st_work_wnd.h_row, WHITENESS);
-	InvalidateRect(st_work_wnd.hWnd, NULL, TRUE);
+	//InvalidateRect(st_work_wnd.hWnd, NULL, TRUE);
 	return;
 }
 //
@@ -731,7 +731,8 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 
 		st_work_wnd.h_chk_inf = CreateWindow(L"BUTTON", L"Info", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			10, 325, 60, 25, hWnd, (HMENU)IDC_CHK_INF, hInst, NULL);
-		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_UNCHECKED, 0L);
+		SendMessage(st_work_wnd.h_chk_inf, BM_SETCHECK, BST_CHECKED, 0L);
+		disp_infomation = true;
 
 		st_work_wnd.h_chkSockinf = CreateWindow(L"BUTTON", L"Sock", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			90, 5, 60, 25, hWnd, (HMENU)IDC_CHK_DISP_SOCK, hInst, NULL);
@@ -743,7 +744,8 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 
 		st_work_wnd.h_chk_hex = CreateWindow(L"BUTTON", L"HEX", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			75, 325, 60, 25, hWnd, (HMENU)IDC_MC_INF_CHK_HEX, hInst, NULL);
-		SendMessage(st_work_wnd.h_chk_hex, BM_SETCHECK, BST_UNCHECKED, 0L);
+		SendMessage(st_work_wnd.h_chk_hex, BM_SETCHECK, BST_CHECKED, 0L);
+		is_disp_hex = true;
 				
 		st_work_wnd.h_static_inf = CreateWindowW(TEXT("STATIC"), L"INFO:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			5, 350, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_INF, hInst, NULL);
@@ -838,10 +840,6 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 			SetWindowText(st_work_wnd.h_static_Dr, wos.str().c_str());
 
 		}
-
-
-
-
 	}break;
 	case WM_COMMAND:
 	{

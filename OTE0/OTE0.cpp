@@ -300,6 +300,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 			mask=mask << 1;
 		}
+		//リモート無効時
+		if (BST_CHECKED != SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_GETCHECK, 0, 0)) {
+			for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
+				if (i == ID_OTE_GRIP_SWITCH)continue;//	グリップスイッチは対象外
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;	//0ノッチで初期化
+			}
+		}
+		
 		//PB Stat 更新　PBはカウントダウン
 		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME;i++) {
 			if(st_work_wnd.pb_stat[i] >0)st_work_wnd.pb_stat[i]--;

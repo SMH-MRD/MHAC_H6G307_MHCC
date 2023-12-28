@@ -203,8 +203,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             5, 65, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
-        pProcObj->hide_if_wnd();
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
+        //pProcObj->hide_if_wnd();
 
         stMainWnd.h_redio_m0 = CreateWindow(L"BUTTON", L"M0", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
             5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M0, hInst, NULL);

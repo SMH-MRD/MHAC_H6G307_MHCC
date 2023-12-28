@@ -71,6 +71,7 @@ private:
     int clear_plc_write();
 
     int parse_data_in();
+    int parse_data_out();
     int parse_ote_com();
     int parse_auto_com();
     int parse_sim_status();

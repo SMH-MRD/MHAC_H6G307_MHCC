@@ -85,6 +85,84 @@
 #define PLC_IF_CCID_MH1             4
 #define PLC_IF_CCID_MH2             5
 
+#define PLC_IF_MH_NOTCH_PTN_CLR        0xffc0
+#define PLC_IF_MH_NOTCH_PTN_0          0x0001
+#define PLC_IF_MH_NOTCH_PTN_P1         0x0002
+#define PLC_IF_MH_NOTCH_PTN_P2         0x000a
+#define PLC_IF_MH_NOTCH_PTN_P3         0x001a
+#define PLC_IF_MH_NOTCH_PTN_P4         0x003a
+#define PLC_IF_MH_NOTCH_PTN_N1         0x0004
+#define PLC_IF_MH_NOTCH_PTN_N2         0x000c
+#define PLC_IF_MH_NOTCH_PTN_N3         0x001c
+#define PLC_IF_MH_NOTCH_PTN_N4         0x003c
+
+#define PLC_IF_GT_NOTCH_PTN_CLR        0x03ff
+#define PLC_IF_GT_NOTCH_PTN_0          0x0400
+#define PLC_IF_GT_NOTCH_PTN_P1         0x0800
+#define PLC_IF_GT_NOTCH_PTN_P2         0x2800
+#define PLC_IF_GT_NOTCH_PTN_P3         0x6800
+#define PLC_IF_GT_NOTCH_PTN_P4         0xc800
+#define PLC_IF_GT_NOTCH_PTN_N1         0x1000
+#define PLC_IF_GT_NOTCH_PTN_N2         0x3000
+#define PLC_IF_GT_NOTCH_PTN_N3         0x7000
+#define PLC_IF_GT_NOTCH_PTN_N4         0xf000
+
+#define PLC_IF_BH_NOTCH_PTN_CLR        0xffc0
+#define PLC_IF_BH_NOTCH_PTN_0          0x0001
+#define PLC_IF_BH_NOTCH_PTN_P1         0x0002
+#define PLC_IF_BH_NOTCH_PTN_P2         0x000a
+#define PLC_IF_BH_NOTCH_PTN_P3         0x001a
+#define PLC_IF_BH_NOTCH_PTN_P4         0x003a
+#define PLC_IF_BH_NOTCH_PTN_N1         0x0004
+#define PLC_IF_BH_NOTCH_PTN_N2         0x000c
+#define PLC_IF_BH_NOTCH_PTN_N3         0x001c
+#define PLC_IF_BH_NOTCH_PTN_N4         0x003c
+
+#define PLC_IF_SL_NOTCH_PTN_CLR        0xc03f
+#define PLC_IF_SL_NOTCH_PTN_0          0x0040
+#define PLC_IF_SL_NOTCH_PTN_P1         0x0080
+#define PLC_IF_SL_NOTCH_PTN_P2         0x0280
+#define PLC_IF_SL_NOTCH_PTN_P3         0x0680
+#define PLC_IF_SL_NOTCH_PTN_P4         0x0e80
+#define PLC_IF_SL_NOTCH_PTN_N1         0x0100
+#define PLC_IF_SL_NOTCH_PTN_N2         0x0300
+#define PLC_IF_SL_NOTCH_PTN_N3         0x0700
+#define PLC_IF_SL_NOTCH_PTN_N4         0x0f00
+
+#define PLC_IF_AH_NOTCH_PTN_CLR        0xc0ff
+#define PLC_IF_AH_NOTCH_PTN_0          0x0100
+#define PLC_IF_AH_NOTCH_PTN_P1         0x0200
+#define PLC_IF_AH_NOTCH_PTN_P2         0x0a00
+#define PLC_IF_AH_NOTCH_PTN_P3         0x1a00
+#define PLC_IF_AH_NOTCH_PTN_P4         0x3a00
+#define PLC_IF_AH_NOTCH_PTN_N1         0x0400
+#define PLC_IF_AH_NOTCH_PTN_N2         0x0c00
+#define PLC_IF_AH_NOTCH_PTN_N3         0x1c00
+#define PLC_IF_AH_NOTCH_PTN_N4         0x3c00
+
+#define PLC_IF_INDEX_NOTCH_PTN_CLR         9
+#define PLC_IF_INDEX_NOTCH_PTN_0           4
+#define PLC_IF_INDEX_NOTCH_PTN_P1          5
+#define PLC_IF_INDEX_NOTCH_PTN_P2          6
+#define PLC_IF_INDEX_NOTCH_PTN_P3          7
+#define PLC_IF_INDEX_NOTCH_PTN_P4          8
+#define PLC_IF_INDEX_NOTCH_PTN_N1          3
+#define PLC_IF_INDEX_NOTCH_PTN_N2          2
+#define PLC_IF_INDEX_NOTCH_PTN_N3          1
+#define PLC_IF_INDEX_NOTCH_PTN_N4          0
+
+struct ST_PLC_NOTCH_PTN {
+    UINT16 bits[MOTION_ID_MAX][10] =
+    {
+       {PLC_IF_MH_NOTCH_PTN_N4, PLC_IF_MH_NOTCH_PTN_N3,  PLC_IF_MH_NOTCH_PTN_N2, PLC_IF_MH_NOTCH_PTN_N1, PLC_IF_MH_NOTCH_PTN_0, PLC_IF_MH_NOTCH_PTN_P1, PLC_IF_MH_NOTCH_PTN_P2, PLC_IF_MH_NOTCH_PTN_P3, PLC_IF_MH_NOTCH_PTN_P4, PLC_IF_MH_NOTCH_PTN_CLR},
+       {PLC_IF_GT_NOTCH_PTN_N4, PLC_IF_GT_NOTCH_PTN_N3,  PLC_IF_GT_NOTCH_PTN_N2, PLC_IF_GT_NOTCH_PTN_N1, PLC_IF_GT_NOTCH_PTN_0, PLC_IF_GT_NOTCH_PTN_P1, PLC_IF_GT_NOTCH_PTN_P2, PLC_IF_GT_NOTCH_PTN_P3, PLC_IF_GT_NOTCH_PTN_P4, PLC_IF_GT_NOTCH_PTN_CLR},
+       {0,0,0,0,0,0,0,0,0,0},
+       {PLC_IF_BH_NOTCH_PTN_N4, PLC_IF_BH_NOTCH_PTN_N3,  PLC_IF_BH_NOTCH_PTN_N2, PLC_IF_BH_NOTCH_PTN_N1, PLC_IF_BH_NOTCH_PTN_0, PLC_IF_BH_NOTCH_PTN_P1, PLC_IF_BH_NOTCH_PTN_P2, PLC_IF_BH_NOTCH_PTN_P3, PLC_IF_BH_NOTCH_PTN_P4, PLC_IF_BH_NOTCH_PTN_CLR},
+       {PLC_IF_SL_NOTCH_PTN_N4, PLC_IF_SL_NOTCH_PTN_N3,  PLC_IF_SL_NOTCH_PTN_N2, PLC_IF_SL_NOTCH_PTN_N1, PLC_IF_SL_NOTCH_PTN_0, PLC_IF_SL_NOTCH_PTN_P1, PLC_IF_SL_NOTCH_PTN_P2, PLC_IF_SL_NOTCH_PTN_P3, PLC_IF_SL_NOTCH_PTN_P4, PLC_IF_SL_NOTCH_PTN_CLR},
+       {PLC_IF_AH_NOTCH_PTN_N4, PLC_IF_AH_NOTCH_PTN_N3,  PLC_IF_AH_NOTCH_PTN_N2, PLC_IF_AH_NOTCH_PTN_N1, PLC_IF_AH_NOTCH_PTN_0, PLC_IF_AH_NOTCH_PTN_P1, PLC_IF_AH_NOTCH_PTN_P2, PLC_IF_AH_NOTCH_PTN_P3, PLC_IF_AH_NOTCH_PTN_P4, PLC_IF_AH_NOTCH_PTN_CLR}
+    };
+};
+
 typedef struct st_PLCwrite_tag {//制御PC→PLC
     INT16 helthy;               //PCヘルシー出力信号
     INT16 auto_ctrl;            //自動制御フラグ
@@ -160,12 +238,12 @@ struct CABPLC_BOUT_MAP {
     POINT mh_high_spd                       = { 0,0x0080 };
     POINT ah_multi                          = { 0,0x0100 };
     POINT ah_single                         = { 0,0x0200 };
-    POINT notch_ah                          = { 0,10 };//ノッチのYはビットシフト量
-    POINT notch_mh                          = { 1,0};//ノッチのYはビットシフト量
+    POINT notch_ah                          = { 0,10 };     //ノッチのYはビットシフト量
+    POINT notch_mh                          = { 1,0};       //ノッチのYはビットシフト量
     POINT load_swayless                     = { 1,0x0040 };
     POINT gt_spd_30                         = { 1,0x0080 };
     POINT gt_spd_35                         = { 1,0x0100 };
-    POINT notch_gt                          = { 1,9 };//ノッチのYはビットシフト量
+    POINT notch_gt                          = { 1,9 };      //ノッチのYはビットシフト量
     POINT cab_estp                          = { 1,0x8000};
     POINT whip_5t_ng                        = { 2,0x0001 };
     POINT mlim_acc_low                      = { 2,0x0002 };

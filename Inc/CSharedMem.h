@@ -513,12 +513,15 @@ typedef struct stJobIO {
 #define CS_ID_NOTCH_POS_HOLD			0
 #define CS_ID_NOTCH_POS_TRIG			1
 
+#define CS_CODE_OTE_REMOTE_ENABLE		0x1
+
 
 typedef struct stCSInfo {
 	//UI関連
 	ST_OTE_LAMP_COM ote_pb_lamp[N_OTE_PNL_PB];							//端末ランプ表示指令
 	ST_OTE_LAMP_COM ote_notch_lamp[N_OTE_PNL_NOTCH];					//端末ランプ表示指令
 	int	semi_auto_selected;												//選択中の半自動ID
+	int ote_remote_status;
 	INT16		notch_pos[2][MOTION_ID_MAX];							//ノッチ指定値
 
 

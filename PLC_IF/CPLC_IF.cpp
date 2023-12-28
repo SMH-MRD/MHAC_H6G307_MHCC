@@ -4,12 +4,14 @@
 #include "PLC_DEF.h"
 #include <windowsx.h>
 #include "Mdfunc.h"
+#include "OTE0panel.h""
 
 extern ST_SPEC def_spec;
 extern ST_KNL_MANAGE_SET    knl_manage_set;
 
 CMCProtocol* pMCProtocol;  //MCプロトコルオブジェクト:
 INT16 bit_mask[16] = {BIT0,BIT1,BIT2,BIT3,BIT4,BIT5,BIT6,BIT7,BIT8,BIT9,BIT10,BIT11,BIT12,BIT13,BIT14,BIT15};
+ST_PLC_NOTCH_PTN notch_ptn;//PLCのノッチ信号入力パターン
 
 CABPLC_BOUT_MAP cab_bout_map;
 ERMPLC_BOUT_MAP erm_bout_map;
@@ -183,6 +185,46 @@ int CPLC_IF::parse_data_in() {
     return 0;
 }
 
+int CPLC_IF::parse_data_out() {
+    if (pCSInf->ote_remote_status &= CS_CODE_OTE_REMOTE_ENABLE) {//端末操作有効
+        // 主幹ON　PB
+        if(pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_SYUKAN])   
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
+        else                                                    
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
+
+        // 非常停止　PB（主幹OFF　PB）
+        if((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU])|| !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP]))
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+        else
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
+
+        if (pCSInf->auto_mode) {
+            //AGENT 出力をセット;
+        }
+        else {
+            //OTEノッチ信号セット
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] &= notch_ptn.bits[ID_HOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] |= notch_ptn.bits[ID_HOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] &= notch_ptn.bits[ID_GANTRY][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] |= notch_ptn.bits[ID_GANTRY][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY]];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] &= notch_ptn.bits[ID_BOOM_H][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] |= notch_ptn.bits[ID_BOOM_H][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H]];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] &= notch_ptn.bits[ID_SLEW][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] |= notch_ptn.bits[ID_SLEW][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW]];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] &= notch_ptn.bits[ID_AHOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]];
+          }
+    }
+    else {
+        //端末無効時は、主幹OFF入力状態
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+
+    }
+     return 0;
+}
+
 int CPLC_IF::parse_ote_com() {
     //運転室PB
 #if 0
@@ -262,6 +304,9 @@ int CPLC_IF::parse() {
 
     //### PLCリンク入力を翻訳
     parse_data_in();
+   
+    //### PLC,他プロセスへの出力内容を翻訳
+    parse_data_out();
   
     //### 遠隔端末出力内容を翻訳
     parse_ote_com();
@@ -279,13 +324,17 @@ int CPLC_IF::parse() {
 //*********************************************************************************************
 
 int CPLC_IF::output() { 
-
-    plc_if_workbuf.healthy_cnt++;
+        
+    plc_if_workbuf.output.wbuf.helthy = plc_if_workbuf.healthy_cnt++;
  
      //共有メモリ出力処理
     if(out_size) { 
         memcpy_s(poutput, out_size, &plc_if_workbuf, out_size);
     }
+
+    //PLC送信の内容をセット
+    memcpy_s(lp_PLCwrite, sizeof(PLC_WRITE_BUF), &(plc_if_workbuf.output), sizeof(PLC_WRITE_BUF));
+
     return 0;
 }
 

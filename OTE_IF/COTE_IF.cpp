@@ -576,7 +576,6 @@ LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			}
 			if_disp_update();
 		}
-
 	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);

@@ -53,8 +53,12 @@ void CClientService::init_task(void* pobj) {
 	for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 		if (i == ID_OTE_GRIP_SWITCH)continue;//	グリップスイッチは対象外
 		CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;	//0ノッチで初期化
+		//ランプ指令
+		CS_workbuf.ote_notch_lamp[i * 10 + ID_OTE_0NOTCH_POS].com = OTE_LAMP_COM_ON;
+		CS_workbuf.ote_notch_lamp[i * 10 + ID_OTE_0NOTCH_POS].color = OTE0_GREEN;
 	}
 
+	CS_workbuf.ote_remote_status &= ~CS_CODE_OTE_REMOTE_ENABLE; //リモート操作可をクリア
 
 #if 0
 	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
@@ -465,8 +469,10 @@ int CClientService::parce_onboard_input(int mode) {
 //# OTE入力操作端末有効判断
 int CClientService::can_ote_activate() {
 	if ((pOTE_IO->ote_u_silent_cnt < CS_OTE_U_MSG_TIMEOUT)&&(pOTE_IO->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_RMT])) {
+		CS_workbuf.ote_remote_status |= CS_CODE_OTE_REMOTE_ENABLE;
 		return L_ON;
 	}
+	CS_workbuf.ote_remote_status &= ~CS_CODE_OTE_REMOTE_ENABLE;
 	return L_OFF;
 }
 /****************************************************************************/
@@ -556,7 +562,9 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 				for (int j = 0; j < 9; j++) {
 					if (j == pOTE_IO->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][i]) {
 						CS_workbuf.ote_notch_lamp[i*10+j].com = OTE_LAMP_COM_ON;
-						CS_workbuf.ote_notch_lamp[i * 10 + j].color = OTE0_RED;
+						
+						if(j== ID_OTE_0NOTCH_POS)	CS_workbuf.ote_notch_lamp[i * 10 + j].color = OTE0_GREEN;
+						else						CS_workbuf.ote_notch_lamp[i * 10 + j].color = OTE0_RED;
 					}
 					else {
 						CS_workbuf.ote_notch_lamp[i * 10 + j].com = OTE_LAMP_COM_OFF;
@@ -564,6 +572,7 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 				}
 
 			}
+			//ノッチ位置前回値保持
 			CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = pOTE_IO->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][i];
 		}
 
@@ -577,6 +586,14 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 		//ノッチランプ
 		for (int i = 0; i < N_OTE_PNL_NOTCH; i++) {
 			CS_workbuf.ote_notch_lamp[i].com = OTE_LAMP_COM_OFF;
+		}
+
+		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
+			if (i == ID_OTE_GRIP_SWITCH)continue;//	グリップスイッチは対象外
+			CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;	//0ノッチで初期化
+			//ランプ指令
+			CS_workbuf.ote_notch_lamp[i * 10 + ID_OTE_0NOTCH_POS].com = OTE_LAMP_COM_ON;
+			CS_workbuf.ote_notch_lamp[i * 10 + ID_OTE_0NOTCH_POS].color = OTE0_GREEN;
 		}
 	}
 
@@ -596,6 +613,7 @@ void CClientService::main_proc() {
 	if (CS_workbuf.auto_mode == L_OFF) {
 		//自動モードOFFでジョブホールド数クリア
 		pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job = 0;
+		CS_workbuf.semi_auto_selected = 0;
 	}
 
 	//イベント処理
