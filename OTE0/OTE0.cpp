@@ -23,6 +23,8 @@ HWND hWnd_work;					//操作端末メインウィンドウハンドル
 HWND hWnd_swy;					//振れウィンドウハンドル
 HWND hWnd_sub[OTE0_N_SUB_WND];	//
 HWND hwnd_current_subwnd;
+HWND hwnd_camera;
+
 COte* pCOte0;                    //OTE0オブジェクト
 
 static INT16 flick_cnt=0;
@@ -39,7 +41,9 @@ HWND open_mode_Wnd(HWND hwnd);
 HWND open_fault_Wnd(HWND hwnd);
 HWND open_moment_Wnd(HWND hwnd);
 HWND open_auto_Wnd(HWND hwnd);
-HWND open_swy_Wnd(HWND hwnd);
+HWND open_swy_Wnd(HWND hwnd); 
+HWND open_camera_Wnd(HWND hwnd);
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -510,6 +514,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			else
 				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
 			break;
+		}
+		//カメラウィンドウ表示
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_WND: {
+			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) 
+				DestroyWindow(hwnd_camera);
+			else 
+				open_camera_Wnd(hWnd);
 		}
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -1257,6 +1268,46 @@ HWND open_swy_Wnd(HWND hwnd) {
 
 	return hWnd_sub[ID_OTE0_SWY_WND];
 }
+HWND open_camera_Wnd(HWND hwnd) {
+	InitCommonControls();//コモンコントロール初期化
+	HINSTANCE hInst = GetModuleHandle(0);
+	// ウィンドウを作成
+	hwnd_camera = CreateWindowEx(
+		WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+
+		L"STATIC",
+		L"Desktop Capture",
+		WS_POPUP,
+		900, 650, 640, 480,
+		NULL, NULL, NULL, NULL);
+
+	// ウィンドウを透明にする
+	SetLayeredWindowAttributes(hwnd_camera, RGB(0, 0, 255), 0, LWA_COLORKEY);
+
+	// デスクトップ画面の一部を切り取る
+	HDC hDC = GetDC(NULL);
+	HDC hCaptureDC = CreateCompatibleDC(hDC);
+	HBITMAP hCaptureBitmap = CreateCompatibleBitmap(hDC, 640, 480);
+	HGDIOBJ hOldBitmap = SelectObject(hCaptureDC, hCaptureBitmap);
+	BitBlt(hCaptureDC, 0, 0, 640, 480, hDC, 0, 0, SRCCOPY);
+
+	// 切り取った画像をウィンドウに表示する
+	HDC hWindowDC = GetDC(hwnd_camera);
+	BitBlt(hWindowDC, 0, 0, 640, 480, hCaptureDC, 0, 0, SRCCOPY);
+
+	// 後始末
+	SelectObject(hCaptureDC, hOldBitmap);
+	DeleteObject(hCaptureBitmap);
+	DeleteDC(hCaptureDC);
+	ReleaseDC(NULL, hDC);
+	ReleaseDC(hwnd_camera, hWindowDC);
+
+
+	// ウィンドウを表示
+	ShowWindow(hwnd_camera, SW_SHOW);
+
+	return hwnd_camera;
+}
 
 //*********************************************************************************************
 /// <summary>
@@ -1307,7 +1358,8 @@ void set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
 		}
 
-		for (LONGLONG i = ID_OTE_CHK_ASET_MH; i <= ID_OTE_CHK_ASET_SL; i++) {
+		//for (LONGLONG i = ID_OTE_CHK_ASET_MH; i <= ID_OTE_CHK_ASET_SL; i++) {
+		for (LONGLONG i = ID_OTE_CHK_ASET_MH; i <=ID_OTE_CHK_CAMERA_WND; i++) {
 			st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
 				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
 				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
