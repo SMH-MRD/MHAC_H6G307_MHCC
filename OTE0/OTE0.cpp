@@ -44,7 +44,6 @@ HWND open_auto_Wnd(HWND hwnd);
 HWND open_swy_Wnd(HWND hwnd); 
 HWND open_camera_Wnd(HWND hwnd);
 
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndAutoProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -52,6 +51,7 @@ LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 void set_OTE_panel_objects(HWND hWnd);			//OTEウィンドウ上へコントロール配置
 void disp_msg_cnt();
@@ -1022,6 +1022,67 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	return S_OK;
 }
 
+static HDC hCaptureDC;
+static HBITMAP hCaptureBitmap;
+
+LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	HDC hdc;
+	int id;
+	HINSTANCE hInst = GetModuleHandle(0);
+	switch (message)
+	{
+	case WM_CREATE: {
+		InitCommonControls();//コモンコントロール初期化
+		//マルチキャストタイマ起動 
+		SetTimer(hWnd, ID_OTE_CAMERA_TIMER, OTE_CAMERA_SCAN_MS,NULL);
+
+	}break;
+	case WM_TIMER: {
+			InvalidateRect(hWnd, NULL, FALSE);
+		}
+
+	case WM_COMMAND: {
+		int wmId = LOWORD(wParam);
+
+	}break;
+
+	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+
+
+		// ウィンドウを透明にする
+		SetLayeredWindowAttributes(hwnd_camera, RGB(0, 0, 0), 0, LWA_COLORKEY);
+
+		// デスクトップ画面の一部を切り取る
+		st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW] = GetDC(NULL);
+		hCaptureDC = CreateCompatibleDC(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW]);
+		hCaptureBitmap = CreateCompatibleBitmap(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], 640, 480);
+		SelectObject(hCaptureDC, hCaptureBitmap);
+		BitBlt(hCaptureDC, 0, 0, 640, 480, st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], 3000, 300, SRCCOPY);
+
+		// 切り取った画像をウィンドウに表示する
+	//	HDC hWindowDC = GetDC(hwnd_camera);
+		BitBlt(hdc, 0, 0, 640, 480, hCaptureDC, 0, 0, SRCCOPY);
+
+		// 後始末
+//		SelectObject(hCaptureDC, hOldBitmap);
+
+
+		EndPaint(hWnd, &ps);
+	}break;
+	case WM_DESTROY: {
+		KillTimer(hWnd_work, ID_OTE_CAMERA_TIMER);
+		DeleteObject(hCaptureBitmap);
+		//PostQuitMessage(0);
+	}break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return S_OK;
+}
+
+
 // バージョン情報ボックスのメッセージ ハンドラーです。
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -1268,6 +1329,43 @@ HWND open_swy_Wnd(HWND hwnd) {
 
 	return hWnd_sub[ID_OTE0_SWY_WND];
 }
+#if 1
+HWND open_camera_Wnd(HWND hwnd) {
+	InitCommonControls();//コモンコントロール初期化
+	HINSTANCE hInst = GetModuleHandle(0);
+	WNDCLASSEXW wcex;
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndCamProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = (HINSTANCE)GetModuleHandle(0);;
+	wcex.hIcon = NULL;
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = NULL;// TEXT("OTECON");
+	wcex.lpszClassName = TEXT("Camera View");
+	wcex.hIconSm = NULL;
+
+	ATOM fb = RegisterClassExW(&wcex);
+	
+	hwnd_camera = CreateWindowW(TEXT("CAMERA VIEW"), TEXT("CAMERA VIEW"), WS_POPUP | WS_BORDER,
+			OTE0_CAM_WND_X, OTE0_CAM_WND_Y, OTE0_CAM_WND_W, OTE0_CAM_WND_H,
+			hwnd, nullptr, hInst, nullptr);
+
+	//デバイスコンテキスト
+	HDC hdc = GetDC(hwnd_camera);
+	TextOutW(hdc, 10, 10, L"<<Camera>>", 15);
+	ReleaseDC(hwnd_camera, hdc);
+
+	InvalidateRect(hwnd_camera, NULL, TRUE);//表示更新
+
+	ShowWindow(hwnd_camera, SW_SHOW);
+	UpdateWindow(hwnd_camera);
+
+	return hwnd_camera;
+}
+#else
 HWND open_camera_Wnd(HWND hwnd) {
 	InitCommonControls();//コモンコントロール初期化
 	HINSTANCE hInst = GetModuleHandle(0);
@@ -1308,6 +1406,7 @@ HWND open_camera_Wnd(HWND hwnd) {
 
 	return hwnd_camera;
 }
+#endif
 
 //*********************************************************************************************
 /// <summary>

@@ -16,8 +16,10 @@
 //タイマー
 #define ID_OTE_MULTICAST_TIMER				199
 #define ID_OTE_UNICAST_TIMER				198
+#define ID_OTE_CAMERA_TIMER					197
 #define OTE_MULTICAST_SCAN_MS				1000	    // マルチキャスト IF送信周期
 #define OTE_UNICAST_SCAN_MS					100			// ユニキャスト IF送信周期　UI更新周期
+#define OTE_CAMERA_SCAN_MS					100			// ユニキャスト IF送信周期　UI更新周期
 
 //ソケットイベントID
 #define ID_SOCK_EVENT_PC_UNI_OTE 		    10653		//OTE受信ソケットイベント　PC UNICASTメッセージ
@@ -39,6 +41,10 @@
 #define OTE0_SWY_WND_W			280			//振れパネルWINDOW幅
 #define OTE0_SWY_WND_H			240			//振れパネルWINDOW高さ
 
+#define OTE0_CAM_WND_X			900			//振れパネル表示位置X
+#define OTE0_CAM_WND_Y			650			//振れパネル表示位置Y
+#define OTE0_CAM_WND_W			640			//振れパネルWINDOW幅
+#define OTE0_CAM_WND_H			480			//振れパネルWINDOW高さ
 
 #define OTE0_N_SUB_WND			6
 #define ID_OTE0_SUB_WND_CONNECT	0

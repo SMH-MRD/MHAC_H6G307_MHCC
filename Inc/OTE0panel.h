@@ -155,6 +155,7 @@
 #define ID_OTE_HDC_SWY_MEM0		3
 #define ID_OTE_HDC_SWY_MEM_IF	4
 #define ID_OTE_HDC_SWY_MEM_GR	5
+#define ID_OTE_HDC_CAMERA_VIEW	6
 
 #define PRM_OTE_DEF_PB_W		50
 #define PRM_OTE_DEF_PB_W2		30
