@@ -61,9 +61,6 @@
 #define CC_PRM_RPM100_SLW   20000
 #define CC_PRM_RPM100_GT    20000
 
-
-
-
 #define PLC_IF_CAB_AI_FOOT_BRK      0
 #define PLC_IF_CAB_AI_BH_R          1
 #define PLC_IF_CAB_AI_MH_LOAD       2
@@ -96,16 +93,16 @@
 #define PLC_IF_MH_NOTCH_PTN_N3         0x001c
 #define PLC_IF_MH_NOTCH_PTN_N4         0x003c
 
-#define PLC_IF_GT_NOTCH_PTN_CLR        0x03ff
-#define PLC_IF_GT_NOTCH_PTN_0          0x0400
-#define PLC_IF_GT_NOTCH_PTN_P1         0x0800
-#define PLC_IF_GT_NOTCH_PTN_P2         0x2800
-#define PLC_IF_GT_NOTCH_PTN_P3         0x6800
-#define PLC_IF_GT_NOTCH_PTN_P4         0xc800
-#define PLC_IF_GT_NOTCH_PTN_N1         0x1000
-#define PLC_IF_GT_NOTCH_PTN_N2         0x3000
-#define PLC_IF_GT_NOTCH_PTN_N3         0x7000
-#define PLC_IF_GT_NOTCH_PTN_N4         0xf000
+#define PLC_IF_GT_NOTCH_PTN_CLR        0x81ff
+#define PLC_IF_GT_NOTCH_PTN_0          0x0200
+#define PLC_IF_GT_NOTCH_PTN_P1         0x0400
+#define PLC_IF_GT_NOTCH_PTN_P2         0x1400
+#define PLC_IF_GT_NOTCH_PTN_P3         0x3400
+#define PLC_IF_GT_NOTCH_PTN_P4         0x7400
+#define PLC_IF_GT_NOTCH_PTN_N1         0x0800
+#define PLC_IF_GT_NOTCH_PTN_N2         0x1800
+#define PLC_IF_GT_NOTCH_PTN_N3         0x3800
+#define PLC_IF_GT_NOTCH_PTN_N4         0x7800
 
 #define PLC_IF_BH_NOTCH_PTN_CLR        0xffc0
 #define PLC_IF_BH_NOTCH_PTN_0          0x0001
@@ -118,27 +115,27 @@
 #define PLC_IF_BH_NOTCH_PTN_N3         0x001c
 #define PLC_IF_BH_NOTCH_PTN_N4         0x003c
 
-#define PLC_IF_SL_NOTCH_PTN_CLR        0xc03f
-#define PLC_IF_SL_NOTCH_PTN_0          0x0040
-#define PLC_IF_SL_NOTCH_PTN_P1         0x0080
-#define PLC_IF_SL_NOTCH_PTN_P2         0x0280
-#define PLC_IF_SL_NOTCH_PTN_P3         0x0680
-#define PLC_IF_SL_NOTCH_PTN_P4         0x0e80
-#define PLC_IF_SL_NOTCH_PTN_N1         0x0100
-#define PLC_IF_SL_NOTCH_PTN_N2         0x0300
-#define PLC_IF_SL_NOTCH_PTN_N3         0x0700
-#define PLC_IF_SL_NOTCH_PTN_N4         0x0f00
+#define PLC_IF_SL_NOTCH_PTN_CLR        0x81ff
+#define PLC_IF_SL_NOTCH_PTN_0          0x0200
+#define PLC_IF_SL_NOTCH_PTN_P1         0x0400
+#define PLC_IF_SL_NOTCH_PTN_P2         0x1400
+#define PLC_IF_SL_NOTCH_PTN_P3         0x3400
+#define PLC_IF_SL_NOTCH_PTN_P4         0x7400
+#define PLC_IF_SL_NOTCH_PTN_N1         0x0800
+#define PLC_IF_SL_NOTCH_PTN_N2         0x1800
+#define PLC_IF_SL_NOTCH_PTN_N3         0x3800
+#define PLC_IF_SL_NOTCH_PTN_N4         0x7800
 
-#define PLC_IF_AH_NOTCH_PTN_CLR        0xc0ff
-#define PLC_IF_AH_NOTCH_PTN_0          0x0100
-#define PLC_IF_AH_NOTCH_PTN_P1         0x0200
-#define PLC_IF_AH_NOTCH_PTN_P2         0x0a00
-#define PLC_IF_AH_NOTCH_PTN_P3         0x1a00
-#define PLC_IF_AH_NOTCH_PTN_P4         0x3a00
-#define PLC_IF_AH_NOTCH_PTN_N1         0x0400
-#define PLC_IF_AH_NOTCH_PTN_N2         0x0c00
-#define PLC_IF_AH_NOTCH_PTN_N3         0x1c00
-#define PLC_IF_AH_NOTCH_PTN_N4         0x3c00
+#define PLC_IF_AH_NOTCH_PTN_CLR        0x03ff
+#define PLC_IF_AH_NOTCH_PTN_0          0x0400
+#define PLC_IF_AH_NOTCH_PTN_P1         0x0800
+#define PLC_IF_AH_NOTCH_PTN_P2         0x2800
+#define PLC_IF_AH_NOTCH_PTN_P3         0x6800
+#define PLC_IF_AH_NOTCH_PTN_P4         0xe800
+#define PLC_IF_AH_NOTCH_PTN_N1         0x1000
+#define PLC_IF_AH_NOTCH_PTN_N2         0x3000
+#define PLC_IF_AH_NOTCH_PTN_N3         0x7000
+#define PLC_IF_AH_NOTCH_PTN_N4         0xf000
 
 #define PLC_IF_INDEX_NOTCH_PTN_CLR         9
 #define PLC_IF_INDEX_NOTCH_PTN_0           4
@@ -165,16 +162,15 @@ struct ST_PLC_NOTCH_PTN {
 
 typedef struct st_PLCwrite_tag {//制御PC→PLC
     INT16 helthy;               //PCヘルシー出力信号
-    INT16 auto_ctrl;            //自動制御フラグ
+    INT16 ctrl_mode;            //自動制御フラグ
     INT32 cab_ai[8];            //運転室PLC AI信号【将来用】
     INT16 cab_di[6];            //運転室PLC→電気室PLC b出力
-    INT16 spare0[8];            //予備 
     INT32 hcounter[4];          //高速カウンタユニット 
     INT32 absocoder[2];         //アブソコーダ 
     INT16 spare1[4];            //予備
     INT16 pc_fault[2];          //PC検出異常マップ
     INT16 spare2[20];           //予備
-    INT16 erm_x[8];             //予備
+    INT16 erm_x[8];             //電気室X
     INT16 inv_cc_x[6];          //インバータFB書き込み値　ｘデバイス
     INT16 inv_cc_Wr1[6];        //インバータFB書き込み値　rpm
     INT16 inv_cc_Wr2[6];        //インバータFB書き込み値　トルク0.1%

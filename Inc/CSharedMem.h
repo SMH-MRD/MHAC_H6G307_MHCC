@@ -74,9 +74,10 @@ typedef struct StMoveSet {
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 #pragma region PLC IO
 #define PLC_IF_REMOTE_OFF_MODE	0x00000000		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
-#define PLC_IF_SIM_MODE_0		0x00000001		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_RMT_MODE_0		0x00000001		//遠隔運転モード（PCからの出力有効　通常運用モード）
 #define PLC_IF_SIM_MODE_1		0x00000003		//操作端末からの操作入力有効通常運用モード
-#define PLC_IF_SIM_MODE_2		0x00000004		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+#define PLC_IF_SIM_MODE_2		0x00000007		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+
 
 #define PLC_DRUM_LAYER_MAX		10				//ドラム層数最大値
 
@@ -515,15 +516,13 @@ typedef struct stJobIO {
 
 #define CS_CODE_OTE_REMOTE_ENABLE		0x1
 
-
 typedef struct stCSInfo {
 	//UI関連
 	ST_OTE_LAMP_COM ote_pb_lamp[N_OTE_PNL_PB];							//端末ランプ表示指令
 	ST_OTE_LAMP_COM ote_notch_lamp[N_OTE_PNL_NOTCH];					//端末ランプ表示指令
 	int	semi_auto_selected;												//選択中の半自動ID
-	int ote_remote_status;
-	INT16		notch_pos[2][MOTION_ID_MAX];							//ノッチ指定値
-
+	int ote_remote_status;												//操作端末の状態　0bit：端末信号有効
+	INT16	notch_pos[2][MOTION_ID_MAX];								//ノッチ指定値
 
 	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置

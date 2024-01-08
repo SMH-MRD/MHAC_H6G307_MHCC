@@ -207,7 +207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //pProcObj->hide_if_wnd();
 
         stMainWnd.h_redio_m0 = CreateWindow(L"BUTTON", L"M0", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-            5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M0, hInst, NULL);
+            5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_M0, hInst, NULL);
         stMainWnd.h_redio_m1 = CreateWindow(L"BUTTON", L"M1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
             50, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M1, hInst, NULL);
         stMainWnd.h_redio_m2 = CreateWindow(L"BUTTON", L"M2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
@@ -234,21 +234,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DestroyWindow(hWnd);
             break;
 
-        case IDC_RADIO_SIM_M0: {
-            pProcObj->set_mode(PLC_IF_SIM_MODE_0);
+        case IDC_RADIO_RMT_M0: {//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+            pProcObj->set_mode(PLC_IF_RMT_MODE_0);
             TCHAR tbuf[32];
             wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
             SetWindowText(stMainWnd.h_static0, L"SIM M0");
         }break;
-        case IDC_RADIO_SIM_M1: {
+        case IDC_RADIO_SIM_M1: {//操作端末からの操作入力有効通常運用モード
             pProcObj->set_mode(PLC_IF_SIM_MODE_1);
             TCHAR tbuf[32];
             wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
             SetWindowText(stMainWnd.h_static0, L"SIM M1");
         }break;
-        case IDC_RADIO_SIM_M2: {
+        case IDC_RADIO_SIM_M2: {//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
             pProcObj->set_mode(PLC_IF_SIM_MODE_2);
             TCHAR tbuf[32];
             wsprintf(tbuf, L"mode:%04x", pProcObj->mode);

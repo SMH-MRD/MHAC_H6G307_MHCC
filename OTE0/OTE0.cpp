@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "OTE0.h"
 #include "OTE0panel.h"
+#include "CPsaMain.h"
 
 #include <windowsx.h>       //# コモンコントロール
 #include <winsock2.h>
@@ -25,7 +26,8 @@ HWND hWnd_sub[OTE0_N_SUB_WND];	//
 HWND hwnd_current_subwnd;
 HWND hwnd_camera;
 
-COte* pCOte0;                    //OTE0オブジェクト
+COte* pCOte0;					//OTE0オブジェクト
+CPsaMain* pPSA;					//PSApi処理用オブジェクト
 
 static INT16 flick_cnt=0;
 static bool is_init_disp = true;
@@ -216,14 +218,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	   st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;
    }
    
-
-   //UIオブジェクト生成
+    //UIオブジェクト生成
    create_objects(hWnd_work);
 
     // OTE0オブジェクトインスタンス化
    pCOte0 = new COte(hWnd_work);                              // メイン処理クラスのインスタンス化
    pCOte0->init_proc(&st_work_wnd);
-   
+      
    ShowWindow(hWnd_work, nCmdShow);
    UpdateWindow(hWnd_work);
 
@@ -1036,6 +1037,18 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		//マルチキャストタイマ起動 
 		SetTimer(hWnd, ID_OTE_CAMERA_TIMER, OTE_CAMERA_SCAN_MS,NULL);
 
+		//CHECK BOX
+		for (LONGLONG i = ID_OTE_CHK_CAMERA_LIVE; i <= ID_OTE_CHK_CAMERA_ZOMN; i++) {
+			st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
+				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
+				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
+				hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
+		}
+
+		// PSAPI処理オブジェクト
+		pPSA = new CPsaMain();
+		pPSA->init_psa(hWnd);
+
 	}break;
 	case WM_TIMER: {
 			InvalidateRect(hWnd, NULL, FALSE);
@@ -1044,13 +1057,42 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
 
+		switch (wmId)
+		{
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_LIVE:
+		{
+			//コマンドのON/OFFはLamp指令領域を利用
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+				pPSA->LiveStart();
+			}
+			else {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
+				pPSA->LiveStop();
+			}
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILU:
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILD:
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANL:
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANR:
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMW:
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMN: {
+			//コマンドのON/OFFはLamp指令領域を利用
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0))
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+			else
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
+			break;
+		}
+		}
 	}break;
 
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-
-
+//画面切取サンプル
+#if 0 
 		// ウィンドウを透明にする
 		SetLayeredWindowAttributes(hwnd_camera, RGB(0, 0, 0), 0, LWA_COLORKEY);
 
@@ -1059,7 +1101,7 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		hCaptureDC = CreateCompatibleDC(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW]);
 		hCaptureBitmap = CreateCompatibleBitmap(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], 640, 480);
 		SelectObject(hCaptureDC, hCaptureBitmap);
-		BitBlt(hCaptureDC, 0, 0, 640, 480, st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], 3000, 300, SRCCOPY);
+		BitBlt(hCaptureDC, 0, 0, 640, 480, st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], OTE0_CAM_WND_TG_X, OTE0_CAM_WND_TG_Y, SRCCOPY);
 
 		// 切り取った画像をウィンドウに表示する
 	//	HDC hWindowDC = GetDC(hwnd_camera);
@@ -1068,12 +1110,14 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		// 後始末
 //		SelectObject(hCaptureDC, hOldBitmap);
 
-
+#endif
 		EndPaint(hWnd, &ps);
 	}break;
 	case WM_DESTROY: {
 		KillTimer(hWnd_work, ID_OTE_CAMERA_TIMER);
 		DeleteObject(hCaptureBitmap);
+		pPSA->OnClose();
+		delete pPSA;
 		//PostQuitMessage(0);
 	}break;
 	default:
@@ -1349,7 +1393,7 @@ HWND open_camera_Wnd(HWND hwnd) {
 
 	ATOM fb = RegisterClassExW(&wcex);
 	
-	hwnd_camera = CreateWindowW(TEXT("CAMERA VIEW"), TEXT("CAMERA VIEW"), WS_POPUP | WS_BORDER,
+	hwnd_camera = CreateWindowW(TEXT("CAMERA VIEW"), TEXT("CAMERA VIEW"), WS_POPUP | WS_BORDER | WS_OVERLAPPEDWINDOW,
 			OTE0_CAM_WND_X, OTE0_CAM_WND_Y, OTE0_CAM_WND_W, OTE0_CAM_WND_H,
 			hwnd, nullptr, hInst, nullptr);
 

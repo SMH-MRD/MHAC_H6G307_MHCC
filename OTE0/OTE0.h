@@ -13,6 +13,8 @@
 #include "OTE_DEF.h"
 #include "OTE0panel.H"
 
+#include "CPsaMain.H"
+
 //タイマー
 #define ID_OTE_MULTICAST_TIMER				199
 #define ID_OTE_UNICAST_TIMER				198
@@ -41,10 +43,14 @@
 #define OTE0_SWY_WND_W			280			//振れパネルWINDOW幅
 #define OTE0_SWY_WND_H			240			//振れパネルWINDOW高さ
 
-#define OTE0_CAM_WND_X			900			//振れパネル表示位置X
-#define OTE0_CAM_WND_Y			650			//振れパネル表示位置Y
-#define OTE0_CAM_WND_W			640			//振れパネルWINDOW幅
-#define OTE0_CAM_WND_H			480			//振れパネルWINDOW高さ
+#define OTE0_CAM_WND_X			850			//IP CAMERA 表示位置X
+#define OTE0_CAM_WND_Y			600			//IP CAMERA 表示位置Y
+#define OTE0_CAM_WND_W			720			//IP CAMERA WINDOW幅
+#define OTE0_CAM_WND_H			550			//IP CAMERA WINDOW高さ
+
+#define OTE0_CAM_WND_TG_X		300			//画面切り取りX位置
+#define OTE0_CAM_WND_TG_Y		300			//画面切り取りY位置
+
 
 #define OTE0_N_SUB_WND			6
 #define ID_OTE0_SUB_WND_CONNECT	0
@@ -72,8 +78,7 @@ public:
 
 	WORD helthy_cnt = 0;
 
-	std::wstring msg_ws;
-	std::wostringstream msg_wos;
+
 
 	CSockAlpha* pSockPcUniCastOte;		//PC->OTEユニキャスト受信用ソケット
 	CSockAlpha* pSockPcMultiCastOte;	//PC->OTEマルチキャスト受信用ソケット
@@ -126,5 +131,12 @@ public:
 		paddr->sin_port = htons(port);
 		inet_pton(AF_INET, ip, &(paddr->sin_addr.s_addr));
 	};
+
+
+
+	std::wstring msg_ws;
+	std::wostringstream msg_wos;
+
+	long PlayStatus;
 };
 

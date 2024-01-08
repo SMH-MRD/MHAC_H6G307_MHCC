@@ -186,6 +186,11 @@ int CPLC_IF::parse_data_in() {
 }
 
 int CPLC_IF::parse_data_out() {
+
+    //PC 操作有効信号
+    plc_if_workbuf.output.wbuf.ctrl_mode = mode;
+ 
+
     if (pCSInf->ote_remote_status &= CS_CODE_OTE_REMOTE_ENABLE) {//端末操作有効
         // 主幹ON　PB
         if(pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_SYUKAN])   

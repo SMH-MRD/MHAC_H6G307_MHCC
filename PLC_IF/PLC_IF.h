@@ -19,7 +19,7 @@
 #define IDC_PB_EXIT					2202
 #define IDC_PB_DEBUG				2203
 #define IDC_CHK_IFCHK				2204
-#define IDC_RADIO_SIM_M0			2205	//モニタのみ　PLC書き込み無し
+#define IDC_RADIO_RMT_M0			2205	//モニタのみ　PLC書き込み無し
 #define IDC_RADIO_SIM_M1			2206	//遠隔モード　運転室操作関連のみ書き込み
 #define IDC_RADIO_SIM_M2			2207	//シミュレータモード　PLC書き込みフルモード
 #define IDC_RADIO_RMT_OFF			2208	//リモート無効モード
