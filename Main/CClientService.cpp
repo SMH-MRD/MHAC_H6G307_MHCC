@@ -1,5 +1,6 @@
 #include "CClientService.h"
 #include "OTE0panel.h"
+#include "PLC_DEF.h"
 
 
 //-共有メモリオブジェクトポインタ:
@@ -16,6 +17,9 @@ extern CSharedMem* pJobIO_Obj;
 extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
 extern ST_SPEC spec;
+
+ERMPLC_BOUT_MAP plc_bo_map;	//PLC入力信号解析用
+CABPLC_BOUT_MAP plc_bi_map;	//PLC入力信号解析用
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
@@ -494,6 +498,8 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 
 		//操作スイッチ
 		{
+
+			//停止　PBL
 			CS_workbuf.ote_pb_lamp[ID_OTE_PB_TEISHI].com = CS_workbuf.ote_pb_lamp[ID_OTE_PB_KIDOU].com = OTE_LAMP_COM_ON;
 			if (pOTE_IO->ote_umsg_in.body.pb_ope[ID_OTE_PB_TEISHI]) CS_workbuf.ote_pb_lamp[ID_OTE_PB_TEISHI].color = OTE0_GREEN;
 			else													CS_workbuf.ote_pb_lamp[ID_OTE_PB_TEISHI].color = OTE0_GLAY;
@@ -501,6 +507,8 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 			if (pOTE_IO->ote_umsg_in.body.pb_ope[ID_OTE_PB_KIDOU]) CS_workbuf.ote_pb_lamp[ID_OTE_PB_KIDOU].color = OTE0_RED;
 			else													CS_workbuf.ote_pb_lamp[ID_OTE_PB_KIDOU].color = OTE0_GLAY;
 
+
+			//自動　PBL
 			if ((pOTE_IO->ote_umsg_in.body.pb_ope[ID_OTE_PB_AUTO]) && !(pb_ope_last[ID_OTE_PB_AUTO])) {
 				if (CS_workbuf.auto_mode)	CS_workbuf.auto_mode = L_OFF;
 				else 						CS_workbuf.auto_mode = L_ON;
@@ -510,7 +518,7 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 			else 						CS_workbuf.ote_pb_lamp[ID_OTE_PB_AUTO].color = OTE0_GREEN;
 
 
-			//振れ止め
+			//振れ止め　PBL
 			if ((pOTE_IO->ote_umsg_in.body.pb_ope[ID_OTE_PB_FUREDOME]) && !(pb_ope_last[ID_OTE_PB_FUREDOME])) {
 				if (CS_workbuf.antisway_mode)	CS_workbuf.antisway_mode = L_OFF;
 				else							CS_workbuf.antisway_mode = L_ON;
@@ -519,7 +527,7 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 			if (CS_workbuf.antisway_mode)	CS_workbuf.ote_pb_lamp[ID_OTE_PB_FUREDOME].color = OTE0_ORANGE;
 			else							CS_workbuf.ote_pb_lamp[ID_OTE_PB_FUREDOME].color = OTE0_GREEN;
 
-			//半自動
+			//半自動　PBL
 			for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
 				if (pOTE_IO->ote_umsg_in.body.pb_ope[i]) {
 					CS_workbuf.semi_auto_selected = i;
@@ -546,8 +554,24 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 			}
 		}
 
-		//PLC IFで処理		if (pOTE_IO->ote_umsg_in.body.pb_ope[ID_OTE_PB_SYUKAN	]);
-		//PLC IFで処理		if (pOTE_IO->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU	]);
+		//主幹ランプ　PB受け付け処理はPLC IF
+		CS_workbuf.ote_pb_lamp[ID_OTE_PB_SYUKAN].com = OTE_LAMP_COM_ON;
+		if (pPLC_IO->input.rbuf.erm_bo[plc_bo_map.ctrl_source_mc_ok.x] & plc_bo_map.ctrl_source_mc_ok.y) {
+	
+			CS_workbuf.ote_pb_lamp[ID_OTE_PB_SYUKAN].color = OTE0_RED;
+		}
+		else {
+			CS_workbuf.ote_pb_lamp[ID_OTE_PB_SYUKAN].color = OTE0_GREEN;
+		}
+		//非常停止ランプ　PB受け付け処理はPLC IF
+		CS_workbuf.ote_pb_lamp[ID_OTE_PB_HIJYOU].com = OTE_LAMP_COM_ON;
+		if (pPLC_IO->input.rbuf.cab_bi[plc_bi_map.cab_estp.x] & plc_bi_map.cab_estp.y) {
+
+			CS_workbuf.ote_pb_lamp[ID_OTE_PB_HIJYOU].color = OTE0_GREEN;
+		}
+		else {
+			CS_workbuf.ote_pb_lamp[ID_OTE_PB_HIJYOU].color = OTE0_RED;
+		}
 
 		//操作PB前回値保持
 		for (int i = ID_OTE_PB_TEISHI; i < ID_OTE_CHK_N3; i++) {

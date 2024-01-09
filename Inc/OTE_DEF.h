@@ -94,6 +94,8 @@ typedef struct OteMMsg {
 #define OTE_LAMP_COM_ON					1
 #define OTE_LAMP_COM_FLICK				2
 
+#define OTE_LAMP_FLICK_COUNT			0x0008
+
 
 typedef struct OteLampCom {
 	UINT8 com;

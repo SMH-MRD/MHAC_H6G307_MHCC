@@ -9,6 +9,7 @@
 
 #include "OTE0panel.h"
 
+
 /*****************************************************************************/
 /// <summary>
 /// コンストラクタ
@@ -113,6 +114,9 @@ LPST_OTE_U_MSG COte::set_msg_ote_u() {
 	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_HOLD], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_HOLD], 16);
 	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_TRIG], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_TRIG], 16);
 	memcpy(st_msg_ote_u_snd.body.pb_notch, pst_work_wnd->notch_pb_stat, 128);
+
+	//ランプ
+	
   
 	return &st_msg_ote_u_snd;
 }

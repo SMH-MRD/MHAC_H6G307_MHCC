@@ -311,9 +311,9 @@ struct ERMPLC_BOUT_MAP {
     POINT mh_normal_con_up_slow2_area   = { 2,0x0800 };
     POINT mh_normal_con_up_stop_area    = { 2,0x1000 };
     POINT ctrl_source_ok_bz             = { 4,0x0001 };
-    POINT ctrl_source_mc_ok             = { 4,0x0002 };
+    POINT ctrl_source_mc_ok             = { 4,0x0002 };//éÂä≤ON
     POINT fault_pl                      = { 4,0x0004 };
-    POINT ctrl_standby                  = { 4,0x0008 };
+    POINT ctrl_standby                  = { 4,0x0008 };//éÂä≤èåèê¨óß
     POINT load_disp_ok                  = { 4,0x0010 };
     POINT high_pos_operation_mode       = { 4,0x0100 };
     POINT bh_rest_mode                  = { 4,0x0200 };

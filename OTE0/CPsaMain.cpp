@@ -120,7 +120,6 @@ void CPsaMain::OnPaint()
 
 }
 
-
 //****************************************************************
 //* Function Name   : LiveStart
 //****************************************************************/
@@ -129,10 +128,10 @@ void CPsaMain::LiveStart()
 	//-----------------------------------------------------
 	//Define variables
 	//-----------------------------------------------------
-	long	lRet = 0;
-	long	lChannel = 0;
-	long	lStatus = 0;
-	long	lBlocking = 0;
+	//long	lRet = 0;
+	//long	lChannel = 0;
+	//long	lStatus = 0;
+	//long	lBlocking = 0;
 
 	//-----------------------------------------------------
 	//Connect to the device
@@ -175,11 +174,11 @@ void CPsaMain::LiveStop()
 	//-----------------------------------------------------
 	//Define variables
 	//-----------------------------------------------------
-	long    lRet = 0;
-	long	lCommand = 0;
-	long	lSpeed = 0;
-	long    lStatus = 0;
-	long    lBlocking = 0;
+	//long    lRet = 0;
+	//long	lCommand = 0;
+	//long	lSpeed = 0;
+	//long    lStatus = 0;
+	//long    lBlocking = 0;
 
 
 	if (PlayStatus == PLAYSTART) {
@@ -212,4 +211,38 @@ void CPsaMain::LiveStop()
 //		m_dlog.Logging(m_csLog);
 	}
 }
+
+//****************************************************************
+//* Function Name   : OnStop
+//****************************************************************/
+void CPsaMain::CtrlStop()
+{
+	lpan = ltilt = lzoom = lfocus = liris = 0;
+	if (PlayStatus == PLAYSTART) {
+		lRet = m_psapi->CameraControl(lChannel, lpan, ltilt, lzoom, lfocus, liris);
+		//m_csLog.Format("[Function] CameraControl(Stop):%d", lRet);
+		//m_dlog.Logging(m_csLog);
+	}
+	else {
+		//m_csLog.Format("[Message] No live.");
+		//m_dlog.Logging(m_csLog);
+	}
+}
+
+//****************************************************************
+//* Function Name   : Update Control
+//****************************************************************/
+void CPsaMain::UpdateControl()
+{
+	if (PlayStatus == PLAYSTART) {
+		lRet = m_psapi->CameraControl(lChannel, lpan, ltilt, lzoom, lfocus, liris);
+		//m_csLog.Format("[Function] CameraControl(Stop):%d", lRet);
+		//m_dlog.Logging(m_csLog);
+	}
+	else {
+		//m_csLog.Format("[Message] No live.");
+		//m_dlog.Logging(m_csLog);
+	}
+}
+
 

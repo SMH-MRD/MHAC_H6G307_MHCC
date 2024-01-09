@@ -198,11 +198,27 @@ int CPLC_IF::parse_data_out() {
         else                                                    
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
 
-        // 非常停止　PB（主幹OFF　PB）
-        if((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU])|| !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP]))
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+        // 非常停止　PB（主幹OFF　PB）　*PLC NORMAL CLOSE
+        if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])) {
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;//主幹切
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y; //非常停止
+        }
+        else {
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;//主幹切
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] |= cab_bout_map.cab_estp.y; //非常停止
+        }
+ 
+        //故障リセット　IL　Bypass
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_FLT_RESET])
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.fault_reset.x] |= cab_bout_map.fault_reset.y;
         else
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.fault_reset.x] &= ~cab_bout_map.fault_reset.y;
+
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_CHK_IL_BYPASS])
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.il_bypass.x] |= cab_bout_map.il_bypass.y;
+        else
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.il_bypass.x] &= ~cab_bout_map.il_bypass.y;
+
 
         if (pCSInf->auto_mode) {
             //AGENT 出力をセット;
@@ -222,9 +238,10 @@ int CPLC_IF::parse_data_out() {
           }
     }
     else {
-        //端末無効時は、主幹OFF入力状態
+        //端末無効時は、主幹OFFPB 非常停止　入力状態
         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
 
     }
      return 0;

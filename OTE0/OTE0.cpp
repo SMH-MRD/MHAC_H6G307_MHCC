@@ -5,6 +5,7 @@
 #include "OTE0.h"
 #include "OTE0panel.h"
 #include "CPsaMain.h"
+#include "PLC_DEF.h"
 
 #include <windowsx.h>       //# コモンコントロール
 #include <winsock2.h>
@@ -256,8 +257,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//ウィンドウにコントロール追加
 		set_OTE_panel_objects(hWnd);
 		//サブウィンドウ追加
-		hwnd_current_subwnd = open_connect_Wnd(hWnd);		//接続表示子ウィンドウ
-		open_swy_Wnd(hWnd);										//振れウィンドウ追加
+		hwnd_current_subwnd = open_fault_Wnd(hWnd);			//故障表示子ウィンドウ
+
+		open_swy_Wnd(hWnd);									//振れウィンドウ追加
 
 		//マルチキャストタイマ起動 
 		SetTimer(hWnd, ID_OTE_MULTICAST_TIMER, OTE_MULTICAST_SCAN_MS, NULL);
@@ -267,6 +269,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	}break;
 	case WM_TIMER: {
 
+		if (wParam == ID_OTE_UNICAST_TIMER) {
+			set_lamp();
+			draw_graphic();
+			draw_info();
+			draw_graphic_swy();
+			draw_info_swy();
+
+			//ON PAINT　呼び出し　表示更新
+			InvalidateRect(hWnd, NULL, FALSE);
+				//######
+		}
+
 		if (wParam == ID_OTE_MULTICAST_TIMER) {
 			if (S_OK == pCOte0->snd_ote_m_pc(pCOte0->set_msg_ote_m())) {//OTEマルチキャスト送信
 				pCOte0->cnt_snd_ote_m_pc++;
@@ -274,18 +288,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			if (S_OK == pCOte0->snd_ote_m_ote(pCOte0->set_msg_ote_m())) {//OTEマルチキャスト送信
 				pCOte0->cnt_snd_ote_m_ote++;
 			}
-	
-			set_lamp();
-			draw_graphic();
-			draw_info();
-			draw_graphic_swy();
-			draw_info_swy();
-
-			InvalidateRect(hWnd, NULL, FALSE);
-
-				//######
-
 		}
+
 		if (wParam == ID_OTE_UNICAST_TIMER) {
 			if (S_OK == pCOte0->snd_ote_u_pc(pCOte0->set_msg_ote_u(), &pCOte0->addrin_ote_u_snd)) {//OTEユニキャスト送信
 				pCOte0->cnt_snd_ote_u++;
@@ -314,9 +318,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 		
 		//PB Stat 更新　PBはカウントダウン
+		//メインパネル
 		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME;i++) {
 			if(st_work_wnd.pb_stat[i] >0)st_work_wnd.pb_stat[i]--;
 		}
+		//故障サブウィンドウ
+		if (st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] > 0)st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET]--;
+
+		//状態サブウィンドウ
+		if (st_work_wnd.pb_stat[ID_OTE_PB_GT_SHOCK] > 0)st_work_wnd.pb_stat[ID_OTE_PB_GT_SHOCK]--;
+		if (st_work_wnd.pb_stat[ID_OTE_PB_LOAD_SWY] > 0)st_work_wnd.pb_stat[ID_OTE_PB_LOAD_SWY]--;
+
 		//半自動目標CHK更新（CHK PBはONでカウントアップ　OFFで0
 		for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_GETCHECK, 0, 0))
@@ -325,7 +337,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.pb_stat[i]=0;
 		}
 
-		//NOTCH RADIO POS COUNT 更新　トリガチェック用
+		//NOTCH RADIO POS COUNT 更新　トリガチェック用　PB ONでセットされた値をカウントダウン
 		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 			if (st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_CNT][i] > 0)st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_CNT][i] --;
 			else st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = 0;
@@ -877,6 +889,22 @@ LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		}
 		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][st_work_wnd.flt_disp_mode], BM_SETCHECK, BST_CHECKED, 0L);
 
+		//故障リセットPB
+		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET] = CreateWindow(L"BUTTON",
+			st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE | WS_GROUP,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET].y,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET].cy,
+			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_PB_FLT_RESET), hInst, NULL);
+
+		//Bypass CHK BOX
+		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS] = CreateWindow(L"BUTTON",
+			st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_GROUP,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS].y,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS].cy,
+			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_CHK_IL_BYPASS), hInst, NULL);
+
+
+		//故障リスト表示STATIC
 		st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_FAULT_LIST] = CreateWindowW(TEXT("STATIC"),
 			st_work_wnd.ctrl_text[ID_OTE_CTRL_STATIC][ID_OTE_SUB_FAULT_LIST], WS_CHILD | WS_VISIBLE | SS_LEFT,
 			st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_FAULT_LIST].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_FAULT_LIST].y,
@@ -887,17 +915,20 @@ LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	}
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
-		// 選択されたメニューの解析:
-		
-		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_COM) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_STAT)) {
-			st_work_wnd.flt_disp_mode = wmId - BASE_ID_OTE_PB;
-			break;
-		}
-
 		switch (wmId)
 		{
-		case 1: {
-
+		case BASE_ID_OTE_PB + ID_OTE_PB_FLT_RESET:
+		{
+			st_work_wnd.pb_stat[wmId - BASE_ID_OTE_PB] = OTE0_PB_OFF_DELAY_COUNT;//カウントダウンはメインウィンドウで一括実施
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_IL_BYPASS:
+		{
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS], BM_GETCHECK, 0, 0)) {
+				st_work_wnd.pb_stat[ID_OTE_CHK_IL_BYPASS] = L_ON;
+			}
+			else {
+				st_work_wnd.pb_stat[ID_OTE_CHK_IL_BYPASS] = L_OFF;
+			}
 		}break;
 
 		default:
@@ -1044,6 +1075,12 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][i].cy,
 				hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
 		}
+		//PB
+		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_PB_CAMERA_STOP] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_CAMERA_STOP], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_CAMERA_STOP].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_CAMERA_STOP].y,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_CAMERA_STOP].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_CAMERA_STOP].cy,
+			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_PB_CAMERA_STOP), hInst, NULL);
+
 
 		// PSAPI処理オブジェクト
 		pPSA = new CPsaMain();
@@ -1072,19 +1109,76 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				pPSA->LiveStop();
 			}
 		}break;
-		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILU:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILD:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANL:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANR:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMW:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMN: {
-			//コマンドのON/OFFはLamp指令領域を利用
-			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0))
-				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILU: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILU], BM_GETCHECK, 0, 0)) {
+				pPSA->ltilt = -DEF_SPD_CAM_TILT;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILD], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
 			else
-				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
-			break;
-		}
+				pPSA->ltilt = 0;
+			pPSA->UpdateControl();
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILD: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILD], BM_GETCHECK, 0, 0)) {
+				pPSA->ltilt = DEF_SPD_CAM_TILT;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILU], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->ltilt = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANL: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANL], BM_GETCHECK, 0, 0)) {
+				pPSA->lpan = -DEF_SPD_CAM_PAN;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANR], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lpan = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANR: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANR], BM_GETCHECK, 0, 0)) {
+				pPSA->lpan = DEF_SPD_CAM_PAN;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANL], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lpan = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMW: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMW], BM_GETCHECK, 0, 0)) {
+				pPSA->lzoom = -DEF_SPD_CAM_ZOOM;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMN], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lzoom = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMN: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMN], BM_GETCHECK, 0, 0)) {
+				pPSA->lzoom = DEF_SPD_CAM_ZOOM;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMW], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lzoom = 0;
+
+			pPSA->UpdateControl();
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_PB_CAMERA_STOP: {
+			pPSA->CtrlStop();
+			for (int i = ID_OTE_CHK_CAMERA_TILU; i <= ID_OTE_CHK_CAMERA_ZOMN; i++) {
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+		}break;
+
 		}
 	}break;
 
@@ -1524,7 +1618,7 @@ void set_OTE_panel_objects(HWND hWnd) {
 					hWnd, (HMENU)(BASE_ID_OTE_PB + i), hInst, NULL);
 			}
 		}
-		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][st_work_wnd.subpanel_sel], BM_SETCHECK, BST_CHECKED, 0L);
+	//	SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][st_work_wnd.subpanel_sel], BM_SETCHECK, BST_CHECKED, 0L);
 		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][st_work_wnd.camera_sel], BM_SETCHECK, BST_CHECKED, 0L);
 	
 	}
@@ -1658,7 +1752,7 @@ void draw_lamp(HDC hdc,bool is_init) {
 			SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
 		}
 		else if (pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].com == OTE_LAMP_COM_FLICK) {
-			if(flick_cnt & OTE_LAMP_COM_FLICK)SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
+			if(flick_cnt & OTE_LAMP_FLICK_COUNT)SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
 			else SelectObject(hdc, st_work_wnd.hbrush[OTE0_GLAY]);		//OFF色
 		}
 		else {

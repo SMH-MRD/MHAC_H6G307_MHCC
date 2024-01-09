@@ -805,11 +805,15 @@ void COteIF::if_disp_update() {
 		msg_wos << L"BODYS ”ñí"<<pbody_s->pb_lamp[ID_OTE_PB_HIJYOU].color<< L"ŽåŠ²" << pbody_s->pb_lamp[ID_OTE_PB_SYUKAN].color;
 		msg_wos << L" Notch MH" << pbody_s->notch_lamp[0].color << pbody_s->notch_lamp[1].color << pbody_s->notch_lamp[2].color << pbody_s->notch_lamp[3].color << pbody_s->notch_lamp[4].color << pbody_s->notch_lamp[5].color << pbody_s->notch_lamp[6].color << pbody_s->notch_lamp[7].color << pbody_s->notch_lamp[8].color;
 
+		//PB“ü—Íó‘Ô
 		LPST_OTE_U_BODY pbody_r = &pOTEio->ote_umsg_in.body;
 		msg_wos2 << L"BODYS PB:  ";
 		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
 			msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][i] << L":" << pbody_r->pb_ope[i] << L" ";
 		} 
+		msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET] << L":" << pbody_r->pb_ope[ID_OTE_PB_FLT_RESET] << L" ";
+		msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS] << L":" << pbody_r->pb_ope[ID_OTE_CHK_IL_BYPASS] << L" ";
+
 		msg_wos2 << L"\n";
 		msg_wos2 << L" Notch HOLD  ";
 		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
