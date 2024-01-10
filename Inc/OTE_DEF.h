@@ -28,10 +28,10 @@
 #define ID_OTE_MODE_REMOTE_ACTIVE			0x00000010
 
 //操作端末のボタン、ランプ数
-#define N_OTE_PNL_ITEMS			64
-#define N_OTE_PNL_STATIC		64
-#define N_OTE_PNL_NOTCH			64
-#define N_OTE_PNL_PB			64
+#define N_OTE_PNL_ITEMS			128
+#define N_OTE_PNL_STATIC		128
+#define N_OTE_PNL_NOTCH			128
+#define N_OTE_PNL_PB			128
 
 //**************************************************************************************
 //通信電文フォーマット

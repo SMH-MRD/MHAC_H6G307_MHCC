@@ -193,10 +193,19 @@ int CPLC_IF::parse_data_out() {
 
     if (pCSInf->ote_remote_status &= CS_CODE_OTE_REMOTE_ENABLE) {//端末操作有効
         // 主幹ON　PB
-        if(pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_SYUKAN])   
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_SYUKAN]) {
+            if (plc_if_workbuf.input.rbuf.erm_bo[erm_bout_map.ctrl_source_mc_ok.x] & erm_bout_map.ctrl_source_mc_ok.y){//主幹入り時は主幹切PBと認識
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
+            }
+            else {
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
+            }
+        }
         else                                                    
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
 
         // 非常停止　PB（主幹OFF　PB）　*PLC NORMAL CLOSE
         if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])) {
@@ -244,6 +253,108 @@ int CPLC_IF::parse_data_out() {
         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
 
     }
+
+#pragma region PLCIF_SIM
+    //X60 極限信号
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_high_area_emr_up_lim.x] |= erm_xin_map.mh_high_area_emr_up_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_normal_area_emr_up_lim.x] |= erm_xin_map.mh_normal_area_emr_up_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_down_area_emr_up_lim.x] |= erm_xin_map.bh_down_area_emr_up_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_emr_lower_lim.x] |= erm_xin_map.mh_emr_lower_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_emr_in_lim.x] |= erm_xin_map.bh_emr_in_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_normal_in_lim.x] |= erm_xin_map.bh_normal_in_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slw_spd_change.x] |= erm_xin_map.slw_spd_change.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.high_pos_emr_out_lim.x] |= erm_xin_map.high_pos_emr_out_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_emr_out_lim.x] |= erm_xin_map.bh_emr_out_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_down_area_out_lim.x] |= erm_xin_map.bh_down_area_out_lim.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_rest_slow.x] |= erm_xin_map.bh_rest_slow.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_rest_lim.x] |= erm_xin_map.bh_rest_lim.y;
+
+    //X70
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.muliti_transmit_ok.x] |= erm_xin_map.muliti_transmit_ok.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_stop.x] |= erm_xin_map.gt_anticol_stop.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_alarm.x] |= erm_xin_map.gt_anticol_alarm.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_fault.x] |= erm_xin_map.gt_anticol_fault.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_east_lim_slow.x] |= erm_xin_map.gt_east_lim_slow.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_east_lim_stop.x] |= erm_xin_map.gt_east_lim_stop.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_slow.x] |= erm_xin_map.gt_west_lim_slow.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_stop.x] |= erm_xin_map.gt_west_lim_stop.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_fix_open.x] |= erm_xin_map.gt_fix_open.y;
+   // plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_motor_thermal_trip.x] |= erm_xin_map.gt_motor_thermal_trip.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_motor_fan_mc.x] |= erm_xin_map.mh_motor_fan_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_motor_fan_mc.x] |= erm_xin_map.ah_motor_fan_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_motor_fan_mc.x] |= erm_xin_map.bh_motor_fan_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.DB_conv_fan_mc.x] |= erm_xin_map.DB_conv_fan_mc.y;
+
+    //X80
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.DB_over_heat.x] |= erm_xin_map.DB_over_heat.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_pos_preset.x] |= erm_xin_map.mh_pos_preset.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_data_preset.x] |= erm_xin_map.mh_data_preset.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slw_panel_high_temp.x] |= erm_xin_map.slw_panel_high_temp.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.leg_emr_stop.x] |= erm_xin_map.leg_emr_stop.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slew_pos_0.x] |= erm_xin_map.slew_pos_0.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slew_pos_180.x] |= erm_xin_map.slew_pos_180.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slew_grease_active.x] |= erm_xin_map.slew_grease_active.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slew_grease_fault.x] |= erm_xin_map.slew_grease_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_high_area_emr_up.x] |= erm_xin_map.ah_camlim_high_area_emr_up.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_normal_area1_emr_up.x] |= erm_xin_map.ah_camlim_normal_area1_emr_up.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_normal_area2_emr_up.x] |= erm_xin_map.ah_camlim_normal_area2_emr_up.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_bh_down_area_emr_up.x] |= erm_xin_map.ah_camlim_bh_down_area_emr_up.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_emr_low.x] |= erm_xin_map.ah_camlim_emr_low.y;
+ 
+    //X90
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv_1_trip.x] |= erm_xin_map.conv_1_trip.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_ctrl_trip.x] |= erm_xin_map.inv_ctrl_trip.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.brk_control_source_trip.x] |= erm_xin_map.brk_control_source_trip.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.DB_fan_trip.x] |= erm_xin_map.DB_fan_trip.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.motor_fan_trip.x] |= erm_xin_map.motor_fan_trip.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slw_grease_trip.x] |= erm_xin_map.slw_grease_trip.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.aero_panel_fault.x] |= erm_xin_map.aero_panel_fault.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.remote_trace.x] |= erm_xin_map.remote_trace.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_battery_low.x] |= erm_xin_map.inv_reel_battery_low.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_gt_ok.x] |= erm_xin_map.inv_reel_gt_ok.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_standby.x] |= erm_xin_map.inv_reel_standby.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_inv_normal.x] |= erm_xin_map.inv_reel_inv_normal.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_escape_enable.x] |= erm_xin_map.inv_reel_escape_enable.y;
+
+    //XA0
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.motive_power_ok.x] |= erm_xin_map.motive_power_ok.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv1_mc.x] |= erm_xin_map.conv1_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_mc.x] |= erm_xin_map.conv2_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ctrl_brk_mc.x] |= erm_xin_map.ctrl_brk_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] |= erm_xin_map.mh_brk_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_brk_mc.x] |= erm_xin_map.bh_brk_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] |= erm_xin_map.gt_brk_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] |= erm_xin_map.ah_brk_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.dbu_charge_mc.x] |= erm_xin_map.dbu_charge_mc.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.jib_approch_alarm_enable.x] |= erm_xin_map.jib_approch_alarm_enable.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.jib_approch_alarm_disable.x] |= erm_xin_map.jib_approch_alarm_disable.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv1_over_heat.x] |= erm_xin_map.conv1_over_heat.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_fuse_down.x] |= erm_xin_map.conv2_fuse_down.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_over_heat.x] |= erm_xin_map.conv2_over_heat.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv1_fuse_down.x] |= erm_xin_map.conv1_fuse_down.y;
+    
+    //XB0
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_ah_brk.x] |= erm_xin_map.thermal_trip_ah_brk.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_bh_motor.x] |= erm_xin_map.thermal_trip_bh_motor.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_mh_fan.x] |= erm_xin_map.thermal_trip_mh_fan.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_bh_fan.x] |= erm_xin_map.thermal_trip_bh_fan.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_DB_fan.x] |= erm_xin_map.thermal_trip_DB_fan.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_mh_brk.x] |= erm_xin_map.thermal_trip_mh_brk.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_bh_brk.x] |= erm_xin_map.thermal_trip_bh_brk.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.thermal_trip_ah_fan.x] |= erm_xin_map.thermal_trip_ah_fan.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit1_fault.x] |= erm_xin_map.braking_unit1_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit2_fault.x] |= erm_xin_map.braking_unit2_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit3_fault.x] |= erm_xin_map.braking_unit3_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit4_fault.x] |= erm_xin_map.braking_unit4_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit5_fault.x] |= erm_xin_map.braking_unit5_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit6_fault.x] |= erm_xin_map.braking_unit6_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit7_fault.x] |= erm_xin_map.braking_unit7_fault.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.braking_unit8_fault.x] |= erm_xin_map.braking_unit8_fault.y;
+ 
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_preset.x] |= erm_xin_map.mh_preset.y;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_preset.x] |= erm_xin_map.ah_preset.y;
+
+#pragma endregion PLCIF_SIM
      return 0;
 }
 

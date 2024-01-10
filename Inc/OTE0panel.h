@@ -253,7 +253,12 @@ typedef struct _stOTEWorkWnd {
 		 //ID_OTE_SUB_STAT_MH	ID_OTE_SUB_STAT_AH		ID_OTE_SUB_STAT_BH		ID_OTE_SUB_STAT_SL		ID_OTE_SUB_STAT_GT		
 		  45,0,				120,0,					45,120,					120,120,					195,120,
 		  
-		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//16
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 
 		  //#PB
 		  //メインパネル
@@ -297,6 +302,11 @@ typedef struct _stOTEWorkWnd {
 		  
 		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,//16
 
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
 		  //#NOTCH
 		  //MH
 		  15,510,15,485,15,460,15,435,15,410,15,385,15,360,15,335,15,310,0,0,
@@ -312,7 +322,13 @@ typedef struct _stOTEWorkWnd {
 		  310,PRM_POINT_Y_NOTCH_SL,350,PRM_POINT_Y_NOTCH_SL,390,PRM_POINT_Y_NOTCH_SL,430,PRM_POINT_Y_NOTCH_SL,470,PRM_POINT_Y_NOTCH_SL,510,PRM_POINT_Y_NOTCH_SL,550,PRM_POINT_Y_NOTCH_SL,590,PRM_POINT_Y_NOTCH_SL,630,PRM_POINT_Y_NOTCH_SL,0,0,//SL
 		  //AH
 		  70,510,70,485,70,460,70,435,70,410,70,385,70,360,70,335,70,310,0,0,
-		  0,0,0,0,0,0,0,0
+		  0,0,0,0,0,0,0,0,
+
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
 	};
 	SIZE size_ctrl[N_OTE_CTRL_TYPE][N_OTE_PNL_STATIC] = {
 		//#STATIC
@@ -344,7 +360,10 @@ typedef struct _stOTEWorkWnd {
 
 		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 
-
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		   //#PB
 		   //メインパネル
 		   PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W,PRM_OTE_DEF_PB_H,
@@ -382,6 +401,11 @@ typedef struct _stOTEWorkWnd {
 		   
 		   0,0,0,0,0,0,0,0,0,0,0,0,0,0,//9
 
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
 		   //#NOTCH
 		   PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,0,0,//HOIST
 		   PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,0,0,//GT
@@ -389,7 +413,12 @@ typedef struct _stOTEWorkWnd {
 		   PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,0,0,//BH
 		   PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,0,0,//SL
 		   PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,PRM_OTE_DEF_PB_W2,PRM_OTE_DEF_PB_H,0,0,//AH
-		   0,0,0,0,0,0,0,0
+		   0,0,0,0,0,0,0,0,
+
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	};
 	RECT notch_rect[MOTION_ID_MAX][N_OTE_NOTCH_ARRAY];	//ノッチランプグラフィックエリア
 	RECT pb_rect[N_OTE_PNL_ITEMS];						//PBランプグラフィックエリア
@@ -407,6 +436,11 @@ typedef struct _stOTEWorkWnd {
 		L"MH",L"AH",L"BH",L"SL",L"GT",
 		
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 
 		//PB
 		L"停止",L"起動",L"主幹",L"非常",
@@ -440,6 +474,12 @@ typedef struct _stOTEWorkWnd {
 		
 		L"",L"",L"",L"",L"",L"",L"",
 
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+
+
 		//NOTCH
 		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//MH
 		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//GT
@@ -447,7 +487,13 @@ typedef struct _stOTEWorkWnd {
 		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//BH
 		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//SL
 		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//AH
-		L"",L"",L"",L""
+		L"",L"",L"",L"",
+
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L""
+
 	};
 
 }ST_OTE_WORK_WND, * LPST_OTE_WORK_WND;
