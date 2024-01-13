@@ -195,10 +195,11 @@ typedef struct st_PLCread_tag {
     INT16 helthy;               //PLCヘルシーカウンタ
     INT16 plc_ctrl;             // PLC運転モード
     INT16 cab_ai[6];            //運転室PLC→電気室PLC W出力
-    INT16 cab_bi[6];            //運転室PLC→電気室PLC b出力
+    INT16 cab_bi[5];            //運転室PLC→電気室PLC b出力
+    INT16 erm_900;
     INT16 erm_bo[6];            //電気室PLC b出力
     INT32 pos[5];               //各軸位置信号
-    INT16 spare0[6];            //予備
+    INT16 spd_tg[6];            //各軸指令速度目標
     INT16 plc_fault[18];        //各軸速度信号
     INT16 erm_y[4];             //電気室PLC Y出力
     INT16 erm_x[8];             //電気室PLC X入力
@@ -222,75 +223,77 @@ union PLC_READ_BUF {
 #define ID_OPEPLC_B240                          2
 #define ID_OPEPLC_B250                          3
 #define ID_OPEPLC_B260                          4
-#define ID_OPEPLC_M900                          5
+#define ID_OPEPLC_M900                          0
 struct CABPLC_BOUT_MAP {
     //B220-B26F
-    POINT ctrl_on                           = { ID_OPEPLC_B220,0x0001 };
-    POINT ctrl_off                          = { ID_OPEPLC_B220,0x0002 };
-    POINT mh_spd_low                        = { ID_OPEPLC_B220,0x0004 };
-    POINT mh_spd_middle                     = { ID_OPEPLC_B220,0x0008 };
-    POINT bh_normal                         = { ID_OPEPLC_B220,0x0010 };
-    POINT bh_down                           = { ID_OPEPLC_B220,0x0020 };
-    POINT bh_rest                           = { ID_OPEPLC_B220,0x0040 };
-    POINT mh_high_spd                       = { ID_OPEPLC_B220,0x0080 };
-    POINT ah_multi                          = { ID_OPEPLC_B220,0x0100 };
-    POINT ah_single                         = { ID_OPEPLC_B220,0x0200 };
-    POINT notch_ah                          = { ID_OPEPLC_B220,10 };     //ノッチのYはビットシフト量
-    POINT notch_mh                          = { ID_OPEPLC_B230,0};       //ノッチのYはビットシフト量
-    POINT load_swayless                     = { ID_OPEPLC_B230,0x0040 };
-    POINT gt_spd_30                         = { ID_OPEPLC_B230,0x0080 };
-    POINT gt_spd_35                         = { ID_OPEPLC_B230,0x0100 };
-    POINT notch_gt                          = { ID_OPEPLC_B230,9 };      //ノッチのYはビットシフト量
-    POINT cab_estp                          = { ID_OPEPLC_B230,0x8000};
-    POINT whip_5t_ng                        = { ID_OPEPLC_B240,0x0001 };
-    POINT mlim_acc_low                      = { ID_OPEPLC_B240,0x0002 };
-    POINT mlim_3times                       = { ID_OPEPLC_B240,0x0004 };
-    POINT mlim_load_90                      = { ID_OPEPLC_B240,0x0008 };
-    POINT mlim_load_100                     = { ID_OPEPLC_B240,0x0010 };
-    POINT mlim_high_load                    = { ID_OPEPLC_B240,0x0020 };
-    POINT mlim_normal                       = { ID_OPEPLC_B240,0x0040 };
-    POINT wind_spd16                        = { ID_OPEPLC_B240,0x0080 };
-    POINT bz_stop                           = { ID_OPEPLC_B240,0x0100 };
-    POINT fault_reset                       = { ID_OPEPLC_B240,0x0200 };
-    POINT il_bypass                         = { ID_OPEPLC_B240,0x0400 };
-    POINT mhbrk_opn_normal                  = { ID_OPEPLC_B240,0x0800 };
-    POINT mhbrk_opn_abnormal                = { ID_OPEPLC_B240,0x1000 };
-    POINT mh_emr_open                       = { ID_OPEPLC_B240,0x2000 };
-    POINT ah_emr_lower                      = { ID_OPEPLC_B240,0x4000 };
-    POINT trace                             = { ID_OPEPLC_B240,0x8000 };
-    POINT notch_bh                          = { ID_OPEPLC_B250,0 };//ノッチのYはビットシフト量
-    POINT ah_sel_low_spd                    = { ID_OPEPLC_B250,0x0040 };
-    POINT ah_sel_high_spd                   = { ID_OPEPLC_B250,0x0080 };
-    POINT foot_brk                          = { ID_OPEPLC_B250,0x0100 };
-    POINT notch_sl                          = { ID_OPEPLC_B250,9 };//ノッチのYはビットシフト量
-    POINT siren                             = { ID_OPEPLC_B260,0x0001 };
-    POINT camera_ghange                     = { ID_OPEPLC_B260,0x0002 };
-    POINT slew_fix                          = { ID_OPEPLC_B260,0x0004 };
-    POINT camera_sel_east                   = { ID_OPEPLC_B260,0x0008 };
-    POINT camera_sel_conj                   = { ID_OPEPLC_B260,0x0010 };
-    POINT camera_sel_west                   = { ID_OPEPLC_B260,0x0020 };
-    POINT high_pow_ON                       = { ID_OPEPLC_B260,0x0040 };
-    POINT high_pow_OFF                      = { ID_OPEPLC_B260,0x0080 };
-    POINT slew_notch5                       = { ID_OPEPLC_B260,0x0100 };
-    POINT jib_approch_wide                  = { ID_OPEPLC_B260,0x0200 };
-    POINT jib_approch_narrow                = { ID_OPEPLC_B260,0x0400 };
-    POINT spare0                            = { ID_OPEPLC_B260,0x0800 };
-    POINT jib_approch_stop                  = { ID_OPEPLC_B260,0x1000 };
-    POINT gt_warm_shock_on                  = { ID_OPEPLC_B260,0x2000 };
-    POINT gt_warm_shock_off                 = { ID_OPEPLC_B260,0x4000 };
-    POINT ah_high_pos_load                  = { ID_OPEPLC_B260,0x8000 };
+    POINT ctrl_on = { ID_OPEPLC_B220,0x0001 };
+    POINT ctrl_off = { ID_OPEPLC_B220,0x0002 };
+    POINT mh_spd_low = { ID_OPEPLC_B220,0x0004 };
+    POINT mh_spd_middle = { ID_OPEPLC_B220,0x0008 };
+    POINT bh_normal = { ID_OPEPLC_B220,0x0010 };
+    POINT bh_down = { ID_OPEPLC_B220,0x0020 };
+    POINT bh_rest = { ID_OPEPLC_B220,0x0040 };
+    POINT mh_high_spd = { ID_OPEPLC_B220,0x0080 };
+    POINT ah_multi = { ID_OPEPLC_B220,0x0100 };
+    POINT ah_single = { ID_OPEPLC_B220,0x0200 };
+    POINT notch_ah = { ID_OPEPLC_B220,10 };     //ノッチのYはビットシフト量
+    POINT notch_mh = { ID_OPEPLC_B230,0 };       //ノッチのYはビットシフト量
+    POINT load_swayless = { ID_OPEPLC_B230,0x0040 };
+    POINT gt_spd_30 = { ID_OPEPLC_B230,0x0080 };
+    POINT gt_spd_35 = { ID_OPEPLC_B230,0x0100 };
+    POINT notch_gt = { ID_OPEPLC_B230,9 };      //ノッチのYはビットシフト量
+    POINT cab_estp = { ID_OPEPLC_B230,0x8000 };
+    POINT whip_5t_ng = { ID_OPEPLC_B240,0x0001 };
+    POINT mlim_acc_low = { ID_OPEPLC_B240,0x0002 };
+    POINT mlim_3times = { ID_OPEPLC_B240,0x0004 };
+    POINT mlim_load_90 = { ID_OPEPLC_B240,0x0008 };
+    POINT mlim_load_100 = { ID_OPEPLC_B240,0x0010 };
+    POINT mlim_high_load = { ID_OPEPLC_B240,0x0020 };
+    POINT mlim_normal = { ID_OPEPLC_B240,0x0040 };
+    POINT wind_spd16 = { ID_OPEPLC_B240,0x0080 };
+    POINT bz_stop = { ID_OPEPLC_B240,0x0100 };
+    POINT fault_reset = { ID_OPEPLC_B240,0x0200 };
+    POINT il_bypass = { ID_OPEPLC_B240,0x0400 };
+    POINT mhbrk_opn_normal = { ID_OPEPLC_B240,0x0800 };
+    POINT mhbrk_opn_abnormal = { ID_OPEPLC_B240,0x1000 };
+    POINT mh_emr_open = { ID_OPEPLC_B240,0x2000 };
+    POINT ah_emr_lower = { ID_OPEPLC_B240,0x4000 };
+    POINT trace = { ID_OPEPLC_B240,0x8000 };
+    POINT notch_bh = { ID_OPEPLC_B250,0 };//ノッチのYはビットシフト量
+    POINT ah_sel_low_spd = { ID_OPEPLC_B250,0x0040 };
+    POINT ah_sel_high_spd = { ID_OPEPLC_B250,0x0080 };
+    POINT foot_brk = { ID_OPEPLC_B250,0x0100 };
+    POINT notch_sl = { ID_OPEPLC_B250,9 };//ノッチのYはビットシフト量
+    POINT siren = { ID_OPEPLC_B260,0x0001 };
+    POINT camera_ghange = { ID_OPEPLC_B260,0x0002 };
+    POINT slew_fix = { ID_OPEPLC_B260,0x0004 };
+    POINT camera_sel_east = { ID_OPEPLC_B260,0x0008 };
+    POINT camera_sel_conj = { ID_OPEPLC_B260,0x0010 };
+    POINT camera_sel_west = { ID_OPEPLC_B260,0x0020 };
+    POINT high_pow_ON = { ID_OPEPLC_B260,0x0040 };
+    POINT high_pow_OFF = { ID_OPEPLC_B260,0x0080 };
+    POINT slew_notch5 = { ID_OPEPLC_B260,0x0100 };
+    POINT jib_approch_wide = { ID_OPEPLC_B260,0x0200 };
+    POINT jib_approch_narrow = { ID_OPEPLC_B260,0x0400 };
+    POINT spare0 = { ID_OPEPLC_B260,0x0800 };
+    POINT jib_approch_stop = { ID_OPEPLC_B260,0x1000 };
+    POINT gt_warm_shock_on = { ID_OPEPLC_B260,0x2000 };
+    POINT gt_warm_shock_off = { ID_OPEPLC_B260,0x4000 };
+    POINT ah_high_pos_load = { ID_OPEPLC_B260,0x8000 };
+};
+struct ERMPLC_M900_MAP {
     //SIM用追加信号
-    POINT ctrl_source_cut                   = { ID_OPEPLC_M900,0x0001 };
-    POINT mh1_source_com                    = { ID_OPEPLC_M900,0x0010 };
-    POINT mh2_source_com                    = { ID_OPEPLC_M900,0x0020 };
-    POINT ah_source_com                     = { ID_OPEPLC_M900,0x0040 };
-    POINT gt_source_com                     = { ID_OPEPLC_M900,0x0080 };
-    POINT sl_source_com                     = { ID_OPEPLC_M900,0x0100 };
-    POINT bh_source_com                     = { ID_OPEPLC_M900,0x0200 };
-    POINT ctrl_source_comple                = { ID_OPEPLC_M900,0x0400 };
-    POINT ctrl_source_pls                   = { ID_OPEPLC_M900,0x0800 };
-    POINT commonn_source_com                = { ID_OPEPLC_M900,0x1000 };
-    POINT each_source_com                   = { ID_OPEPLC_M900,0x2000 };
+    POINT ctrl_source_cut = { ID_OPEPLC_M900,0x0001 };
+    POINT mh1_source_com = { ID_OPEPLC_M900,0x0010 };
+    POINT mh2_source_com = { ID_OPEPLC_M900,0x0020 };
+    POINT ah_source_com = { ID_OPEPLC_M900,0x0040 };
+    POINT gt_source_com = { ID_OPEPLC_M900,0x0080 };
+    POINT sl_source_com = { ID_OPEPLC_M900,0x0100 };
+    POINT bh_source_com = { ID_OPEPLC_M900,0x0200 };
+    POINT ctrl_source_comple = { ID_OPEPLC_M900,0x0400 };
+    POINT ctrl_source_pls = { ID_OPEPLC_M900,0x0800 };
+    POINT common_source_com = { ID_OPEPLC_M900,0x1000 };
+    POINT each_source_com = { ID_OPEPLC_M900,0x2000 };
 };
 
 #define ID_ERMPLC_B0                           0
@@ -435,9 +438,9 @@ struct ERMPLC_XIN_MAP {
     POINT inv_reel_inv_normal               = { ID_ERMPLC_X90,0x2000 };
     POINT spare10                           = { ID_ERMPLC_X90,0x4000 };
     POINT inv_reel_escape_enable            = { ID_ERMPLC_X90,0x8000 };
-
+    //XA0
     POINT motive_power_ok                   = { ID_ERMPLC_XA0,0x0001 };
-    POINT conv1_mc                          = { ID_ERMPLC_XA0,0x0002 };
+    POINT mc0                               = { ID_ERMPLC_XA0,0x0002 };
     POINT conv2_mc                          = { ID_ERMPLC_XA0,0x0004 };
     POINT ctrl_brk_mc                       = { ID_ERMPLC_XA0,0x0008 };
     POINT mh_brk_mc                         = { ID_ERMPLC_XA0,0x0010 };
@@ -487,3 +490,25 @@ struct ERMPLC_XIN_MAP {
     POINT spare24                           = { ID_ERMPLC_XC0,0x4000 };
     POINT spare25                           = { ID_ERMPLC_XC0,0x8000 };
 };
+
+struct INV_IF_X_MAP {
+    //D0-F0
+    POINT fwd = { 0,0x0001 };
+    POINT rev = { 0,0x0002 };
+    POINT fan_stop = { 0,0x0004 };
+    POINT charge_ok = { 0,0x0008 };
+    POINT fault = { 0,0x0800 };
+    POINT on_monitor = { 0,0x1000 };
+    POINT spd_set_ok = { 0,0x2000 };
+    POINT com_complete = { 0,0x8000 };
+};
+struct INV_IF_Y_MAP {
+    //D0-F0
+    POINT com_fwd = { 0,0x0001 };
+    POINT com_rev = { 0,0x0002 };
+    POINT change_acc = { 0,0x0040 };
+    POINT flt_reset = { 0,0x0100 };
+    POINT free_run = { 0,0x0200 };
+};
+
+

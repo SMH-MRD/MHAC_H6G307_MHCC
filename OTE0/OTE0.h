@@ -28,6 +28,9 @@
 #define ID_SOCK_EVENT_PC_MULTI_OTE 		    10654		//OTE受信ソケットイベント　PC MULTICASTメッセージ
 #define ID_SOCK_EVENT_OTE_MULTI_OTE 		10655		//OTE受信ソケットイベント　PC MULTICASTメッセージ
 
+//イベントID
+#define ID_OTE0_STATIC_UPDATE				10656
+
 #define OTE0_WND_X				0			//OTEメインパネル表示位置X
 #define OTE0_WND_Y				560			//OTEメインパネル表示位置Y0
 #define OTE0_WND_W				850		//OTEメインパネルWINDOW幅0
@@ -60,7 +63,8 @@
 #define ID_OTE0_SUB_WND_MOMENT	4
 #define ID_OTE0_SWY_WND	        5
 
-#define OTE_CODE_FLICKER_FREQ	0x0040
+#define OTE_CODE_FLICKER_FREQ		0x0040
+#define OTE_CODE_SUB_STATIC_FREQ	0x0001
 
 class COte
 {

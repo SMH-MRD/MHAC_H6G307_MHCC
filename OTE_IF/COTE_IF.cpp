@@ -807,11 +807,15 @@ void COteIF::if_disp_update() {
 
 		//PB“ü—Íó‘Ô
 		LPST_OTE_U_BODY pbody_r = &pOTEio->ote_umsg_in.body;
-		msg_wos2 << L"BODYS PB:  ";
+		msg_wos2 << L"BODYR PB:  ";
 		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
 			msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][i] << L":" << pbody_r->pb_ope[i] << L" ";
 		} 
-		msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET] << L":" << pbody_r->pb_ope[ID_OTE_PB_FLT_RESET] << L" ";
+		for (int i = ID_OTE_RADIO_MHSPD_7; i <= ID_OTE_CHK_LOAD_SWY; i++) {
+			msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][i] << L":" << pbody_r->pb_ope[i] << L" ";
+		}
+
+		msg_wos2 << L" " << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_FLT_RESET] << L":" << pbody_r->pb_ope[ID_OTE_PB_FLT_RESET] << L" ";
 		msg_wos2 << st_ote_work.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_CHK_IL_BYPASS] << L":" << pbody_r->pb_ope[ID_OTE_CHK_IL_BYPASS] << L" ";
 
 		msg_wos2 << L"\n";
@@ -819,7 +823,7 @@ void COteIF::if_disp_update() {
 		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 			msg_wos2  << pbody_r->notch_pos[ID_OTE_NOTCH_POS_HOLD][i] << L":" ;
 		}
-		msg_wos2 << L"\n";
+//		msg_wos2 << L"\n";
 		msg_wos2 << L" Notch TRIG  ";
 		for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 			msg_wos2 << pbody_r->notch_pos[ID_OTE_NOTCH_POS_TRIG][i] << L":" ;

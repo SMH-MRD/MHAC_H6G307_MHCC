@@ -2,6 +2,8 @@
 
 //#include <winsock.h>
 
+#include "PLC_DEF.h"
+
 #define ID_OTE0					0xFF
 #define ID_PC0					0x1FF
 
@@ -95,6 +97,7 @@ typedef struct OteMMsg {
 #define OTE_LAMP_COM_FLICK				2
 
 #define OTE_LAMP_FLICK_COUNT			0x0008
+#define OTE_STATIC_UPDATE_COUNT			0x0004
 
 
 typedef struct OteLampCom {
@@ -105,7 +108,8 @@ typedef struct OteLampCom {
 typedef struct PcUBody {
 	ST_OTE_LAMP_COM		pb_lamp[N_OTE_PNL_PB];
 	ST_OTE_LAMP_COM		notch_lamp[N_OTE_PNL_NOTCH];
-	INT16				plc_in[PLC_IO_MONT_WORD_NUM];//PLC IFデータ
+	//INT16				plc_in[PLC_IO_MONT_WORD_NUM];//PLC IFデータ
+	ST_PLC_READ			plc_in;//PLC IFデータ
 	INT32				pos[MOTION_ID_MAX];			//位置FB
 	INT32				v_fb[MOTION_ID_MAX];		//速度FB
 	INT32				v_ref[MOTION_ID_MAX];		//速度指令
@@ -125,8 +129,8 @@ typedef struct PcUMsg {
 #define ID_OTE_NOTCH_POS_CNT	2
 
 typedef struct OteUBody {
-	UINT16		pb_ope[64];					//操作卓PB入力
-	UINT16		pb_notch[64];				//操作卓ノッチ入力
+	UINT16		pb_ope[128];					//操作卓PB入力
+	UINT16		pb_notch[128];				//操作卓ノッチ入力
 	INT16		notch_pos[2][MOTION_ID_MAX];	//ノッチ入力位置
 	INT16		tg_pos[8];					//設定目標位置
 }ST_OTE_U_BODY, * LPST_OTE_U_BODY;

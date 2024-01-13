@@ -17,6 +17,9 @@ CABPLC_BOUT_MAP cab_bout_map;
 ERMPLC_BOUT_MAP erm_bout_map;
 ERMPLC_YOUT_MAP erm_yout_map;
 ERMPLC_XIN_MAP  erm_xin_map;
+ERMPLC_M900_MAP  erm_m900_map;
+INV_IF_X_MAP inv_x_map; 
+INV_IF_Y_MAP inv_y_map;
 
 CPLC_IF::CPLC_IF(HWND _hWnd_parent) {
 
@@ -177,6 +180,9 @@ int CPLC_IF::clear_plc_write() {
     return 0; 
 }
 
+//*********************************************************************************************
+// parse_data_out() PLCからの入力信号を展開
+//*********************************************************************************************
 int CPLC_IF::parse_data_in() {
 
     //受信バッファの内容をワークバッファにコピー
@@ -184,39 +190,52 @@ int CPLC_IF::parse_data_in() {
 
     return 0;
 }
-
+//*********************************************************************************************
+// parse_data_out() PLCへの出力信号生成
+//*********************************************************************************************
 int CPLC_IF::parse_data_out() {
 
     //PC 操作有効信号
     plc_if_workbuf.output.wbuf.ctrl_mode = mode;
  
+#pragma region OPEROOM
+    // 非常停止　PB（主幹OFF　PB）　*PLC NORMAL CLOSE
+    if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])) {
+         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y; //非常停止
+    }
+    else {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] |= cab_bout_map.cab_estp.y; //非常停止
+    }
 
     if (pCSInf->ote_remote_status &= CS_CODE_OTE_REMOTE_ENABLE) {//端末操作有効
-        // 主幹ON　PB
+        // 主幹ON/OFF　PB
         if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_SYUKAN]) {
-            if (plc_if_workbuf.input.rbuf.erm_bo[erm_bout_map.ctrl_source_mc_ok.x] & erm_bout_map.ctrl_source_mc_ok.y){//主幹入り時は主幹切PBと認識
-                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+           //トリガ時セット
+            if (!(plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] & cab_bout_map.ctrl_off.y)) //切指令優先                     //主幹切 ON（切指令ON）
+            {
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
             }
-            else {
-                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
+            else if ((plc_if_workbuf.input.rbuf.erm_bo[erm_bout_map.ctrl_source_mc_ok.x] & erm_bout_map.ctrl_source_mc_ok.y)
+                && (plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] & cab_bout_map.ctrl_off.y)
+                && !(plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] & cab_bout_map.ctrl_on.y))
+
+            {//主幹入り時は主幹切PBと認識
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
             }
-        }
-        else                                                    
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
-
-        // 非常停止　PB（主幹OFF　PB）　*PLC NORMAL CLOSE
-        if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])) {
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;//主幹切
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y; //非常停止
+        
+            else if (!(plc_if_workbuf.input.rbuf.erm_bo[erm_bout_map.ctrl_source_mc_ok.x] & erm_bout_map.ctrl_source_mc_ok.y)   //主幹投入指令 OFF
+                && !(plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] & cab_bout_map.ctrl_on.y)                      //主幹入 OFF
+                && (plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] & cab_bout_map.ctrl_off.y))                      //主幹切 ON（切指令ON）
+            {
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
+            }
+            else;
         }
         else {
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;//主幹切
-            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] |= cab_bout_map.cab_estp.y; //非常停止
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;//主幹　切はNormal Close
         }
- 
+
         //故障リセット　IL　Bypass
         if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_FLT_RESET])
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.fault_reset.x] |= cab_bout_map.fault_reset.y;
@@ -228,12 +247,11 @@ int CPLC_IF::parse_data_out() {
         else
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.il_bypass.x] &= ~cab_bout_map.il_bypass.y;
 
-
-        if (pCSInf->auto_mode) {
-            //AGENT 出力をセット;
+        //ノッチ
+        if (pCSInf->auto_mode) {//AGENT 出力をセット;
+            
         }
-        else {
-            //OTEノッチ信号セット
+        else {//OTEノッチ信号セット
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] &= notch_ptn.bits[ID_HOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] |= notch_ptn.bits[ID_HOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]];
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] &= notch_ptn.bits[ID_GANTRY][PLC_IF_INDEX_NOTCH_PTN_CLR];
@@ -245,16 +263,72 @@ int CPLC_IF::parse_data_out() {
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] &= notch_ptn.bits[ID_AHOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]];
           }
+
+        //モード設定
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_MHSPD_7   ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mh_spd_low.x] |= cab_bout_map.mh_spd_low.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mh_spd_low.x] &= ~cab_bout_map.mh_spd_low.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_MHSPD_14  ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mh_spd_middle.x] |= cab_bout_map.mh_spd_middle.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mh_spd_middle.x] &= ~cab_bout_map.mh_spd_middle.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_MHSPD_21  ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mh_high_spd.x] |= cab_bout_map.mh_high_spd.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mh_high_spd.x] &= ~cab_bout_map.mh_high_spd.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_AHSPD_14  ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ah_sel_low_spd.x] |= cab_bout_map.ah_sel_low_spd.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ah_sel_low_spd.x] &= ~cab_bout_map.ah_sel_low_spd.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_AHSPD_24  ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ah_sel_high_spd.x] |= cab_bout_map.ah_sel_high_spd.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ah_sel_high_spd.x] &= ~cab_bout_map.ah_sel_high_spd.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_BH_57     ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.bh_normal.x] |= cab_bout_map.bh_normal.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.bh_normal.x] &= ~cab_bout_map.bh_normal.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_BH_62     ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.bh_down.x] |= cab_bout_map.bh_down.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.bh_down.x] &= ~cab_bout_map.bh_down.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_BH_REST   ])   plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.bh_rest.x] |= cab_bout_map.bh_rest.y;
+        else                                                            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.bh_rest.x] &= ~cab_bout_map.bh_rest.y;
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_CHK_GT_SHOCK]) { 
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.gt_warm_shock_on.x] |= cab_bout_map.gt_warm_shock_on.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.gt_warm_shock_off.x] &= ~cab_bout_map.gt_warm_shock_off.y;
+        }
+        else {
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.gt_warm_shock_off.x] |= cab_bout_map.gt_warm_shock_off.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.gt_warm_shock_on.x] &= ~cab_bout_map.gt_warm_shock_on.y;
+        }
+        
+        if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_JIB_NARROW]) {
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_narrow.x] |= cab_bout_map.jib_approch_narrow.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_wide.x] &= ~cab_bout_map.jib_approch_wide.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_stop.x] &= ~cab_bout_map.jib_approch_stop.y;
+        }
+        else if (pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_RADIO_JIB_WIDE]) {
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_narrow.x] &= ~cab_bout_map.jib_approch_narrow.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_wide.x] |= cab_bout_map.jib_approch_wide.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_stop.x] &= ~cab_bout_map.jib_approch_stop.y;
+        }
+        else {
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_narrow.x] &= ~cab_bout_map.jib_approch_narrow.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_wide.x] &= cab_bout_map.jib_approch_wide.y;
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.jib_approch_stop.x] |=  ~cab_bout_map.jib_approch_stop.y;
+        }
     }
     else {
         //端末無効時は、主幹OFFPB 非常停止　入力状態
         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
-        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] |= cab_bout_map.ctrl_off.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.ctrl_off.x] &= ~cab_bout_map.ctrl_off.y;
         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
 
     }
 
-#pragma region PLCIF_SIM
+    //モーメントリミッタ
+    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_100.x] |= cab_bout_map.mlim_load_100.y;
+    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_normal.x] |= cab_bout_map.mlim_normal.y;
+    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.whip_5t_ng.x] |= cab_bout_map.whip_5t_ng.y;
+#pragma endregion OPEROOM
+
+#pragma region ERM X
     //X60 極限信号
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_high_area_emr_up_lim.x] |= erm_xin_map.mh_high_area_emr_up_lim.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_normal_area_emr_up_lim.x] |= erm_xin_map.mh_normal_area_emr_up_lim.y;
@@ -279,7 +353,7 @@ int CPLC_IF::parse_data_out() {
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_slow.x] |= erm_xin_map.gt_west_lim_slow.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_stop.x] |= erm_xin_map.gt_west_lim_stop.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_fix_open.x] |= erm_xin_map.gt_fix_open.y;
-   // plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_motor_thermal_trip.x] |= erm_xin_map.gt_motor_thermal_trip.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_motor_thermal_trip.x] |= erm_xin_map.gt_motor_thermal_trip.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_motor_fan_mc.x] |= erm_xin_map.mh_motor_fan_mc.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_motor_fan_mc.x] |= erm_xin_map.ah_motor_fan_mc.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_motor_fan_mc.x] |= erm_xin_map.bh_motor_fan_mc.y;
@@ -316,16 +390,49 @@ int CPLC_IF::parse_data_out() {
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_inv_normal.x] |= erm_xin_map.inv_reel_inv_normal.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.inv_reel_escape_enable.x] |= erm_xin_map.inv_reel_escape_enable.y;
 
-    //XA0
+    //XA0　MC　FB
+    //共通,ブレーキ主幹MC コンバータMC　FB　共通主幹投入指令でON
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.motive_power_ok.x] |= erm_xin_map.motive_power_ok.y;
-    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv1_mc.x] |= erm_xin_map.conv1_mc.y;
-    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_mc.x] |= erm_xin_map.conv2_mc.y;
-    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ctrl_brk_mc.x] |= erm_xin_map.ctrl_brk_mc.y;
-    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] |= erm_xin_map.mh_brk_mc.y;
+
+    if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.common_source_com.y) {
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mc0.x] |= erm_xin_map.mc0.y;
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_mc.x] |= erm_xin_map.conv2_mc.y;
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ctrl_brk_mc.x] |= erm_xin_map.ctrl_brk_mc.y;
+
+    }
+    else {
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mc0.x] &= ~erm_xin_map.mc0.y;
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_mc.x] &= ~erm_xin_map.conv2_mc.y;
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ctrl_brk_mc.x] &= ~erm_xin_map.ctrl_brk_mc.y;
+    }
+
+    //各軸主幹MC FB　主幹投入指令でON
+    if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.mh1_source_com.y)
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] |= erm_xin_map.mh_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] &= ~erm_xin_map.mh_brk_mc.y;
+
+    if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.bh_source_com.y)
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_brk_mc.x] |= erm_xin_map.bh_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_brk_mc.x] &= ~erm_xin_map.bh_brk_mc.y;
+
+    if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.gt_source_com.y)
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] |= erm_xin_map.gt_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] &= ~erm_xin_map.gt_brk_mc.y;
+
+    if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.ah_source_com.y)
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] |= erm_xin_map.ah_brk_mc.y;
-    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.dbu_charge_mc.x] |= erm_xin_map.dbu_charge_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] &= ~erm_xin_map.ah_brk_mc.y;
+
+    //初期充電指令
+    if (plc_if_workbuf.input.rbuf.erm_y[erm_yout_map.initial_charge.x] & erm_yout_map.initial_charge.y)
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.dbu_charge_mc.x] |= erm_xin_map.dbu_charge_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.dbu_charge_mc.x] &= ~erm_xin_map.dbu_charge_mc.y;
+
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.jib_approch_alarm_enable.x] |= erm_xin_map.jib_approch_alarm_enable.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.jib_approch_alarm_disable.x] |= erm_xin_map.jib_approch_alarm_disable.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv1_over_heat.x] |= erm_xin_map.conv1_over_heat.y;
@@ -353,8 +460,18 @@ int CPLC_IF::parse_data_out() {
  
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_preset.x] |= erm_xin_map.mh_preset.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_preset.x] |= erm_xin_map.ah_preset.y;
+#pragma endregion ERM X
 
-#pragma endregion PLCIF_SIM
+#pragma region PLC_CC_LINK
+
+    //初期充電完了
+    for (int i = 0; i < 6; i++) {
+        plc_if_workbuf.output.wbuf.inv_cc_x[i] |= inv_x_map.charge_ok.y;
+    }
+
+#pragma endregion PLC_CC_LINK
+
+
      return 0;
 }
 

@@ -24,13 +24,13 @@ ST_OTE_WORK_WND st_work_wnd;
 HWND hWnd_work;					//操作端末メインウィンドウハンドル
 HWND hWnd_swy;					//振れウィンドウハンドル
 HWND hWnd_sub[OTE0_N_SUB_WND];	//
-HWND hwnd_current_subwnd;
+HWND hwnd_current_subwnd = NULL;
 HWND hwnd_camera;
 
 COte* pCOte0;					//OTE0オブジェクト
 CPsaMain* pPSA;					//PSApi処理用オブジェクト
 
-static INT16 flick_cnt=0;
+static INT16 disp_cnt=0;
 static bool is_init_disp = true;
 
 static std::wostringstream msg_wos;
@@ -42,7 +42,7 @@ BOOL                InitInstance(HINSTANCE, int);
 HWND open_connect_Wnd(HWND hwnd);
 HWND open_mode_Wnd(HWND hwnd);
 HWND open_fault_Wnd(HWND hwnd);
-HWND open_moment_Wnd(HWND hwnd);
+HWND open_status_Wnd(HWND hwnd);
 HWND open_auto_Wnd(HWND hwnd);
 HWND open_swy_Wnd(HWND hwnd); 
 HWND open_camera_Wnd(HWND hwnd);
@@ -52,7 +52,7 @@ LRESULT CALLBACK WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 LRESULT CALLBACK WndAutoProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WndStatusProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -231,6 +231,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    is_init_disp = false;//表示初期化フラグOFF
 
+	st_work_wnd.mh_spd_mode = ID_OTE_RADIO_MHSPD_7;
+    st_work_wnd.ah_spd_mode = ID_OTE_RADIO_AHSPD_14;
+	st_work_wnd.bh_work_mode = ID_OTE_RADIO_BH_57;
+	st_work_wnd.jib_chk_mode = ID_OTE_RADIO_JIB_NARROW;
+ 
    return TRUE;
 }
 
@@ -326,15 +331,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		if (st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] > 0)st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET]--;
 
 		//状態サブウィンドウ
-		if (st_work_wnd.pb_stat[ID_OTE_PB_GT_SHOCK] > 0)st_work_wnd.pb_stat[ID_OTE_PB_GT_SHOCK]--;
-		if (st_work_wnd.pb_stat[ID_OTE_PB_LOAD_SWY] > 0)st_work_wnd.pb_stat[ID_OTE_PB_LOAD_SWY]--;
+		
+		//モードウィンドウ
+		for (int i = ID_OTE_RADIO_MHSPD_7; i <= ID_OTE_RADIO_MHSPD_21; i++) {
+			if (i == st_work_wnd.mh_spd_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+			else st_work_wnd.pb_stat[i] = L_OFF;
+		}
+		for (int i = ID_OTE_RADIO_AHSPD_14; i <= ID_OTE_RADIO_AHSPD_24; i++) {
+			if (i == st_work_wnd.ah_spd_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+			else st_work_wnd.pb_stat[i] = L_OFF;
+		}
+		for (int i = ID_OTE_RADIO_BH_57; i <= ID_OTE_RADIO_BH_REST; i++) {
+			if (i == st_work_wnd.bh_work_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+			else st_work_wnd.pb_stat[i] = L_OFF;
+		}
+		for (int i = ID_OTE_RADIO_JIB_NARROW; i <= ID_OTE_RADIO_JIB_WIDE; i++) {
+			if (i == st_work_wnd.jib_chk_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+			else st_work_wnd.pb_stat[i] = L_OFF;
+		}
+		
 
 		//半自動目標CHK更新（CHK PBはONでカウントアップ　OFFで0
 		for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_GETCHECK, 0, 0))
 				st_work_wnd.pb_stat[i]++;
-			else 
-				st_work_wnd.pb_stat[i]=0;
+			else 				st_work_wnd.pb_stat[i]=0;
+
 		}
 
 		//NOTCH RADIO POS COUNT 更新　トリガチェック用　PB ONでセットされた値をカウントダウン
@@ -432,9 +454,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		default:break;
 		}
 
-		flick_cnt++;//ランプフリッカ点灯指令用カウンタ
-		disp_msg_cnt();	//カウント表示更新
-	
+		disp_cnt++;//表示更新用カウンタ（STATIC　Lampフリッカ）
+
+		disp_msg_cnt();	//通信カウント表示更新
+
+		//サブウィンドウにSTATIC表示更新メッセージ送信
+		if (disp_cnt & OTE_CODE_SUB_STATIC_FREQ) {
+			SendMessage(hwnd_current_subwnd, ID_OTE0_STATIC_UPDATE, 0L, 0L);
+		}
+
 	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
@@ -498,7 +526,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			case ID_OTE_RADIO_COM:hwnd_current_subwnd = open_connect_Wnd(hWnd); break;
 			case ID_OTE_RADIO_MODE:hwnd_current_subwnd = open_mode_Wnd(hWnd); break;
 			case ID_OTE_RADIO_FAULT:hwnd_current_subwnd = open_fault_Wnd(hWnd); break;
-			case ID_OTE_RADIO_STAT:hwnd_current_subwnd = open_moment_Wnd(hWnd); break;
+			case ID_OTE_RADIO_STAT:hwnd_current_subwnd = open_status_Wnd(hWnd); break;
 			default:break;
 			}
 		}
@@ -754,16 +782,16 @@ LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_BH_57].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_BH_57].cy,
 			hWnd, NULL, hInst, NULL);
 		CreateWindowW(TEXT("STATIC"), L"走行緩和", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].y -25,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].cy,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].y -25,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].cy,
 			hWnd, NULL, hInst, NULL);
 		CreateWindowW(TEXT("STATIC"), L"ジブ接近", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_JIB_NARROW].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_JIB_NARROW].y -25,
 			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_JIB_NARROW].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_RADIO_JIB_NARROW].cy,
 			hWnd, NULL, hInst, NULL);
 		CreateWindowW(TEXT("STATIC"), L"吊荷減少", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].y -25,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].cy,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].y -25,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].cy,
 			hWnd, NULL, hInst, NULL);
 
 		//モード設定ラジオ釦
@@ -806,15 +834,15 @@ LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 		}
 		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][st_work_wnd.jib_chk_mode], BM_SETCHECK, BST_CHECKED, 0L);
 
-		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
-				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].y,
-				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_GT_SHOCK].cy,
-				hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_PB_GT_SHOCK), hInst, NULL);
+		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
+				st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].y,
+				st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK].cy,
+				hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_CHK_GT_SHOCK), hInst, NULL);
 
-		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY], WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_PUSHLIKE,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_PB_LOAD_SWY].cy,
-			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_PB_LOAD_SWY), hInst, NULL);
+		st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
+			st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].y,
+			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY].cy,
+			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_CHK_LOAD_SWY), hInst, NULL);
 
 	}
 	case WM_COMMAND: {
@@ -838,10 +866,22 @@ LRESULT CALLBACK WndModeProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 		}
 		switch (wmId)
 		{
-		case 1: {
-
+		case BASE_ID_OTE_PB + ID_OTE_CHK_LOAD_SWY: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_LOAD_SWY], BM_GETCHECK, 0, 0)) {
+				st_work_wnd.pb_stat[ID_OTE_CHK_LOAD_SWY] = OTE0_PB_OFF_DELAY_COUNT;
+			}
+			else {
+				st_work_wnd.pb_stat[ID_OTE_CHK_LOAD_SWY] = L_OFF;
+			}
 		}break;
-
+		case BASE_ID_OTE_PB + ID_OTE_CHK_GT_SHOCK: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_GT_SHOCK], BM_GETCHECK, 0, 0)) {
+				st_work_wnd.pb_stat[ID_OTE_CHK_GT_SHOCK] = OTE0_PB_OFF_DELAY_COUNT;
+			}
+			else {
+				st_work_wnd.pb_stat[ID_OTE_CHK_GT_SHOCK] = L_OFF;
+			}
+		}break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -935,7 +975,8 @@ LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}break;
-
+	case ID_OTE0_STATIC_UPDATE: {
+	}break;
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
@@ -951,7 +992,7 @@ LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	}
 	return S_OK;
 }
-LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WndStatusProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
 	switch (message)
 	{
@@ -967,18 +1008,18 @@ LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 				hWnd, (HMENU)(BASE_ID_OTE_STATIC + i), hInst, NULL);
 		}
 
-		int x0 = st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_MH].x -43, y0 = st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_MH].y+20;
+		int x0 = st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_MH].x -43, y0 = st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_MH].y+18;
 
 		CreateWindowW(TEXT("STATIC"),L"目標", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0,40,20,hWnd, NULL, hInst, NULL);
-		CreateWindowW(TEXT("STATIC"), L"指令", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0 + 20, 40, 20, hWnd, NULL, hInst, NULL);
-		CreateWindowW(TEXT("STATIC"), L"VFB", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0 + 40, 40, 20, hWnd, NULL, hInst, NULL);
-		CreateWindowW(TEXT("STATIC"), L"TFB", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0 + 60, 40, 20, hWnd, NULL, hInst, NULL);
+		CreateWindowW(TEXT("STATIC"), L"指令", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0 + 18, 40, 20, hWnd, NULL, hInst, NULL);
+		CreateWindowW(TEXT("STATIC"), L"VFB", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0 + 36, 40, 20, hWnd, NULL, hInst, NULL);
+		CreateWindowW(TEXT("STATIC"), L"TFB", WS_CHILD | WS_VISIBLE | SS_LEFT,x0,y0 + 54, 40, 20, hWnd, NULL, hInst, NULL);
 
 		y0 = st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_BH].y + 20;
 		CreateWindowW(TEXT("STATIC"), L"目標", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0, 40, 20, hWnd, NULL, hInst, NULL);
-		CreateWindowW(TEXT("STATIC"), L"指令", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0 + 20, 40, 20, hWnd, NULL, hInst, NULL);
-		CreateWindowW(TEXT("STATIC"), L"VFB", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0 + 40, 40, 20, hWnd, NULL, hInst, NULL);
-		CreateWindowW(TEXT("STATIC"), L"TFB", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0 + 60, 40, 20, hWnd, NULL, hInst, NULL);
+		CreateWindowW(TEXT("STATIC"), L"指令", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0 + 18, 40, 20, hWnd, NULL, hInst, NULL);
+		CreateWindowW(TEXT("STATIC"), L"VFB", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0 + 36, 40, 20, hWnd, NULL, hInst, NULL);
+		CreateWindowW(TEXT("STATIC"), L"TFB", WS_CHILD | WS_VISIBLE | SS_LEFT, x0, y0 + 54, 40, 20, hWnd, NULL, hInst, NULL);
 	}
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
@@ -992,6 +1033,19 @@ LRESULT CALLBACK WndMomentProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
+	}break;
+
+	case ID_OTE0_STATIC_UPDATE: {
+		msg_wos.str(L"");msg_wos << L"MH:\n"<< pCOte0->st_msg_pc_u_rcv.body.plc_in.spd_tg[PLC_IF_CCID_MH1] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Ww1[PLC_IF_CCID_MH1] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr1[PLC_IF_CCID_MH1] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr2[PLC_IF_CCID_MH1] << L"\n" ;
+		SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_MH], msg_wos.str().c_str());
+		msg_wos.str(L""); msg_wos << L"AH:\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.spd_tg[PLC_IF_CCID_AH] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Ww1[PLC_IF_CCID_AH] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr1[PLC_IF_CCID_AH] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr2[PLC_IF_CCID_AH] << L"\n";
+		SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_AH], msg_wos.str().c_str());
+		msg_wos.str(L""); msg_wos << L"GT:\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.spd_tg[PLC_IF_CCID_GT] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Ww1[PLC_IF_CCID_GT] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr1[PLC_IF_CCID_GT] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr2[PLC_IF_CCID_GT] << L"\n";
+		SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_GT], msg_wos.str().c_str());
+		msg_wos.str(L""); msg_wos << L"BH:\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.spd_tg[PLC_IF_CCID_BH] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Ww1[PLC_IF_CCID_BH] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr1[PLC_IF_CCID_BH] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr2[PLC_IF_CCID_BH] << L"\n";
+		SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_BH], msg_wos.str().c_str());
+		msg_wos.str(L""); msg_wos << L"SL:\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.spd_tg[PLC_IF_CCID_SL] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Ww1[PLC_IF_CCID_SL] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr1[PLC_IF_CCID_SL] << L"\n" << pCOte0->st_msg_pc_u_rcv.body.plc_in.inv_cc_Wr2[PLC_IF_CCID_SL] << L"\n";
+		SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][ID_OTE_SUB_STAT_SL], msg_wos.str().c_str());
 	}break;
 
 	case WM_PAINT: {
@@ -1386,7 +1440,7 @@ HWND open_fault_Wnd(HWND hwnd) {
 
 	return hWnd_sub[ID_OTE0_SUB_WND_FAULT];
 }
-HWND open_moment_Wnd(HWND hwnd) {
+HWND open_status_Wnd(HWND hwnd) {
 
 	InitCommonControls();//コモンコントロール初期化
 	HINSTANCE hInst = GetModuleHandle(0);
@@ -1394,7 +1448,7 @@ HWND open_moment_Wnd(HWND hwnd) {
 	WNDCLASSEXW wcex;
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndMomentProc;
+	wcex.lpfnWndProc = WndStatusProc;
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
 	wcex.hInstance = (HINSTANCE)GetModuleHandle(0);;
@@ -1752,7 +1806,7 @@ void draw_lamp(HDC hdc,bool is_init) {
 			SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
 		}
 		else if (pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].com == OTE_LAMP_COM_FLICK) {
-			if(flick_cnt & OTE_LAMP_FLICK_COUNT)SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
+			if(disp_cnt & OTE_LAMP_FLICK_COUNT)SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
 			else SelectObject(hdc, st_work_wnd.hbrush[OTE0_GLAY]);		//OFF色
 		}
 		else {
@@ -1774,7 +1828,7 @@ void draw_lamp(HDC hdc,bool is_init) {
 				SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.notch_lamp[k].color]);
 			}
 			else if (pCOte0->st_msg_pc_u_rcv.body.notch_lamp[k].com == OTE_LAMP_COM_FLICK) {
-				if (flick_cnt & OTE_LAMP_COM_FLICK)SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.notch_lamp[k].color]);
+				if (disp_cnt & OTE_LAMP_FLICK_COUNT)SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.notch_lamp[k].color]);
 				else SelectObject(hdc, st_work_wnd.hbrush[OTE0_GLAY]);		//OFF色
 			}
 			else {
