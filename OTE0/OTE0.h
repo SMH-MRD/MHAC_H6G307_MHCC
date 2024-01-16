@@ -54,7 +54,6 @@
 #define OTE0_CAM_WND_TG_X		300			//‰æ–ÊØ‚èæ‚èXˆÊ’u
 #define OTE0_CAM_WND_TG_Y		300			//‰æ–ÊØ‚èæ‚èYˆÊ’u
 
-
 #define OTE0_N_SUB_WND			6
 #define ID_OTE0_SUB_WND_CONNECT	0
 #define ID_OTE0_SUB_WND_MODE	1

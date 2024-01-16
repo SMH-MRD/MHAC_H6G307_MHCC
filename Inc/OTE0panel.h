@@ -2,6 +2,11 @@
 
 #include "common_def.h"
 
+//@ GDI+
+#include <objbase.h>//gdiplus.hのコンパイルを通すために必要
+#include <gdiplus.h>
+using namespace Gdiplus;
+
 #define N_OTE_PEN				8
 #define N_OTE_BRUSH				8
 
@@ -99,8 +104,6 @@
 #define ID_OTE_CHK_CAMERA_ZOMN	55		//IP　CAMERA　WINDOW
 #define ID_OTE_PB_CAMERA_STOP	56		//IP　CAMERA　WINDOW
 
-
-
 //ノッチID　BASE + 10*MOTION_ID + NOTCH + ID_OTE_0NOTCH_POS
 #define BASE_ID_OTE_NOTCH		10900
 #define ID_OTE_NOTCH_MH_MIN		10900
@@ -115,7 +118,6 @@
 #define ID_OTE_NOTCH_SL_MAX		10949
 #define ID_OTE_NOTCH_AH_MIN		10950
 #define ID_OTE_NOTCH_AH_MAX		10959
-
 
 #define ID_OTE_GRIP_SWITCH		2			
 #define ID_OTE_GRIP_ESTOP_POS	0x00000001
@@ -142,8 +144,6 @@
 #define ID_OTE_CTRL_PB			1
 #define ID_OTE_CTRL_NOTCH		2
 
-
-
 #define N_OTE_FONT				8
 #define ID_OTE_FONT8			0
 #define ID_OTE_FONT6			1
@@ -151,22 +151,26 @@
 #define ID_OTE_FONT10			3
 #define ID_OTE_FONT20			4
 
-#define N_OTE_HBMAP				8
-#define ID_OTE_HBMAP_MEM0		0
-#define ID_OTE_HBMAP_MEM_IF		1
-#define ID_OTE_HBMAP_MEM_GR		2
-#define ID_OTE_HBMAP_SWY_MEM0	3
-#define ID_OTE_HBMAP_SWY_MEM_IF	4
-#define ID_OTE_HBMAP_SWY_MEM_GR	5
+#define N_OTE_HBMAP				10
+#define ID_OTE_HBMAP_MAIN		0
+#define ID_OTE_HBMAP_BK			1
+#define ID_OTE_HBMAP_MEM0		2
+#define ID_OTE_HBMAP_MEM_IF		3
+#define ID_OTE_HBMAP_MEM_GR		4
+#define ID_OTE_HBMAP_SWY_MEM0	5
+#define ID_OTE_HBMAP_SWY_MEM_BK	6
+#define ID_OTE_HBMAP_SWY_MEM_GR	7
 
-#define N_OTE_HDC				8
-#define ID_OTE_HDC_MEM0			0
-#define ID_OTE_HDC_MEM_IF		1
-#define ID_OTE_HDC_MEM_GR		2
-#define ID_OTE_HDC_SWY_MEM0		3
-#define ID_OTE_HDC_SWY_MEM_IF	4
-#define ID_OTE_HDC_SWY_MEM_GR	5
-#define ID_OTE_HDC_CAMERA_VIEW	6
+#define N_OTE_HDC				10
+#define ID_OTE_HDC_MEM_MAIN		0
+#define ID_OTE_HDC_MEM_BK		1
+#define ID_OTE_HDC_MEM0			2
+#define ID_OTE_HDC_MEM_IF		3
+#define ID_OTE_HDC_MEM_GR		4
+#define ID_OTE_HDC_SWY_MEM0		5
+#define ID_OTE_HDC_SWY_MEM_BK	6
+#define ID_OTE_HDC_SWY_MEM_GR	7
+#define ID_OTE_HDC_CAMERA_VIEW  8	
 
 #define PRM_OTE_DEF_PB_W		50
 #define PRM_OTE_DEF_PB_W2		30
@@ -188,16 +192,51 @@
 #define OTE0_GR_AREA_Y			280
 #define OTE0_GR_AREA_W			320
 #define OTE0_GR_AREA_H			250
+#define OTE0_GR_AREA_CX			280
+#define OTE0_GR_AREA_CY			405
 
 #define OTE0_GR_AREA2_X			460
 #define OTE0_GR_AREA2_Y			280
 #define OTE0_GR_AREA2_W			320
 #define OTE0_GR_AREA2_H			250
+#define OTE0_GR_AREA2_CX		620
+#define OTE0_GR_AREA2_CY		405
 
 #define OTE0_IF_AREA_X			560
 #define OTE0_IF_AREA_Y			180
 #define OTE0_IF_AREA_W			270
 #define OTE0_IF_AREA_H			60
+
+#define OTE0_N_IMAGE			16
+
+#define OTE0_N_GRAPHIC				10
+#define OTE0_GDIP_GR_MAIN			0
+#define OTE0_GDIP_GR_BK				1
+#define OTE0_GDIP_GR_M0				2
+#define OTE0_GDIP_GR_GRAPHIC		3
+#define OTE0_GDIP_GR_INF			4
+#define OTE0_GDIP_GR_SWY_M0			5
+#define OTE0_GDIP_GR_SWY_BK			6
+#define OTE0_GDIP_GR_SWY_GRAPHIC	7
+
+
+#define OTE0_N_ARR_TYPE			2
+#define OTE0_ID_GR_SRC_ARR		0
+#define OTE0_ID_GR_DST_ARR		1
+
+#define OTE0_N_GR_PARTS			32
+#define OTE0_GRID_JC_BODY		0
+#define OTE0_GRID_JC_JIB		1
+#define OTE0_GRID_JC_HOOK1		2
+#define OTE0_GRID_JC_HOOK2		3
+#define OTE0_GRID_PT_R			4	//鳥瞰ジブ先端
+#define OTE0_GRID_PT_R0			5	//鳥瞰ジブ中心
+#define OTE0_GRID_AREA_RMIN		6	//鳥瞰半径引減
+#define OTE0_GRID_AREA_RMAX		7	//鳥瞰半径出減
+
+#define OTE0_PRM_JIB_L_PIX		180	//グラフィック　ジブ長さ
+#define OTE0_PRM_PIX_M_A1		2	//エリア１のPIX/ｍ
+#define OTE0_PRM_PIX_M_A2		3	//エリア２のPIX/ｍ
 
 
 //操作端末ウィンドウ構造体
@@ -221,11 +260,22 @@ typedef struct _stOTEWorkWnd {
 
 	HBITMAP hBmap[N_OTE_HBMAP];								//ビットマップハンドル
 	HDC		hdc[N_OTE_HDC];			//メモリデバイスコンテキスト
-	HPEN	hpen[N_OTE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
-	HBRUSH	hbrush[N_OTE_BRUSH] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+	
+	HBRUSH hbrush[N_OTE_BRUSH];
+	HPEN hpen[N_OTE_PEN];
+	Pen*	ppen[N_OTE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+	SolidBrush*	pbrush[N_OTE_BRUSH] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+
+
 	HWND	hctrl[N_OTE_CTRL_TYPE][N_OTE_PNL_STATIC];
 	HFONT	hfont[N_OTE_FONT];				            //テキスト用フォント
 	BLENDFUNCTION bf = { 0,0,0,0 };					        //半透過設定構造体
+	
+	//
+	Image* pimg[OTE0_N_IMAGE];
+	Graphics* pgraphic[OTE0_N_GRAPHIC];
+	Rect im_rect[OTE0_N_GRAPHIC][OTE0_N_ARR_TYPE];
+	POINT pt_imtg[OTE0_N_GRAPHIC][3];//PlgBlt用ターゲット位置
 
 	POINT pt_ctrl[N_OTE_CTRL_TYPE][N_OTE_PNL_ITEMS] = {
 		//#STATIC
@@ -269,8 +319,8 @@ typedef struct _stOTEWorkWnd {
 		  570,80,	620,80,	670,80,	720,80,	770,80,
 		  //SUB PANEL
 		  15,250,70,250,125,250,180,250,
-		  //TOUCH PB
-		  220,5,
+		  //TOUCH PB(カメラWindow）
+		  645,450,
 		  //CONNECTパネル　
 		  //ID_OTE_RADIO_SOCK_PU	ID_OTE_RADIO_SOCK_PM ID_OTE_RADIO_SOCK_OM
 		  5,5,						60,5,				115,5,

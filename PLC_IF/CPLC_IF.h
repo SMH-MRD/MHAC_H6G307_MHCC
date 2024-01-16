@@ -38,7 +38,6 @@ public:
     BOOL hide_if_wnd();
 
 
- 
     LPST_PLC_WRITE lp_PLCwrite; //PLC書き込みデータバッファアドレス
     LPST_PLC_READ  lp_PLCread;  //PLC読み込みデータバッファアドレス
 
@@ -76,12 +75,10 @@ private:
     int parse_auto_com();
     int parse_sim_status();
 
-    int parse_notch_com();
     int parce_brk_status();
     int parse_ope_com();
     int parse_sensor_fb();
     int set_notch_ref();
-    int set_bit_coms();
     int set_ao_coms();
 
     UINT16 get_notch_code(INT16 notch);
