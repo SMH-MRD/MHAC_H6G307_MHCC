@@ -194,6 +194,7 @@ using namespace Gdiplus;
 #define OTE0_GR_AREA_H			250
 #define OTE0_GR_AREA_CX			280
 #define OTE0_GR_AREA_CY			405
+#define OTE0_GR_AREA_PIX1M		2.0	//1m当りのPIX数
 
 #define OTE0_GR_AREA2_X			460
 #define OTE0_GR_AREA2_Y			280
@@ -201,9 +202,13 @@ using namespace Gdiplus;
 #define OTE0_GR_AREA2_H			250
 #define OTE0_GR_AREA2_CX		620
 #define OTE0_GR_AREA2_CY		405
+#define OTE0_GR_AREA2_PIX1M		3.0		//1m当りのPIX数
+#define OTE0_GR_AREA2_LV0_Y		515		//高さ0のPIX位置
+#define OTE0_GR_AREA2_R0_X		540		//半径0のPIX位置
+
 
 #define OTE0_IF_AREA_X			560
-#define OTE0_IF_AREA_Y			180
+#define OTE0_IF_AREA_Y			160
 #define OTE0_IF_AREA_W			270
 #define OTE0_IF_AREA_H			60
 
@@ -231,13 +236,6 @@ using namespace Gdiplus;
 #define OTE0_GRID_JC_HOOK2		3
 #define OTE0_GRID_PT_R			4	//鳥瞰ジブ先端
 #define OTE0_GRID_PT_R0			5	//鳥瞰ジブ中心
-#define OTE0_GRID_AREA_RMIN		6	//鳥瞰半径引減
-#define OTE0_GRID_AREA_RMAX		7	//鳥瞰半径出減
-
-#define OTE0_PRM_JIB_L_PIX		180	//グラフィック　ジブ長さ
-#define OTE0_PRM_PIX_M_A1		2	//エリア１のPIX/ｍ
-#define OTE0_PRM_PIX_M_A2		3	//エリア２のPIX/ｍ
-
 
 //操作端末ウィンドウ構造体
 typedef struct _stOTEWorkWnd {
@@ -261,9 +259,9 @@ typedef struct _stOTEWorkWnd {
 	HBITMAP hBmap[N_OTE_HBMAP];								//ビットマップハンドル
 	HDC		hdc[N_OTE_HDC];			//メモリデバイスコンテキスト
 	
-	HBRUSH hbrush[N_OTE_BRUSH];
-	HPEN hpen[N_OTE_PEN];
-	Pen*	ppen[N_OTE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+	HBRUSH		hbrush[N_OTE_BRUSH];
+	HPEN		hpen[N_OTE_PEN];
+	Pen*		ppen[N_OTE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 	SolidBrush*	pbrush[N_OTE_BRUSH] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 
 

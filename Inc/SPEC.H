@@ -4,11 +4,11 @@
 
 #ifndef MOTION_ID_MAX
 
-#define MOTION_ID_MAX   8  //制御軸最大数
+#define MOTION_ID_MAX   8  //制御軸大数
 
 #endif//
 
-
+/*** 仕様定義 ***/
 
 /*** 仕様定義構造体 ***/
 
@@ -336,8 +336,10 @@ typedef struct StSpec {
 		{15.0,	0.0,	0.0,	18.0,	-PI60,	0.0,	0.0,	0.0},
 	};
 
-	double Lb = 64.009;
-	double Lm = 63.000;
+	double Lb = 64.009;	
+	double Lm = 63.000;			//ジブpin-主巻シーブ中心距離
+	double La_add = 4.981;		//ジブ主補巻シーブ間距離
+	double rad_mh_ah = 2.371;	//ジブ主補巻シーブ間角度
 	double La = 66.566;
 	double Lmb = 1.676;
 	double Lma = 4.981;

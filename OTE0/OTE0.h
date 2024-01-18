@@ -65,6 +65,16 @@
 #define OTE_CODE_FLICKER_FREQ		0x0040
 #define OTE_CODE_SUB_STATIC_FREQ	0x0001
 
+//メインウィンドウ管理構造体
+typedef struct stOte0DataTag {
+	double pos[MOTION_ID_MAX];
+	double v_fb[MOTION_ID_MAX];
+	double v_ref[MOTION_ID_MAX];
+	double deg_sl;//旋回角°
+	double deg_bh;//起伏角°
+}ST_OTE0_DATA, * LPST_OTE0_DATA;
+
+
 class COte
 {
 public:
@@ -81,7 +91,7 @@ public:
 
 	WORD helthy_cnt = 0;
 
-
+	ST_OTE0_DATA data;
 
 	CSockAlpha* pSockPcUniCastOte;		//PC->OTEユニキャスト受信用ソケット
 	CSockAlpha* pSockPcMultiCastOte;	//PC->OTEマルチキャスト受信用ソケット
@@ -114,7 +124,7 @@ public:
 	ST_OTE_M_MSG st_msg_ote_m_ote_rcv;
 
 	HRESULT close();
-	int parse();//端末表示更新処理
+	int parse();//受信データ展開処理
 
 	LPST_OTE_U_MSG set_msg_ote_u();
 	LPST_OTE_M_MSG set_msg_ote_m();

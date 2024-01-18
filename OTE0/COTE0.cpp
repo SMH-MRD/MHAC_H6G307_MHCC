@@ -91,6 +91,15 @@ int COte::init_proc(LPST_OTE_WORK_WND pst) {
 /// </summary>
 /// <returns></returns>
 int COte::parse() {
+	for (int i = 0; i < 6; i++) {
+		data.pos[i] = (double)st_msg_pc_u_rcv.body.pos[i] / 1000.0;
+		data.v_fb[i] = (double)st_msg_pc_u_rcv.body.v_fb[i] / 1000.0;
+		data.v_ref[i] = (double)st_msg_pc_u_rcv.body.v_ref[i] / 1000.0;
+	}
+
+	data.deg_sl=RAD1DEG * (double)data.pos[ID_SLEW];
+	data.deg_bh= ((double)st_msg_pc_u_rcv.body.plc_in.cab_ai[PLC_IF_CAB_AI_BH_ANGLE] - 2000.0)/2000.0 * 30.0;//0-4000 ¨ }30‹
+
 	return 0;
 }
 /*****************************************************************************/

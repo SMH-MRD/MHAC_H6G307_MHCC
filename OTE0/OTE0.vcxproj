@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="COTE0_GR.h" />
     <ClInclude Include="CPsaCB.h" />
     <ClInclude Include="CPsaMain.h" />
     <ClInclude Include="framework.h" />
@@ -160,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="COTE0.cpp" />
+    <ClCompile Include="COTE0_GR.cpp" />
     <ClCompile Include="CPsaCB.cpp" />
     <ClCompile Include="CPsaMain.cpp" />
     <ClCompile Include="OTE0.cpp" />

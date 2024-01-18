@@ -468,6 +468,30 @@ int CPLC_IF::parse_data_out() {
     for (int i = 0; i < 6; i++) {
         plc_if_workbuf.output.wbuf.inv_cc_x[i] |= inv_x_map.charge_ok.y;
     }
+    
+    //ƒCƒ“ƒo[ƒ^
+    //ƒgƒ‹ƒNFB–Í‹[
+    if (plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_MH1] & 0x3) {//³“]or‹t“] ON
+        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH1] = plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH2] = 500;
+ //       INT16 imask = 0x3 | plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_MH1];
+ //       plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH1] |= imask;
+ //       plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH2] |= imask;
+    }
+    else {
+        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH1] = plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH2] = 0;
+  //      plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH1] &= 0xfffc;
+  //      plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH2] &= 0xfffc;
+    }
+    if (plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH] & 0x3) {//³“]or‹t“] ON
+        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_AH] = 500;
+        INT16 imask = 0x3 | plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH];
+        plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_AH] |= imask;
+    }
+    else {
+        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_AH] = 0;
+        plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_AH] &= 0xfffc;
+    }
+
 
 #pragma endregion PLC_CC_LINK
 
@@ -476,27 +500,6 @@ int CPLC_IF::parse_data_out() {
 
 int CPLC_IF::parse_ote_com() {
     //‰^“]ŽºPB
-#if 0
-    //ŽåŠ²“ü
-     if (pOTEio->ote_in.pb_ope[OTE_INDEX_PB_CTR_SOURCE])
-        lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_on.y;
-    else
-        lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] &= ~cab_bout_map.ctrl_on.y;
-
-     //ŽåŠ²ØPB@íŽžON
-        lp_PLCwrite->cab_di[cab_bout_map.ctrl_on.x] |= cab_bout_map.ctrl_off.y;
- 
-
-     if (pOTEio->ote_in.pb_ope[OTE_INDEX_PB_FAULT_RESET])
-         lp_PLCwrite->cab_di[cab_bout_map.fault_reset.x] |= cab_bout_map.fault_reset.y;
-     else
-         lp_PLCwrite->cab_di[cab_bout_map.fault_reset.x] &= ~cab_bout_map.fault_reset.y;
-
-    if (pOTEio->ote_in.pb_ope[OTE_INDEX_CHK_ESTOP])//‹Ù‹}’âŽ~‚Íƒm[ƒ}ƒ‹ƒNƒ[ƒY
-        lp_PLCwrite->cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
-    else
-     lp_PLCwrite->cab_di[cab_bout_map.cab_estp.x] |= cab_bout_map.cab_estp.y;
-#endif
     //ƒmƒbƒ`
     //ŽåŠª
     UINT16 notch_code = get_notch_code(pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]);
@@ -632,11 +635,6 @@ INT16 CPLC_IF::get_notch_pos(UINT16 code) {
     default           :pos =  0; break;
     }
     return pos;
-}
-
-int CPLC_IF::set_notch_ref() {
-
-    return 0;
 }
 
 //*********************************************************************************************
