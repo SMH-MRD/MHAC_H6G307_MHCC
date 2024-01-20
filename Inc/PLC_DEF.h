@@ -455,7 +455,7 @@ struct ERMPLC_XIN_MAP {
     POINT conv2_fuse_down                   = { ID_ERMPLC_XA0,0x2000 };
     POINT conv2_over_heat                   = { ID_ERMPLC_XA0,0x4000 };
     POINT conv1_fuse_down                   = { ID_ERMPLC_XA0,0x8000 };
-
+    //XB0
     POINT thermal_trip_ah_brk               = { ID_ERMPLC_XB0,0x0001 };
     POINT thermal_trip_bh_motor             = { ID_ERMPLC_XB0,0x0002 };
     POINT thermal_trip_mh_fan               = { ID_ERMPLC_XB0,0x0004 };

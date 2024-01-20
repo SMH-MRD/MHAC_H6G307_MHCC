@@ -750,7 +750,7 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		st_work_wnd.h_static_inf = CreateWindowW(TEXT("STATIC"), L"INFO:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			5, 350, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_INF, hInst, NULL);
 		st_work_wnd.h_static_Dr = CreateWindowW(TEXT("STATIC"), L"DR:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			40, 420, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_DW, hInst, NULL);
+			40, 420, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_DR, hInst, NULL);
 		st_work_wnd.h_static_Dw = CreateWindowW(TEXT("STATIC"), L"DW:-", WS_CHILD | WS_VISIBLE | SS_LEFT,
 			40, 490, 520, 60, hWnd, (HMENU)IDC_MC_STATIC_DW, hInst, NULL);
 		
@@ -819,8 +819,6 @@ LRESULT CALLBACK CMCProtocol::WndProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		SetWindowText(st_work_wnd.h_static_snd_cnt_r, wos.str().c_str());
 
 		if (disp_infomation) {
-	
-
 			wos.str(L""); wos << L"DW" << st_work_wnd.i_dw_disp << L"\n";
 
 			for (int i = 0; i < 20; i++) {

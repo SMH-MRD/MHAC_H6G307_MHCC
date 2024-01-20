@@ -197,7 +197,8 @@ int CPLC_IF::parse_data_out() {
 
     //PC 操作有効信号
     plc_if_workbuf.output.wbuf.ctrl_mode = mode;
- 
+
+ //パネルシミュレーション
 #pragma region OPEROOM
     // 非常停止　PB（主幹OFF　PB）　*PLC NORMAL CLOSE
     if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])) {
@@ -405,8 +406,30 @@ int CPLC_IF::parse_data_out() {
         plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.conv2_mc.x] &= ~erm_xin_map.conv2_mc.y;
         plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ctrl_brk_mc.x] &= ~erm_xin_map.ctrl_brk_mc.y;
     }
+    //ブレーキFB
+    if(plc_if_workbuf.input.rbuf.erm_y[erm_yout_map.mh_brk_mc.x] & erm_yout_map.mh_brk_mc.y)
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] |= erm_xin_map.mh_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] &= ~erm_xin_map.mh_brk_mc.y;
+ 
+    if (plc_if_workbuf.input.rbuf.erm_y[erm_yout_map.ah_brk_mc.x] & erm_yout_map.ah_brk_mc.y)
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] |= erm_xin_map.ah_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] &= ~erm_xin_map.ah_brk_mc.y;
+
+    if (plc_if_workbuf.input.rbuf.erm_y[erm_yout_map.bh_brk_mc.x] & erm_yout_map.bh_brk_mc.y)
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_brk_mc.x] |= erm_xin_map.bh_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_brk_mc.x] &= ~erm_xin_map.bh_brk_mc.y;
+
+    if (plc_if_workbuf.input.rbuf.erm_y[erm_yout_map.gt_brk_mc.x] & erm_yout_map.gt_brk_mc.y)
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] |= erm_xin_map.gt_brk_mc.y;
+    else
+        plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] &= ~erm_xin_map.gt_brk_mc.y;
+ 
 
     //各軸主幹MC FB　主幹投入指令でON
+#if 0//本製番PLCロジック無し
     if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.mh1_source_com.y)
         plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_brk_mc.x] |= erm_xin_map.mh_brk_mc.y;
     else
@@ -421,12 +444,11 @@ int CPLC_IF::parse_data_out() {
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] |= erm_xin_map.gt_brk_mc.y;
     else
         plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_brk_mc.x] &= ~erm_xin_map.gt_brk_mc.y;
-
     if (plc_if_workbuf.input.rbuf.erm_900 & erm_m900_map.ah_source_com.y)
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] |= erm_xin_map.ah_brk_mc.y;
     else
         plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_brk_mc.x] &= ~erm_xin_map.ah_brk_mc.y;
-
+#endif
     //初期充電指令
     if (plc_if_workbuf.input.rbuf.erm_y[erm_yout_map.initial_charge.x] & erm_yout_map.initial_charge.y)
         plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.dbu_charge_mc.x] |= erm_xin_map.dbu_charge_mc.y;
@@ -470,30 +492,42 @@ int CPLC_IF::parse_data_out() {
     }
     
     //インバータ
-    //トルクFB模擬
-    if (plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_MH1] & 0x3) {//正転or逆転 ON
-        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH1] = plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH2] = 500;
- //       INT16 imask = 0x3 | plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_MH1];
- //       plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH1] |= imask;
- //       plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH2] |= imask;
-    }
-    else {
-        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH1] = plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_MH2] = 0;
-  //      plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH1] &= 0xfffc;
-  //      plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_MH2] &= 0xfffc;
-    }
-    if (plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH] & 0x3) {//正転or逆転 ON
-        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_AH] = 500;
-        INT16 imask = 0x3 | plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH];
-        plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_AH] |= imask;
-    }
-    else {
-        plc_if_workbuf.output.wbuf.inv_cc_Wr2[ID_MC_INV_AH] = 0;
-        plc_if_workbuf.output.wbuf.inv_cc_x[ID_MC_INV_AH] &= 0xfffc;
-    }
+    for (int i = ID_MC_INV_GNT; i <= ID_MC_INV_MH2; i++) {
+        //正転中FB
+        if (plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x1) {
+            plc_if_workbuf.output.wbuf.inv_cc_x[i] |= 0x1; //正転
+            plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 500;//トルク
+        }
+        else {
+            plc_if_workbuf.output.wbuf.inv_cc_x[i] &= 0xfffe;
+        }
+        //逆転中FB
+        if (plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x2) {
+            plc_if_workbuf.output.wbuf.inv_cc_x[i] |= 0x2;//逆転
+            if((i== ID_MC_INV_AH)|| (i == ID_MC_INV_MH1) || (i == ID_MC_INV_MH2))//トルク
+                plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 500;
+            else
+                plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = -500;
+        }
+        else{
+            plc_if_workbuf.output.wbuf.inv_cc_x[i] &= 0xfffd;
+        }
+        if (!(plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x3)) plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 0;//トルククリア
 
+        //速度FB
+        plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = plc_if_workbuf.input.rbuf.inv_cc_Ww1[i];//PLC計算値を折り返し
 
+    }
+ 
 #pragma endregion PLC_CC_LINK
+#pragma region PLC_HCOUNTER_ABS
+    //高速カウンタ
+    plc_if_workbuf.output.wbuf.hcounter[0] = (INT32)(st_pnl_sim.hcnt[ID_HOIST]+ (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_HOIST] * st_pnl_sim.vcnt1invscan[ID_HOIST]);
+    plc_if_workbuf.output.wbuf.hcounter[1] = (INT32)(st_pnl_sim.hcnt[ID_AHOIST] + (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_AHOIST] * st_pnl_sim.vcnt1invscan[ID_AHOIST]);
+    plc_if_workbuf.output.wbuf.hcounter[2] = (INT32)(st_pnl_sim.hcnt[ID_BOOM_H] + (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_BOOM_H] * st_pnl_sim.vcnt1invscan[ID_BOOM_H]);
+    plc_if_workbuf.output.wbuf.hcounter[3] = (INT32)(st_pnl_sim.hcnt[ID_SLEW] + (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_SLEW] * st_pnl_sim.vcnt1invscan[ID_SLEW]);
+
+#pragma endregion PLC__HCOUNTER_ABS
 
      return 0;
 }
