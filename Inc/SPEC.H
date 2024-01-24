@@ -340,7 +340,8 @@ typedef struct StSpec {
 	double Lm = 63.000;			//ジブpin-主巻シーブ中心距離
 	double La_add = 4.981;		//ジブ主補巻シーブ間距離
 	double rad_mh_ah = 2.371;	//ジブ主補巻シーブ間角度
-	double La = 66.566;
+	double La = 66.566;			//ジブpin-補巻シーブ中心距離
+	double rad_Lm_La = 0.0537;	//ジブ主補巻シーブ間角度
 	double Lmb = 1.676;
 	double Lma = 4.981;
 	double Lba = 5.512;

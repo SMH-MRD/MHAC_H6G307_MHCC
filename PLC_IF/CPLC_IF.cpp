@@ -140,21 +140,7 @@ int CPLC_IF::init_proc() {
     //データ変換計算用パラメータセット
     while (!pCrane->is_crane_status_ok) Sleep(100);//MAINプロセスの仕様取り込み完了待ち
 
-    for (int i = 0; i < MOTION_ID_MAX; i++) {//ドラム0層パラメータセット
-        plc_if_workbuf.Cdr[i][0] = pCrane->spec.prm_nw[SIZE_ITEM_WIRE_LEN0][i];
-        plc_if_workbuf.Ldr[i][0] = 0.0;
-    }
 
-    for (int j = 1; j < PLC_DRUM_LAYER_MAX; j++) {//ドラム1層以上パラメータセット{
-        for (int i = 0; i < ID_AHOIST+1; i++) {//ドラム1層以上パラメータセット
-            //ドラム円周
-            plc_if_workbuf.Cdr[i][j] =( pCrane->spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j-1.0)* pCrane->spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) * PI180;
-            //ドラム層対ドラム1層円周比率
-            plc_if_workbuf.Kdr[i][j] = (pCrane->spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j - 1.0) * pCrane->spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) / pCrane->spec.prm_nw[DRUM_ITEM_DIR][i];
-            //ドラム層巻取り量
-            plc_if_workbuf.Ldr[i][j] = plc_if_workbuf.Ldr[i][j-1] + pCrane->spec.prm_nw[NW_ITEM_GROOVE][i]* plc_if_workbuf.Cdr[i][j];
-        }
-    }
 
     return int(mode & 0xff00);
 }
@@ -504,7 +490,7 @@ int CPLC_IF::parse_data_out() {
         //逆転中FB
         if (plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x2) {
             plc_if_workbuf.output.wbuf.inv_cc_x[i] |= 0x2;//逆転
-            if((i== ID_MC_INV_AH)|| (i == ID_MC_INV_MH1) || (i == ID_MC_INV_MH2))//トルク
+            if((i== ID_MC_INV_AH)|| (i == ID_MC_INV_MH1) || (i == ID_MC_INV_MH2))//トルク //とりあえず巻関連は逆転も正トルクとする。
                 plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 500;
             else
                 plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = -500;
@@ -512,20 +498,30 @@ int CPLC_IF::parse_data_out() {
         else{
             plc_if_workbuf.output.wbuf.inv_cc_x[i] &= 0xfffd;
         }
-        if (!(plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x3)) plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 0;//トルククリア
+        if (!(plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x3)) {//正逆転無し
+            plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 0;//トルククリア
+            plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = 0.0;//速度FBクリア
+        }
+        else {
+            //速度FB
+            plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = plc_if_workbuf.input.rbuf.inv_cc_Ww1[i];//PLC計算値を折り返し
+        }
 
-        //速度FB
-        plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = plc_if_workbuf.input.rbuf.inv_cc_Ww1[i];//PLC計算値を折り返し
+  
 
     }
  
 #pragma endregion PLC_CC_LINK
 #pragma region PLC_HCOUNTER_ABS
     //高速カウンタ
-    plc_if_workbuf.output.wbuf.hcounter[0] = (INT32)(st_pnl_sim.hcnt[ID_HOIST]+ (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_HOIST] * st_pnl_sim.vcnt1invscan[ID_HOIST]);
-    plc_if_workbuf.output.wbuf.hcounter[1] = (INT32)(st_pnl_sim.hcnt[ID_AHOIST] + (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_AHOIST] * st_pnl_sim.vcnt1invscan[ID_AHOIST]);
-    plc_if_workbuf.output.wbuf.hcounter[2] = (INT32)(st_pnl_sim.hcnt[ID_BOOM_H] + (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_BOOM_H] * st_pnl_sim.vcnt1invscan[ID_BOOM_H]);
-    plc_if_workbuf.output.wbuf.hcounter[3] = (INT32)(st_pnl_sim.hcnt[ID_SLEW] + (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[ID_SLEW] * st_pnl_sim.vcnt1invscan[ID_SLEW]);
+    (INT32)(st_pnl_sim.hcnt[ID_HOIST] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_MH1] * st_pnl_sim.vcnt1invscan[ID_HOIST]);
+    (INT32)(st_pnl_sim.hcnt[ID_AHOIST] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_AH] * st_pnl_sim.vcnt1invscan[ID_AHOIST]);
+    (INT32)(st_pnl_sim.hcnt[ID_BOOM_H] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_BH] * st_pnl_sim.vcnt1invscan[ID_BOOM_H]);
+    (INT32)(st_pnl_sim.hcnt[ID_SLEW] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_SL] * st_pnl_sim.vcnt1invscan[ID_SLEW]);
+    plc_if_workbuf.output.wbuf.hcounter[0] =st_pnl_sim.hcnt[ID_HOIST];
+    plc_if_workbuf.output.wbuf.hcounter[1] = st_pnl_sim.hcnt[ID_AHOIST];
+    plc_if_workbuf.output.wbuf.hcounter[2] = st_pnl_sim.hcnt[ID_BOOM_H] ;
+    plc_if_workbuf.output.wbuf.hcounter[3] = st_pnl_sim.hcnt[ID_SLEW];
 
 #pragma endregion PLC__HCOUNTER_ABS
 

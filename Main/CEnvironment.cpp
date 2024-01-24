@@ -48,11 +48,6 @@ void CEnvironment::init_task(void* pobj) {
 	pPolicyInf = (LPST_POLICY_INFO)(pPolicyInfObj->get_pMap());
 	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	
-	//クレーン仕様セット
-	stWorkCraneStat.spec = this->spec;
-	stWorkCraneStat.is_tasks_standby_ok = false;
-	stWorkCraneStat.is_crane_status_ok = true;
-
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
@@ -67,6 +62,28 @@ void CEnvironment::init_task(void* pobj) {
 	motion_bit[ID_H_ASSY] = BIT_SEL_ASS;
 	motion_bit[ID_COMMON] = BIT_SEL_COM;
 	
+
+	//クレーン仕様セット
+	stWorkCraneStat.spec = this->spec;
+	stWorkCraneStat.is_tasks_standby_ok = false;
+	stWorkCraneStat.is_crane_status_ok = true;
+
+	//ドラム仕様　Cdr層　1巻ロープ長　Ldr　層Full巻ロープ長
+	for (int i = 0; i < MOTION_ID_MAX; i++) {//ドラム0層パラメータセット
+		stWorkCraneStat.Cdr[i][0] = stWorkCraneStat.spec.prm_nw[SIZE_ITEM_WIRE_LEN0][i];	//0層は0回転から巻取り可能ロープ長
+		stWorkCraneStat.Ldr[i][0] = 0.0;													//0層は
+	}
+
+	for (int j = 1; j < PLC_DRUM_LAYER_MAX; j++) {//ドラム1層以上パラメータセット{
+		for (int i = 0; i < ID_AHOIST + 1; i++) {//ドラム1層以上パラメータセット
+			//ドラム円周　π×（ドラム１層直径＋（層数-1）×直径増加量）
+			stWorkCraneStat.Cdr[i][j] = (stWorkCraneStat.spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j - 1.0) * stWorkCraneStat.spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) * PI180;
+			//ドラム層円周（直径）比率（対ドラム1層）計算用
+			stWorkCraneStat.Kdr[i][j] = (stWorkCraneStat.spec.prm_nw[DRUM_ITEM_DIR][i] + ((double)j - 1.0) * stWorkCraneStat.spec.prm_nw[DRUM_ITEM_DIR_ADD][i]) / stWorkCraneStat.spec.prm_nw[DRUM_ITEM_DIR][i];
+			//ドラム層巻取り量　層巻取り積算＝下層巻取り量＋ドラム溝数×1周巻取り量
+			stWorkCraneStat.Ldr[i][j] = stWorkCraneStat.Ldr[i][j - 1] + stWorkCraneStat.spec.prm_nw[NW_ITEM_GROOVE][i] * stWorkCraneStat.Cdr[i][j];
+		}
+	}
 
 
 	return;

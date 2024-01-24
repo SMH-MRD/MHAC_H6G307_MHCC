@@ -104,4 +104,5 @@ private:
 
     UINT16 get_notch_code(INT16 notch);
     INT16 get_notch_pos(UINT16 code);
+
  };

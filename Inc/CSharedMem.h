@@ -86,22 +86,18 @@ typedef struct StMoveSet {
 typedef struct StPLC_IO {
 	INT32 mode;
 	INT32 healthy_cnt;
-	double v_fb[MOTION_ID_MAX];			//速度FB
-	double v_ref[MOTION_ID_MAX];		//PLCへの速度指令出力
-	double trq_fb_01per[MOTION_ID_MAX];	//トルクFB
-	double pos[MOTION_ID_MAX];			//位置FB
-	double weight;						//主巻荷重FB
-	double weight_ah;					//補巻荷重FB
-	INT16 brk[MOTION_ID_MAX];			//ブレーキ状態FB 0閉
-	INT16 notch_ref[MOTION_ID_MAX];		//ノッチ指令入力FB（OTE入力含む）
-	PLC_READ_BUF		input;			//PLCからの読み取り信号生値
-	PLC_WRITE_BUF		output;			//PLCへの書き込み信号生値
+	double v_fb[MOTION_ID_MAX];						//速度FB
+	double v_ref[MOTION_ID_MAX];					//PLCへの速度指令出力
+	double trq_fb_01per[MOTION_ID_MAX];				//トルクFB
+	double pos[MOTION_ID_MAX];						//位置FB
+	double weight;									//主巻荷重FB
+	double weight_ah;								//補巻荷重FB
+	INT16 brk[MOTION_ID_MAX];						//ブレーキ状態FB 0閉
+	INT16 notch_ref[MOTION_ID_MAX];					//ノッチ指令入力FB（OTE入力含む）
+	PLC_READ_BUF		input;						//PLCからの読み取り信号生値
+	PLC_WRITE_BUF		output;						//PLCへの書き込み信号生値
 
-	double Cdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム1層円周
-	double Ldr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層巻取量
-	double Kdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層円周倍率
-
-	ST_MOVE_SET	axc[MOTION_ID_MAX];		//軸動作
+	double notch_spd[MOTION_ID_MAX][NOTCH_MAX];			//# ノッチ速度設定現在値
 
 }ST_PLC_IO, * LPST_PLC_IO;
 
@@ -166,30 +162,35 @@ typedef struct StSwayIO {
 #pragma region SIMULATOR
 #define SIM_ACTIVE_MODE			0x00000100					//シミュレーション実行モード
 #define SIM_SWAY_PACKET_MODE	0x00000010					//振れセンサパケット送信モード
+#define SIM_N_SENSOR			128							//センサ数
 typedef struct StSimulationStatus {
 	DWORD mode;
 	DWORD helthy_cnt;
 	PLC_WRITE_BUF plc_w;
 	ST_SWAY_IO sway_io;
 	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
-	double v_fb[MOTION_ID_MAX];								//速度fb
-	double pos[MOTION_ID_MAX];								//位置fb
+	double v_fb[MOTION_ID_MAX];								//軸座標速度fb
+	double pos[MOTION_ID_MAX];								//軸座標位置fb
+	double mtrq[MOTION_ID_MAX];								//モータトルクfb
+	double load_m[MOTION_ID_MAX];							//軸負荷（巻は荷重）
+	double load_l[MOTION_ID_MAX];							//軸負荷サイズ（巻は荷重ロープ長）
+
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角,振れ角速度
 	double kbh;												//引込半径に依存する速度、加速度補正係数
 	ST_SWAY_RCV_MSG rcv_msg;
 	ST_SWAY_SND_MSG snd_msg;
+	INT32 sonsor[SIM_N_SENSOR];								//センサ状態
 
-	ST_MOVE_SET	d;										//ポスト‐起伏シーブ間動作状態
-	ST_MOVE_SET	ph;										//φ
-	ST_MOVE_SET	th;										//θ
-	ST_MOVE_SET	hm0;									//主巻シーブ起伏高さ
-	ST_MOVE_SET	ha0;									//補巻シーブ起伏高さ
-	ST_MOVE_SET	lrm;									//主巻ロープ長
-	ST_MOVE_SET	lra;									//補巻ロープ長
-	ST_MOVE_SET	nd[MOTION_ID_MAX];						//ドラム回転動作
-	UINT32 i_layer[MOTION_ID_MAX];		//ドラム現在層数
-	double n_layer[MOTION_ID_MAX];		//ドラム現在層巻取数
-	double l_drum[MOTION_ID_MAX];		//ドラム巻取り量
+	ST_MOVE_SET	nd[MOTION_ID_MAX];							//ドラム回転動作
+	ST_MOVE_SET	d;									//ポスト‐起伏シーブ間状態（距離・速度・加速度）
+	ST_MOVE_SET	ph;									//φ
+	ST_MOVE_SET	th;									//θ
+
+	UINT32 i_layer[MOTION_ID_MAX];					//ドラム現在層数
+	double n_layer[MOTION_ID_MAX];					//ドラム現在層巻取数
+	double l_drum[MOTION_ID_MAX];					//ドラム巻取り量
+	ST_MOVE_SET	lrm;								//主巻ロープ長
+	ST_MOVE_SET	lra;								//補巻ロープ長
 
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 #pragma endregion シミュレーション信号定義構造体
@@ -278,10 +279,24 @@ typedef struct StCraneStatus {
 	INT32 notch0;										//0ノッチ判定総合
 	INT32 notch0_crane;									//0ノッチ判定PLC
 
-	double Cdr[DRUM_LAYER_MAX][MOTION_ID_MAX];			//ドラム層円周
-	double Ldr[DRUM_LAYER_MAX][MOTION_ID_MAX];			//ドラム層FULL巻取量
 
-	double notch_spd[MOTION_ID_MAX][NOTCH_MAX];			//# ノッチ速度設定現在値
+	double Cdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム1層円周
+	double Ldr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層巻取量
+	double Kdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層円周倍率
+
+	ST_MOVE_SET	axc[MOTION_ID_MAX];					//軸動作
+	ST_MOVE_SET	d;									//ポスト‐起伏シーブ間状態（距離・速度・加速度）
+	ST_MOVE_SET	ph;									//φ
+	ST_MOVE_SET	th;									//θ
+	ST_MOVE_SET	hm0;								//主巻シーブ起伏高さ
+	ST_MOVE_SET	ha0;								//補巻シーブ起伏高さ
+	ST_MOVE_SET	nd[MOTION_ID_MAX];					//ドラム回転動作
+	UINT32 i_layer[MOTION_ID_MAX];					//ドラム現在層数
+	double n_layer[MOTION_ID_MAX];					//ドラム現在層巻取数
+	double l_drum[MOTION_ID_MAX];					//ドラム巻取り量
+	ST_MOVE_SET	lrm;								//主巻ロープ長
+	ST_MOVE_SET	lra;								//補巻ロープ長
+
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 #pragma endregion 

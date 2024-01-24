@@ -28,7 +28,7 @@ CSharedMem* pSimulationStatusObj;
 CSharedMem* pPLCioObj;
 CSharedMem* pSwayIO_Obj;
 CSharedMem* pRemoteIO_Obj;
-CSharedMem*  pCSInfObj;
+CSharedMem* pCSInfObj;
 CSharedMem* pPolicyInfObj;
 CSharedMem* pAgentInfObj;
 
@@ -90,7 +90,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
-
     return (int) msg.wParam;
 }
 

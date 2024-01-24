@@ -80,6 +80,7 @@ int CSIM::init_proc() {
 
     //クレーン仕様のセット
     pCrane->pPLC = pPLC;
+    pCrane->pCraneStat = pCraneStat;
     pCrane->pSimStat = (LPST_SIMULATION_STATUS)poutput;
     pCrane->set_spec(&def_spec);
 
@@ -91,12 +92,17 @@ int CSIM::init_proc() {
     pLoad2->set_crane(pCrane);
 
     //吊荷の初期状態セット 
-    Vector3 _r(SIM_INIT_MHR * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_MHR * sin(SIM_INIT_TH), SIM_INIT_MH);  //吊点位置
-    Vector3 _v(0.0, 0.0, 0.0);                                                                                               //吊点速度
+    Vector3 _r(SIM_INIT_MHR * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_MHR * sin(SIM_INIT_TH), SIM_INIT_MH);  //主巻吊点位置
+    Vector3 _v(0.0, 0.0, 0.0);                                                                               //吊点速度
+   
+    //主巻
     pLoad->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad->set_m(def_spec.Load0_mh);
 
-    _r.x = SIM_INIT_AHR * cos(SIM_INIT_TH) + SIM_INIT_X;; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = SIM_INIT_AH;
+    //補巻
+    double th0 = acos(SIM_INIT_MHR / def_spec.Lm);
+    double ar0 = def_spec.La * cos(th0 - def_spec.rad_Lm_La);
+    _r.x = ar0 * cos(SIM_INIT_TH) + SIM_INIT_X;; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = SIM_INIT_AH;
     pLoad2->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad2->set_m(def_spec.Load0_ah);
 

@@ -128,7 +128,7 @@ public:
     void set_sl();                                   //旋回ドラム状態をセットする
     void set_gt();                                   //走行ドラム状態をセットする
         
-
+    LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC;
     LPST_SPEC pspec;
     LPST_SIMULATION_STATUS pSimStat;
