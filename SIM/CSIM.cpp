@@ -92,7 +92,8 @@ int CSIM::init_proc() {
     pLoad2->set_crane(pCrane);
 
     //吊荷の初期状態セット 
-    Vector3 _r(SIM_INIT_MHR * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_MHR * sin(SIM_INIT_TH), SIM_INIT_MH);  //主巻吊点位置
+    Vector3 _r;
+    _r.x = pCrane->r.x , _r.y = pCrane->r.y, _r.z = pCrane->r0[ID_HOIST];    //主巻吊点位置
     Vector3 _v(0.0, 0.0, 0.0);                                                                               //吊点速度
    
     //主巻
@@ -103,7 +104,8 @@ int CSIM::init_proc() {
     double th0 = acos(SIM_INIT_MHR / def_spec.Lm);
     double ar0 = def_spec.La * cos(th0 - def_spec.rad_Lm_La);
     _r.x = ar0 * cos(SIM_INIT_TH) + SIM_INIT_X;; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = SIM_INIT_AH;
-    pLoad2->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
+  
+  pLoad2->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad2->set_m(def_spec.Load0_ah);
 
     //振れ角計算用カメラパラメータセット
@@ -120,13 +122,13 @@ int CSIM::input() {
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCraneStat->env_act_count;
 
-    //PLC 入力
+    //PLC 指令は100%→1.0　ドラム回転速度指令でセット
     pCrane->set_v_ref(
-        pAgent->v_ref[ID_HOIST],
-        pAgent->v_ref[ID_GANTRY],
-        pAgent->v_ref[ID_SLEW],
-        pAgent->v_ref[ID_BOOM_H],
-        pAgent->v_ref[ID_AHOIST]
+        pPLC->v_ref[ID_HOIST] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_HOIST],
+        pPLC->v_ref[ID_GANTRY] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_GANTRY],
+        pPLC->v_ref[ID_SLEW] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_SLEW],
+        pPLC->v_ref[ID_BOOM_H] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_BOOM_H],
+        pPLC->v_ref[ID_AHOIST] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_AHOIST]
     );
 
     //スキャンタイムセット dtはマルチメディアタイマ　コールバックでセット

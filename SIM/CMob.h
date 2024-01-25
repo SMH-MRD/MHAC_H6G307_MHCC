@@ -77,6 +77,7 @@ public:
     double slw_rad_per_turn;                        //旋回ピニオン1回転の旋回角度
     double gnt_m_per_turn;                          //走行車輪1回転の移動量
     double c_ph, s_ph;                              //cosφ sinφ
+    double cal_d1, cal_d2;                          //ｄ計算用中間変数
  
     Vector3 rc;                                     //クレーン中心点の位置ベクトル
     Vector3 vc;                                     //クレーン中心点の速度ベクトル
@@ -116,8 +117,8 @@ public:
     void set_mode(int _mode) { source_mode = _mode;return; }
 
     void set_nbh_d_ph_th_from_r(double r);          //旋回半径からd　起伏角を計算してセットする
-    void set_nmh_from_d_mh(double r, double mh);    //旋回半径と主巻揚程から主巻ドラム回転数をセットする
-    void set_nah_from_d_ah(double d, double mh);    //dと補巻揚程から補巻ドラム回転数をセットする
+    void set_nmh_from_mh( double mh);               //主巻揚程から主巻ドラム回転数をセットする
+    void set_nah_from_ah(double mh);                //dと補巻揚程から補巻ドラム回転数をセットする
     void set_nsl_from_slr(double sl_rad);           //旋回位置(rad)から旋回ピニオン回転数をセットする
     void set_ngt_from_gtm(double gt_m);             //走行位置から走行車輪回転数をセットする
 
