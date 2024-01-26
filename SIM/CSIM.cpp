@@ -81,7 +81,7 @@ int CSIM::init_proc() {
     //クレーン仕様のセット
     pCrane->pPLC = pPLC;
     pCrane->pCraneStat = pCraneStat;
-    pCrane->pSimStat = (LPST_SIMULATION_STATUS)poutput;
+    pCrane->pSimStat = &sim_stat_workbuf;
     pCrane->set_spec(&def_spec);
 
     //クレーンの初期状態セット 
@@ -150,13 +150,20 @@ static int sim_act_last,wait_count=0;
 int CSIM::parse() {
 
      pCrane->update_break_status(); //ブレーキ状態更新
+
      pCrane->timeEvolution();       //クレーンの位置,速度計算
      pLoad->timeEvolution();        //吊荷の位置,速度計算
      pLoad2->timeEvolution();       //吊荷の位置,速度計算
        
      pLoad->r.add(pLoad->dr);       //吊荷位置更新
+     pLoad2->r.add(pLoad2->dr);       //吊荷位置更新
+
      pLoad->v.add(pLoad->dv);       //吊荷速度更新
+     pLoad2->v.add(pLoad2->dv);       //吊荷速度更新
+
      pLoad->update_relative_vec();  //吊荷吊点相対ベクトル更新(ロープベクトル　L,vL)
+     pLoad2->update_relative_vec();  //吊荷吊点相対ベクトル更新(ロープベクトル　L,vL)
+
     return 0;
 }
 //*********************************************************************************************
@@ -188,14 +195,18 @@ int CSIM::set_cran_motion() {
     sim_stat_workbuf.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];
     sim_stat_workbuf.v_fb[ID_SLEW] = pCrane->v0[ID_SLEW];
     sim_stat_workbuf.v_fb[ID_BOOM_H] = pCrane->v0[ID_BOOM_H];
+    sim_stat_workbuf.v_fb[ID_AHOIST] = pCrane->v0[ID_AHOIST];
 
     sim_stat_workbuf.pos[ID_HOIST] = pCrane->r0[ID_HOIST];
     sim_stat_workbuf.pos[ID_GANTRY] = pCrane->r0[ID_GANTRY];
     sim_stat_workbuf.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
     sim_stat_workbuf.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
+    sim_stat_workbuf.pos[ID_HOIST] = pCrane->r0[ID_AHOIST];
 
     sim_stat_workbuf.L = pLoad->L;
     sim_stat_workbuf.vL = pLoad->vL;
+    sim_stat_workbuf.L2 = pLoad2->L;
+    sim_stat_workbuf.vL2 = pLoad2->vL;
 
     return 0;
 }

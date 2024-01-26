@@ -369,7 +369,7 @@ typedef struct StSpec {
 	double Lma = 4.981;
 	double Lba = 5.512;
 	double Th_pba = 2.00301;
-	double Th_pbm = 0.90266;
+	double Alpa_db = 0.90266;
 	double Alpa_b = 0.021;		//ジブ主巻軸－起伏軸間角度
 	double Alpa_a = 0.054;		//ジブ補巻軸－主巻軸間角度
 	double Phbm = 2.20547;

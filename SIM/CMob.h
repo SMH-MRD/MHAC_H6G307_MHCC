@@ -123,11 +123,11 @@ public:
     void set_ngt_from_gtm(double gt_m);             //走行位置から走行車輪回転数をセットする
 
     void set_d_th_from_nbh();                        //引込ドラム回転状態からd,θの状態をセットする
-    void set_bh();                                   //引込ドラム状態をセットする
-    void set_mh();                                   //主巻ドラム状態、ロープ状態をセットする
-    void set_ah();                                   //主巻ドラム状態、ロープ状態をセットする
-    void set_sl();                                   //旋回ドラム状態をセットする
-    void set_gt();                                   //走行ドラム状態をセットする
+    void set_bh_layer();                                   //引込ドラム状態をセットする
+    void set_mh_layer();                                   //主巻ドラム状態、ロープ状態をセットする
+    void set_ah_layer();                                   //主巻ドラム状態、ロープ状態をセットする
+    void set_sl_layer();                                   //旋回ドラム状態をセットする
+    void set_gt_layer();                                   //走行ドラム状態をセットする
         
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC;

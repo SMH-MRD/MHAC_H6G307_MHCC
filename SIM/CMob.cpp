@@ -3,6 +3,9 @@
 
 extern ST_SPEC def_spec;
 
+//計算短縮用変数
+static double LmbCosAdb, LmLb,Lmb2;
+
 /********************************************************************************/
 /*       Moving Object                                                          */
 /********************************************************************************/
@@ -85,6 +88,7 @@ CJC::CJC() {
 	pspec = &def_spec;							//クレーン仕様
 
 	//0速とみなす速度上限（ドラム回転速度）
+	//速度表現は1.0＝100%で正規化する
 	accdec_cut_spd_range[ID_HOIST]	= 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_HOIST];//0.5%
 	accdec_cut_spd_range[ID_BOOM_H] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_BOOM_H];//0.5%
 	accdec_cut_spd_range[ID_SLEW]	= 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_SLEW];//0.5%
@@ -159,11 +163,10 @@ Vector3 CJC::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
 
 	return a;
 }
-
 //軸加速度
 void CJC::Ac() {	//加速度計算
 
-	//加速指令計算
+	//ドラム加速指令計算
 	// #主巻
 	{
 		//ブレーキ閉
@@ -311,25 +314,12 @@ void CJC::Ac() {	//加速度計算
 
 	}
 
-	//軸加速度計算
-	double thm = pSimStat->th.p;
-	double tha = pSimStat->th.p - pspec->Alpa_a;
-
-	//h=Lm・sinθ　h'=Lm・θ'cosθ h''=Lm・θ''cosθ-θ'sinθ
-	a0[ID_HOIST]	= pspec->Lm * (pSimStat->th.a * cos(thm) - pSimStat->th.v * pSimStat->th.v * sin(thm)) + pSimStat->lrm.a;
-	a0[ID_AHOIST]	= pspec->La * (pSimStat->th.a * cos(tha) - pSimStat->th.v * pSimStat->th.v * sin(tha)) + pSimStat->lra.a;
-	//r=Lm・cosθ　r'=-Lm・θ'sinθ r''=-Lm・θ''sinθ-θ'cosθ
-	a0[ID_BOOM_H] = -pspec->Lm * (pSimStat->th.a * sin(thm) + pSimStat->th.v * cos(thm));
-	
-	a0[ID_SLEW] = pSimStat->nd[ID_SLEW].a * pspec->Kttb;						//ピニオン回転加速度×ピニオン径/TTB径
-	a0[ID_GANTRY] = pSimStat->nd[ID_GANTRY].a * pCraneStat->Cdr[ID_GANTRY][1];	//ドラム回転加速度×車輪径
-
 
 	return;
 }
 void CJC::timeEvolution() {
 	//クレーン部
-	//加速度計算
+	//ドラム加速度計算
 	Ac();
 
 	//ドラム速度計算(オイラー法）
@@ -339,32 +329,76 @@ void CJC::timeEvolution() {
 	pSimStat->nd[ID_SLEW].v		+= pSimStat->nd[ID_SLEW].a * dt;	if (!motion_break[ID_SLEW])		pSimStat->nd[ID_SLEW].v = 0.0;
 	pSimStat->nd[ID_GANTRY].v	+= pSimStat->nd[ID_GANTRY].a * dt;	if (!motion_break[ID_GANTRY])	pSimStat->nd[ID_GANTRY].v = 0.0;
 
-	//極限停止
-	if (((v0[ID_HOIST]  > 0.0) && (is_fwd_endstop[ID_HOIST]))	|| (v0[ID_HOIST] < 0.0)	 && (is_rev_endstop[ID_HOIST]))		pSimStat->nd[ID_HOIST].v  = 0.0;
-	if (((v0[ID_AHOIST] > 0.0) && (is_fwd_endstop[ID_AHOIST]))	|| (v0[ID_AHOIST] < 0.0) && (is_rev_endstop[ID_AHOIST]))	pSimStat->nd[ID_AHOIST].v = 0.0;
-	if (((v0[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY]))	|| (v0[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY]))	pSimStat->nd[ID_GANTRY].v = 0.0;
-	if (((v0[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H]))	|| (v0[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H]))	pSimStat->nd[ID_BOOM_H].v = 0.0;
-
 	//ドラム位置計算(オイラー法）
-	pSimStat->nd[ID_HOIST].p	+= pSimStat->nd[ID_HOIST].v  * dt;
-	pSimStat->nd[ID_AHOIST].p	+= pSimStat->nd[ID_AHOIST].v * dt;
-	pSimStat->nd[ID_GANTRY].p	+= pSimStat->nd[ID_GANTRY].v * dt;
-	pSimStat->nd[ID_BOOM_H].p	+= pSimStat->nd[ID_BOOM_H].v * dt;
-	pSimStat->nd[ID_SLEW].p		+= pSimStat->nd[ID_SLEW].v   * dt;
+	pSimStat->nd[ID_HOIST].p += pSimStat->nd[ID_HOIST].v * dt;
+	pSimStat->nd[ID_AHOIST].p += pSimStat->nd[ID_AHOIST].v * dt;
+	pSimStat->nd[ID_GANTRY].p += pSimStat->nd[ID_GANTRY].v * dt;
+	pSimStat->nd[ID_BOOM_H].p += pSimStat->nd[ID_BOOM_H].v * dt;
+	pSimStat->nd[ID_SLEW].p += pSimStat->nd[ID_SLEW].v * dt;
 
 	//クレーン状態セット
-	set_d_th_from_nbh();                        //引込ドラム回転状態からd,θの状態をセットする
-	set_bh();                                   //引込ドラム状態をセットする
-	set_mh();                                   //主巻ドラム状態、ロープ状態をセットする
-	set_ah();                                   //主巻ドラム状態、ロープ状態をセットする
-	set_sl();                                   //旋回ドラム状態をセットする
-	set_gt();                                   //走行ドラム状態をセットする
+	set_d_th_from_nbh();	//引込ドラム回転状態からd,d'd'' th th' th''の状態をセットする
+	set_bh_layer();         //引込ドラム状態をセットする
+	set_mh_layer();         //主巻ドラム状態、ロープ状態をセットする
+	set_ah_layer();         //補巻ドラム状態、ロープ状態をセットする
+	set_sl_layer();         //旋回ドラム状態をセットする
+	set_gt_layer();         //走行ドラム状態をセットする
+
+	//軸加速度計算
+	double thm = pSimStat->th.p;
+	double tha = pSimStat->th.p - pspec->Alpa_a;
+
+	//ロープ長加速度計算
+	pSimStat->lrm.a = (
+		-pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//主巻ドラム回転分
+		- pSimStat->db.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST]							//d変化分
+		+ pCraneStat->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].a		//起伏ドラム回転分
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
+
+	pSimStat->lra.a = (
+		-pCraneStat->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]] * pSimStat->nd[ID_AHOIST].a	//補巻ドラム回転分
+		- pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]							//d変化分
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];
+
+	//h=Lm・sinθ　h'=Lm・θ'cosθ h''=Lm・θ''cosθ-θ'sinθ
+	a0[ID_HOIST] = pspec->Lm * (pSimStat->th.a * cos(thm) - pSimStat->th.v * pSimStat->th.v * sin(thm)) + pSimStat->lrm.a;//吊点ｚ加速度＋ロープ長加速度
+	a0[ID_AHOIST] = pspec->La * (pSimStat->th.a * cos(tha) - pSimStat->th.v * pSimStat->th.v * sin(tha)) + pSimStat->lra.a;//吊点ｚ加速度＋ロープ長加速度
+	//r=Lm・cosθ　r'=-Lm・θ'sinθ r''=-Lm・(θ''sinθ-θ'cosθ)
+	a0[ID_BOOM_H] = -pspec->Lm * (pSimStat->th.a * sin(thm) + pSimStat->th.v * cos(thm));
+
+	a0[ID_SLEW] = pSimStat->nd[ID_SLEW].a * pspec->Kttb;						//ピニオン回転加速度×ピニオン径/TTB径
+	a0[ID_GANTRY] = pSimStat->nd[ID_GANTRY].a * pCraneStat->Cdr[ID_GANTRY][1];	//ドラム回転加速度×車輪径
+
+
+	pSimStat->lrm.v = (
+		-pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].v	//主巻ドラム回転分
+		- pSimStat->db.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST]							//d変化分
+		+ pCraneStat->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].v	//起伏ドラム回転分
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
+	pSimStat->lra.v = (
+		-pCraneStat->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]] * pSimStat->nd[ID_AHOIST].v	//補巻ドラム回転分
+		- pSimStat->d.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]							//d変化分
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];
+
 
 	v0[ID_HOIST]	= pspec->Lm * pSimStat->th.v * cos(pSimStat->th.p) - pSimStat->lrm.v;
 	v0[ID_AHOIST]	= pspec->La * pSimStat->th.v * cos(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.v;
 	v0[ID_SLEW]		= pSimStat->nd[ID_SLEW].v * PI360;
 	v0[ID_GANTRY]	= pSimStat->nd[ID_GANTRY].v * pCraneStat->Cdr[ID_GANTRY][1];
 	v0[ID_BOOM_H]	= -pspec->Lb * pSimStat->th.v * sin(pSimStat->th.p+pspec->Alpa_b);
+
+
+	pSimStat->lrm.p = (
+		pCraneStat->Cdr[0][ID_HOIST] 														//全ロープ
+		- pSimStat->db.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST]						//d部ロープ
+		- pSimStat->l_drum[ID_BHMH] - pSimStat->l_drum[ID_HOIST]							//ドラム部ロープ(主巻ドラム＋引込ドラム）
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];											//ワイヤ掛け数
+	pSimStat->lra.p = (
+		pCraneStat->Cdr[0][ID_AHOIST] 															//全ロープ
+		- pSimStat->d.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]							//d部ロープ
+		- pSimStat->l_drum[ID_AHOIST]															//ドラム部ロープ
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];												//ワイヤ掛け数
+
 
 	r0[ID_HOIST]	= pspec->Hp + pspec->Lm * sin(pSimStat->th.p) - pSimStat->lrm.p;
 	r0[ID_AHOIST]	= pspec->Hp + pspec->La * sin(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.p;
@@ -374,16 +408,20 @@ void CJC::timeEvolution() {
 
 	vc.x = v0[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;		//クレーン中心位置
 	rc.x = r0[ID_GANTRY]; rc.y = R0.y; rc.z = R0.z;		//クレーン中心位置
-
+														
 	//吊点部
-	double r_bm = r0[ID_BOOM_H];//旋回半径
-	v.x = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) - r_bm * v0[ID_SLEW] * sin(r0[ID_SLEW]) + v0[ID_GANTRY];
-	v.y = v0[ID_BOOM_H] * sin(r0[ID_SLEW]) + r_bm * v0[ID_SLEW] * cos(r0[ID_SLEW]);
-	v.z = 0.0;
 
-	r.x = r_bm * cos(r0[ID_SLEW]) + r0[ID_GANTRY];
-	r.y = r_bm * sin(r0[ID_SLEW]);
-	r.z = pspec->boom_high;
+	r.x = r0[ID_BOOM_H] * cos(r0[ID_SLEW]) + r0[ID_GANTRY];
+	r.y = r0[ID_BOOM_H] * sin(r0[ID_SLEW]);
+	r.z = pspec->Hp + r0[ID_BOOM_H] * sin(pSimStat->th.p);
+
+	v.x = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) - r0[ID_BOOM_H] * v0[ID_SLEW] * sin(r0[ID_SLEW]) + v0[ID_GANTRY];
+	v.y = v0[ID_BOOM_H] * sin(r0[ID_SLEW]) + r0[ID_BOOM_H] * v0[ID_SLEW] * cos(r0[ID_SLEW]);
+	v.z = pspec->Hp + r0[ID_BOOM_H] * sin(pSimStat->th.p);
+
+	a.x = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) - r0[ID_BOOM_H] * v0[ID_SLEW] * sin(r0[ID_SLEW]) + v0[ID_GANTRY];
+	a.y = v0[ID_BOOM_H] * sin(r0[ID_SLEW]) + r0[ID_BOOM_H] * v0[ID_SLEW] * cos(r0[ID_SLEW]);
+	a.z = pspec->Hp + r0[ID_BOOM_H] * sin(pSimStat->th.p);
 
 	//ロープ長セット　LOADオブジェクトから参照
 	l_mh = pSimStat->lrm.p;
@@ -392,6 +430,11 @@ void CJC::timeEvolution() {
 	return;
 }
 void CJC::init_crane(double _dt) {
+	
+	//計算パラメータ
+	Lmb2 = pspec->Lmb * pspec->Lmb;
+	LmbCosAdb = pspec->Lmb * cos(pspec->Alpa_db);
+	LmLb = pspec->Lm * pspec->Lb;
 	
 	//r0は、各軸アブソコーダの値
 	r0[ID_HOIST]	= SIM_INIT_MH;
@@ -433,8 +476,8 @@ void CJC::init_crane(double _dt) {
 	Tf[ID_AHOIST]	= SIM_TF_AHOIST;
 
 	//計算用定数セット
-	cal_d1 = pspec->Lb * pspec->Lb + pspec->Lp * pspec->Lp;
-	cal_d2 = 2.0 * pspec->Lb * pspec->Lp;
+	cal_d1 = pspec->Lm * pspec->Lm + pspec->Lp * pspec->Lp;
+	cal_d2 = 2.0 * pspec->Lm * pspec->Lp;
 
 }
 // 各モーションのブレーキ状態をセット
@@ -513,9 +556,13 @@ void CJC::update_break_status() {
 	return;
 }
 void CJC::set_nbh_d_ph_th_from_r(double r) {
-	pSimStat->th.p = acos(r/pspec->Lm);					//半径は主巻吊点位置
-	pSimStat->ph.p = pspec->Php - pSimStat->th.p;
-	pSimStat->d.p = sqrt(pspec->Lb* pspec->Lb + pspec->Lp * pspec->Lp - 2.0* pspec->Lb * pspec->Lp * cos(pSimStat->ph.p- pspec->Alpa_b));
+	pSimStat->th.p	= acos(r/pspec->Lm);					//半径は主巻吊点位置
+	pSimStat->ph.p	= pspec->Php - pSimStat->th.p;
+	pSimStat->d.p	= sqrt(pspec->Lm * pspec->Lm + pspec->Lp * pspec->Lp - 2.0 * pspec->Lm * pspec->Lp * cos(pSimStat->ph.p));
+	pSimStat->db.p	= sqrt(pspec->Lb * pspec->Lb + pspec->Lp * pspec->Lp - 2.0 * pspec->Lb * pspec->Lp * cos(pSimStat->ph.p - pspec->Alpa_b ));
+	pSimStat->th.v = pSimStat->ph.v = 0.0;
+	pSimStat->th.a = pSimStat->ph.a = 0.0;
+
 
 	//起伏ドラム巻取り量＝基準起伏ロープ長（ジブ部ロープ＋ドラム巻取り量の和）‐ジブ部分ロープ長さ
 	pSimStat->l_drum[ID_BOOM_H] = pCraneStat->Cdr[ID_BOOM_H][0] - pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H] * pSimStat->d.p;
@@ -602,51 +649,51 @@ void CJC::set_ngt_from_gtm(double gt_m) {
 	return;
 }
 //引込ドラム回転状態からd,th,d",th",d"",th""をセットする
-
 void CJC::set_d_th_from_nbh() {
 
-	//ドラム層状態
+	//引込ドラム層状態
 	pSimStat->i_layer[ID_BOOM_H] = (UINT32)(pSimStat->nd[ID_BOOM_H].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]) + 1;
 	pSimStat->n_layer[ID_BOOM_H] = pSimStat->nd[ID_BOOM_H].p - pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]*(pSimStat->i_layer[ID_BOOM_H]-1);
 	//起伏ドラム巻取り量	
 	pSimStat->l_drum[ID_BOOM_H] = pCraneStat->Ldr[pSimStat->i_layer[ID_BOOM_H] - 1][ID_BOOM_H] + pSimStat->n_layer[ID_BOOM_H] * pCraneStat->Cdr[pSimStat->i_layer[ID_BOOM_H]][ID_BOOM_H];
 	//ジブ部距離　（基準ロープ長-ドラム巻取り量）ロープ掛数
-	pSimStat->d.p = (pCraneStat->Cdr[0][ID_BOOM_H]- pSimStat->l_drum[ID_BOOM_H])/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];
+	pSimStat->db.p = (pCraneStat->Cdr[0][ID_BOOM_H]- pSimStat->l_drum[ID_BOOM_H])/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];
+	pSimStat->d.p = sqrt(pSimStat->db.p* pSimStat->db.p + Lmb2-2.0 * pSimStat->db.p * LmbCosAdb);
 
-	c_ph = (cal_d1 - pSimStat->d.p * pSimStat->d.p) / cal_d2;//cal_d1:pspec->Lb * pspec->Lb + pspec->Lp * pspec->Lp cal_d2:2.0 * pspec->Lb * pspec->Lp
-	//φ
-	pSimStat->ph.p = acos(c_ph);
-	//θ
-	pSimStat->th.p = pspec->Php - pSimStat->ph.p;
-
+	c_ph = (cal_d1 - pSimStat->d.p * pSimStat->d.p) / cal_d2;
+	pSimStat->ph.p = acos(c_ph);					//φ
 	s_ph = sin(pSimStat->ph.p);
-
-		
+	pSimStat->th.p = pspec->Php - pSimStat->ph.p;	//θ
+			
 	double LLsinPh = pspec->Lb * pspec->Lp * s_ph;
-	double c1 = pCraneStat->Cdr[pSimStat->i_layer[ID_BOOM_H]][ID_BOOM_H] / pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];
-	pSimStat->d.v = -pSimStat->nd[ID_BOOM_H].v * c1;				//ドラム周長×回転速度/ワイヤ掛け数　回転は引込方向が＋（＋回転→d縮）
+	double c1 = pCraneStat->Cdr[pSimStat->i_layer[ID_BOOM_H]][ID_BOOM_H] / pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];//ドラム周長/ワイヤ掛数
+	
+	pSimStat->db.v = -pSimStat->nd[ID_BOOM_H].v * c1;//ドラム周長/ワイヤ掛数;
+	pSimStat->d.v = (pSimStat->db.p - LmbCosAdb) / LmLb * pSimStat->db.v;
+
 	pSimStat->ph.v = pSimStat->d.p * pSimStat->d.v / LLsinPh;		//dφ/dt = dd'/LpLbsinφ
 	pSimStat->th.v = -pSimStat->ph.v;								//-dφ/dt
 
 	//加速度
-	pSimStat->d.a = -pSimStat->nd[ID_BOOM_H].a * c1;				//回転は引込方向が＋（＋回転→d縮）
-	pSimStat->ph.a = (pSimStat->d.v * pSimStat->d.v + pSimStat->d.p * pSimStat->d.a) / LLsinPh - pSimStat->th.v * pSimStat->th.v * c_ph / s_ph;
+	pSimStat->db.a = -pSimStat->nd[ID_BOOM_H].a * c1;														//回転は引込方向が＋（＋回転→d縮）
+	pSimStat->d.a = pSimStat->db.v* pSimStat->db.v/LmLb + pSimStat->d.v* pSimStat->db.a / pSimStat->db.v;	//回転は引込方向が＋（＋回転→d縮）
+
+	pSimStat->ph.a = pSimStat->ph.v * (pSimStat->d.v / pSimStat->d.p + pSimStat->d.a/ pSimStat->d.v  - pSimStat->ph.v * c_ph / s_ph);
 	pSimStat->th.a = -pSimStat->ph.a;
 
 	return; 
 } 
-//引込ドラム回転状態をセットする
-void  CJC::set_bh() { 
-	UINT32 i;
-	i = (UINT32)(pSimStat->nd[ID_BOOM_H].p  / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]); //現在層数-1
+
+//引込ドラム状態をセットする
+void  CJC::set_bh_layer() { 
+	UINT32 i = (UINT32)(pSimStat->nd[ID_BOOM_H].p  / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]); //現在層数-1
 	pSimStat->i_layer[ID_BOOM_H] = i + 1;
 	pSimStat->n_layer[ID_BOOM_H] = (pCraneStat->Cdr[ID_BOOM_H][0] - pCraneStat->Ldr[ID_BOOM_H][i]) / pCraneStat->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]];
 	pSimStat->l_drum[ID_BOOM_H] = pCraneStat->Ldr[ID_BOOM_H][i] + pSimStat->n_layer[ID_BOOM_H] * pCraneStat->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]];
-
 	return; 
 }
-//主巻ドラム回転状態とロープ長をセットする
-void  CJC::set_mh(){
+//主巻ドラム回転状態をセットする
+void  CJC::set_mh_layer(){
 	//引込主巻ドラム部
 	pSimStat->nd[ID_BHMH].p = pspec->Nbh_drum - pSimStat->nd[ID_BOOM_H].p;
 	int i = (UINT32)(pSimStat->nd[ID_BHMH].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_BHMH]); //現在層数-1
@@ -655,69 +702,36 @@ void  CJC::set_mh(){
 	pSimStat->l_drum[ID_BHMH] = pCraneStat->Ldr[ID_BHMH][i] + pSimStat->n_layer[ID_BHMH] * pCraneStat->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]];
 
 	//主巻ドラム部
-
 	i = (UINT32)(pSimStat->nd[ID_HOIST].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_HOIST]); //現在層数-1
 	pSimStat->i_layer[ID_HOIST] = i + 1;
 	pSimStat->n_layer[ID_HOIST] = (pSimStat->nd[ID_HOIST].p - pCraneStat->Ldr[ID_HOIST][i]) / pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]];
 	pSimStat->l_drum[ID_HOIST] = pCraneStat->Ldr[ID_HOIST][i] + pSimStat->n_layer[ID_HOIST] * pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]];
 
-	pSimStat->lrm.p = (
-						pCraneStat->Cdr[0][ID_HOIST] 																//全ロープ
-						- pSimStat->d.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST]						//d部ロープ
-						- pSimStat->l_drum[ID_BHMH] - pSimStat->l_drum[ID_HOIST]							//ドラム部ロープ
-						)/ pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];											//ワイヤ掛け数
-
-	pSimStat->lrm.v = (
-						-pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].v		//主巻ドラム回転分
-						-pSimStat->d.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
-						+ pCraneStat->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].v		//起伏ドラム回転分
-						)/ pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
-
-	pSimStat->lrm.a = (
-						-pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//主巻ドラム回転分
-						- pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
-						+ pCraneStat->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].a		//起伏ドラム回転分
-						) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
 	return; 
 } 
 //補巻ドラム回転状態とロープ長をセットする
-void  CJC::set_ah(){ 
+void  CJC::set_ah_layer(){
 	//補巻ドラム部
 	int i= (UINT32)(pSimStat->nd[ID_AHOIST].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_AHOIST]); //現在層数-1
 	pSimStat->i_layer[ID_AHOIST] = i + 1;
 	pSimStat->n_layer[ID_AHOIST] = (pSimStat->nd[ID_AHOIST].p - pCraneStat->Ldr[ID_AHOIST][i]) / pCraneStat->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]];
 	pSimStat->l_drum[ID_AHOIST] = pCraneStat->Ldr[ID_AHOIST][i] + pSimStat->n_layer[ID_AHOIST] * pCraneStat->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]];//ドラム巻取り量
 
-	pSimStat->lra.p = (
-		pCraneStat->Cdr[0][ID_AHOIST] 															//全ロープ
-		- pSimStat->d.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]						//d部ロープ
-		- pSimStat->l_drum[ID_AHOIST]														//ドラム部ロープ
-		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];											//ワイヤ掛け数
-
-	pSimStat->lrm.v = (
-		-pCraneStat->Cdr[ID_AHOIST][pSimStat->i_layer[ID_AHOIST]] * pSimStat->nd[ID_AHOIST].v		//主巻ドラム回転分
-		- pSimStat->d.v * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]						//d変化分
-		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
-
-	pSimStat->lrm.a = (
-		-pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//主巻ドラム回転分
-		- pSimStat->d.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BHMH]							//d変化分
-		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
 	return;
 } 
 //旋回ドラム回転状態をセットする
-void  CJC::set_sl(){
+void  CJC::set_sl_layer(){
 	//旋回ピニオン部
-	pSimStat->l_drum[ID_SLEW]	= pSimStat->nd[ID_SLEW].p * pCraneStat->Cdr[ID_SLEW][1];									//旋回移動量(m)
-	pSimStat->i_layer[ID_SLEW]	= (UINT32)(pSimStat->l_drum[ID_SLEW]/ pCraneStat->Cdr[ID_SLEW][0]);							//旋回回転数整数部 = 回転移動量/TTB円周
-	pSimStat->n_layer[ID_SLEW]	= (pSimStat->l_drum[ID_SLEW] / pCraneStat->Cdr[ID_SLEW][0] - pSimStat->i_layer[ID_SLEW]) ;	//旋回回転数小数点以下
+	pSimStat->l_drum[ID_SLEW]	= pSimStat->nd[ID_SLEW].p * pCraneStat->Cdr[ID_SLEW][1];										//旋回移動量(m)
+	pSimStat->i_layer[ID_SLEW]	= 1;// (UINT32)(pSimStat->l_drum[ID_SLEW] / pCraneStat->Cdr[ID_SLEW][0]);						//旋回回転数整数部 = 回転移動量/TTB円周
+	pSimStat->n_layer[ID_SLEW]	= 0;// (pSimStat->l_drum[ID_SLEW] / pCraneStat->Cdr[ID_SLEW][0] - pSimStat->i_layer[ID_SLEW]);	//旋回回転数小数点以下
 	return; 
 } 
 //走行ドラム回転状態をセットする
-void  CJC::set_gt(){
+void  CJC::set_gt_layer(){
 	pSimStat->l_drum[ID_GANTRY] = pSimStat->nd[ID_GANTRY].p * pCraneStat->Cdr[ID_GANTRY][1];										//移動量(m)
-	pSimStat->i_layer[ID_GANTRY] = (UINT32)(pSimStat->nd[ID_GANTRY].p);																//走行車輪回転数部
-	pSimStat->n_layer[ID_GANTRY] = (pSimStat->l_drum[ID_GANTRY] / pCraneStat->Cdr[ID_GANTRY][0] - pSimStat->i_layer[ID_GANTRY]);	//旋回回転数小数点以下
+	pSimStat->i_layer[ID_GANTRY] = 1;// (UINT32)(pSimStat->nd[ID_GANTRY].p);																//走行車輪回転数部
+	pSimStat->n_layer[ID_GANTRY] = 0;// (pSimStat->l_drum[ID_GANTRY] / pCraneStat->Cdr[ID_GANTRY][0] - pSimStat->i_layer[ID_GANTRY]);	//旋回回転数小数点以下
 	return; 
 } 
 

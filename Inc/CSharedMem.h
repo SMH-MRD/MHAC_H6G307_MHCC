@@ -168,7 +168,8 @@ typedef struct StSimulationStatus {
 	DWORD helthy_cnt;
 	PLC_WRITE_BUF plc_w;
 	ST_SWAY_IO sway_io;
-	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
+	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(主巻振れ）
+	Vector3 L2, vL2;										//ﾛｰﾌﾟﾍﾞｸﾄﾙ(補巻振れ）
 	double v_fb[MOTION_ID_MAX];								//軸座標速度fb
 	double pos[MOTION_ID_MAX];								//軸座標位置fb
 	double mtrq[MOTION_ID_MAX];								//モータトルクfb
@@ -183,12 +184,14 @@ typedef struct StSimulationStatus {
 
 	ST_MOVE_SET	nd[MOTION_ID_MAX];							//ドラム回転動作
 	ST_MOVE_SET	d;									//ポスト‐起伏シーブ間状態（距離・速度・加速度）
+	ST_MOVE_SET	db;									//ジブポスト‐起伏シーブ間状態（距離・速度・加速度）
 	ST_MOVE_SET	ph;									//φ
 	ST_MOVE_SET	th;									//θ
 
 	UINT32 i_layer[MOTION_ID_MAX];					//ドラム現在層数
 	double n_layer[MOTION_ID_MAX];					//ドラム現在層巻取数
 	double l_drum[MOTION_ID_MAX];					//ドラム巻取り量
+
 	ST_MOVE_SET	lrm;								//主巻ロープ長
 	ST_MOVE_SET	lra;								//補巻ロープ長
 
@@ -285,7 +288,7 @@ typedef struct StCraneStatus {
 	double Kdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層円周倍率
 
 	ST_MOVE_SET	axc[MOTION_ID_MAX];					//軸動作
-	ST_MOVE_SET	d;									//ポスト‐起伏シーブ間状態（距離・速度・加速度）
+	ST_MOVE_SET	d;									//主巻ポスト‐起伏シーブ間状態（距離・速度・加速度）
 	ST_MOVE_SET	ph;									//φ
 	ST_MOVE_SET	th;									//θ
 	ST_MOVE_SET	hm0;								//主巻シーブ起伏高さ
