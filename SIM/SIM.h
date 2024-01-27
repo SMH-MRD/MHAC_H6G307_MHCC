@@ -7,7 +7,7 @@
 
 #define MAIN_WND_INIT_SIZE_W		220		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		180		//-Main Windowの初期サイズ　H
-#define MAIN_WND_INIT_POS_X			648	//-Main Windowの初期位置設定　X
+#define MAIN_WND_INIT_POS_X			648		//-Main Windowの初期位置設定　X
 #define MAIN_WND_INIT_POS_Y			380		//-Main Windowの初期位置設定　Y
 
 
@@ -17,6 +17,7 @@
 #define IDC_PB_EXIT					2102
 #define IDC_PB_ACTIVE				2103
 #define IDC_PB_PACKET_MODE			2104
+#define IDC_CHK_MON_WND				2105
 
 //メインウィンドウ管理構造体
 typedef struct stMainWndTag {
@@ -25,9 +26,7 @@ typedef struct stMainWndTag {
 	HWND h_pb_exit;										//ボタンオブジェクトのハンドル
 	HWND h_pb_debug;									//ボタンオブジェクトのハンドル
 	HWND h_chk_packetout;								//振れセンサのパケットを送信する
-
-	bool is_sway_packet_send;							//振れセンサのパケットを送信する
-
+	HWND h_chk_monwnd;									//SIM状態モニタウィンドウ表示チェックボタン
 }ST_MAIN_WND, * LPST_MAIN_WND;
 
 //マルチメディアタイマー管理構造体

@@ -389,16 +389,15 @@ void CJC::timeEvolution() {
 
 
 	pSimStat->lrm.p = (
-		pCraneStat->Cdr[0][ID_HOIST] 														//全ロープ
+		pCraneStat->Cdr[ID_HOIST][0] 														//全ロープ
 		- pSimStat->db.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST]						//d部ロープ
 		- pSimStat->l_drum[ID_BHMH] - pSimStat->l_drum[ID_HOIST]							//ドラム部ロープ(主巻ドラム＋引込ドラム）
 		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];											//ワイヤ掛け数
 	pSimStat->lra.p = (
-		pCraneStat->Cdr[0][ID_AHOIST] 															//全ロープ
+		pCraneStat->Cdr[ID_AHOIST][0] 															//全ロープ
 		- pSimStat->d.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]							//d部ロープ
 		- pSimStat->l_drum[ID_AHOIST]															//ドラム部ロープ
 		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];												//ワイヤ掛け数
-
 
 	r0[ID_HOIST]	= pspec->Hp + pspec->Lm * sin(pSimStat->th.p) - pSimStat->lrm.p;
 	r0[ID_AHOIST]	= pspec->Hp + pspec->La * sin(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.p;
@@ -655,9 +654,9 @@ void CJC::set_d_th_from_nbh() {
 	pSimStat->i_layer[ID_BOOM_H] = (UINT32)(pSimStat->nd[ID_BOOM_H].p / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]) + 1;
 	pSimStat->n_layer[ID_BOOM_H] = pSimStat->nd[ID_BOOM_H].p - pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]*(pSimStat->i_layer[ID_BOOM_H]-1);
 	//起伏ドラム巻取り量	
-	pSimStat->l_drum[ID_BOOM_H] = pCraneStat->Ldr[pSimStat->i_layer[ID_BOOM_H] - 1][ID_BOOM_H] + pSimStat->n_layer[ID_BOOM_H] * pCraneStat->Cdr[pSimStat->i_layer[ID_BOOM_H]][ID_BOOM_H];
+	pSimStat->l_drum[ID_BOOM_H] = pCraneStat->Ldr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H] - 1] + pSimStat->n_layer[ID_BOOM_H] * pCraneStat->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]];
 	//ジブ部距離　（基準ロープ長-ドラム巻取り量）ロープ掛数
-	pSimStat->db.p = (pCraneStat->Cdr[0][ID_BOOM_H]- pSimStat->l_drum[ID_BOOM_H])/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];
+	pSimStat->db.p = (pCraneStat->Cdr[ID_BOOM_H][0] - pSimStat->l_drum[ID_BOOM_H])/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];
 	pSimStat->d.p = sqrt(pSimStat->db.p* pSimStat->db.p + Lmb2-2.0 * pSimStat->db.p * LmbCosAdb);
 
 	c_ph = (cal_d1 - pSimStat->d.p * pSimStat->d.p) / cal_d2;
@@ -666,7 +665,7 @@ void CJC::set_d_th_from_nbh() {
 	pSimStat->th.p = pspec->Php - pSimStat->ph.p;	//θ
 			
 	double LLsinPh = pspec->Lb * pspec->Lp * s_ph;
-	double c1 = pCraneStat->Cdr[pSimStat->i_layer[ID_BOOM_H]][ID_BOOM_H] / pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];//ドラム周長/ワイヤ掛数
+	double c1 = pCraneStat->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]]/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];//ドラム周長/ワイヤ掛数
 	
 	pSimStat->db.v = -pSimStat->nd[ID_BOOM_H].v * c1;//ドラム周長/ワイヤ掛数;
 	pSimStat->d.v = (pSimStat->db.p - LmbCosAdb) / LmLb * pSimStat->db.v;

@@ -47,7 +47,6 @@ typedef struct stMainWndTag {
 	HWND h_pb_pc_reset = NULL;		//ボタンオブジェクトのハンドル
 	HWND h_pb_img_save = NULL;		//ボタンオブジェクトのハンドル
 
-
 	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
 
 }ST_MAIN_WND, * LPST_MAIN_WND;

@@ -38,7 +38,7 @@ static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
 
 CSIM * pProcObj;         //メイン処理オブジェクト:
-CWorkWindow* pWorkWnd = new CWorkWindow();   //振れセンサ処理用ウィンドウ:
+CWorkWindow* pWorkWnd;//SIM処理用ウィンドウ:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -136,8 +136,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
      // メイン処理オブジェクトインスタンス化
    pProcObj = new CSIM;                                 // メイン処理クラスのインスタンス化
+   pWorkWnd = new CWorkWindow();                        //SIM処理用ウィンドウのインスタンス化:
    psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
    pProcObj->init_proc();                               // メイン処理クラスの初期化
+   pWorkWnd->set_sim_stat(pProcObj->pSIM_work);
                       
    //# メインウィンドウクリエイト
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
@@ -212,10 +214,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             145, 5, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"PAUSE", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            40, 35, 80, 20, hWnd, (HMENU)IDC_PB_ACTIVE, hInst, NULL);
+            5, 35, 80, 20, hWnd, (HMENU)IDC_PB_ACTIVE, hInst, NULL);
 
-        stMainWnd.h_chk_packetout = CreateWindow(L"BUTTON", L"SW ACT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            40, 65, 80, 20, hWnd, (HMENU)IDC_PB_PACKET_MODE, hInst, NULL);
+         stMainWnd.h_chk_monwnd = CreateWindow(L"BUTTON", L"MON", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+            5, 65, 80, 20, hWnd, (HMENU)IDC_CHK_MON_WND, hInst, NULL);
+        SendMessage(stMainWnd.h_chk_monwnd, BM_SETCHECK, BST_CHECKED, 0L);
+        pWorkWnd->open_WorkWnd(hWnd);
     }
     break;
     case WM_COMMAND:
@@ -245,17 +249,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"ACTIVE");
                 }
                 break;
-            case IDC_PB_PACKET_MODE:
+ 
+            case IDC_CHK_MON_WND:
 
-                if (pWorkWnd->hWorkWnd == NULL) {
-                    pWorkWnd->open_WorkWnd(hWnd);
-                    SendMessage(stMainWnd.h_chk_packetout, WM_SETTEXT, 0, (LPARAM)L"SW STOP");
+                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_monwnd, BM_GETCHECK, 0, 0)) {
+                    if (pWorkWnd->hWorkWnd == NULL) {
+                        pWorkWnd->open_WorkWnd(hWnd);
+                    }
                 }
                 else {
-                    pWorkWnd->close_WorkWnd();
-                    SendMessage(stMainWnd.h_chk_packetout, WM_SETTEXT, 0, (LPARAM)L"SW ACT");
+                        pWorkWnd->close_WorkWnd();
                 }
-
                 break;
                 
             default:
@@ -272,7 +276,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
-
+        delete pProcObj;
+        delete pWorkWnd;
         PostQuitMessage(0);
         break;
     default:

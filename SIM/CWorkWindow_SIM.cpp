@@ -22,6 +22,11 @@ HWND CWorkWindow::hWorkWnd;
 HWND CWorkWindow::hwndSTATMSG;
 HWND CWorkWindow::hwndRCVMSG;
 HWND CWorkWindow::hwndSNDMSG;
+HWND CWorkWindow::hwndChkBoxSwAct;
+HWND CWorkWindow::hwndStaticSimInf;
+bool CWorkWindow::is_sway_packet_send = false;
+
+LPST_SIMULATION_STATUS CWorkWindow::pSimStat;
 
 //Sway Sensor模擬用 SIMULATOR側
 static WSADATA wsaData;
@@ -35,8 +40,6 @@ static char szBuf[256];
 
 std::wostringstream woMSG;
 std::wstring wsMSG;
-
-
 
 
 //# #######################################################################
@@ -65,7 +68,7 @@ HWND CWorkWindow::open_WorkWnd(HWND hwnd_parent) {
 	ATOM fb = RegisterClassExW(&wc);
 
 	hWorkWnd = CreateWindow(TEXT("WorkWnd"),
-		TEXT("SIM_SWAY_CHK"),
+		TEXT("SIM_WORK"),
 		WS_POPUPWINDOW | WS_VISIBLE | WS_CAPTION, WORK_WND_X, WORK_WND_Y, WORK_WND_W, WORK_WND_H,
 		hwnd_parent,
 		0,
@@ -137,7 +140,6 @@ void CWorkWindow::tweet2statusMSG(const std::wstring& srcw) {
 	SetWindowText(hwndSTATMSG, srcw.c_str()); return;
 }; 
 void CWorkWindow::tweet2rcvMSG(const std::wstring& srcw) {
-	static HWND hwndSNDMSG;
 	SetWindowText(hwndRCVMSG, srcw.c_str()); return;
 };
 void CWorkWindow::tweet2sndMSG(const std::wstring& srcw) {
@@ -147,13 +149,13 @@ void CWorkWindow::tweet2sndMSG(const std::wstring& srcw) {
 //# コールバック関数 ########################################################################	
 
 LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-
 	HDC hdc;
 	int nEvent,clientlen;
-
 	switch (msg) {
 	case WM_DESTROY: {
-		hWorkWnd=NULL;
+		hWorkWnd = NULL;
+		KillTimer(hwnd, ID_WORK_WND_TIMER);
+
 	}return 0;
 	case WM_CREATE: {
 
@@ -161,54 +163,67 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		HINSTANCE hInst = GetModuleHandle(0);
 
 		CreateWindowW(TEXT("STATIC"), L"STATUS", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			10, 20, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+			10, 400, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
 		hwndSTATMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			70, 20, 300, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+			70, 400, 300, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+
+		hwndChkBoxSwAct = CreateWindow(L"BUTTON", L"SWY SND", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			400, 400, 100, 20, hwnd, (HMENU)ID_CHK_PACKET_SND, hInst, NULL);
+		SendMessage(hwndChkBoxSwAct, BM_SETCHECK, BST_CHECKED, 0L);
+		is_sway_packet_send = true;
+
 		CreateWindowW(TEXT("STATIC"), L"RCV  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			10, 45, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+			10, 425, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
 		hwndRCVMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			70, 45, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+			70, 425, 500, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
 		CreateWindowW(TEXT("STATIC"), L"SND  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			10, 90, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_SND, hInst, NULL);
+			10, 470, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_SND, hInst, NULL);
 		hwndSNDMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			70, 90, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+			70, 470, 500, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+
+		hwndStaticSimInf = CreateWindowW(TEXT("STATIC"), L"SIM INF", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			10, 5, 500, 200, hwnd, (HMENU)ID_STATIC_SIM_INF, hInst, NULL);
 
 		if (init_sock(hwnd) == 0) {
 			woMSG << L"SOCK OK";
 			tweet2statusMSG(woMSG.str()); woMSG.str(L""); woMSG.clear();
 			wsMSG = L"No RCV MSG";
-			tweet2rcvMSG(wsMSG);wsMSG.clear();
+			tweet2rcvMSG(wsMSG); wsMSG.clear();
 			wsMSG = L"No SND MSG";
-			tweet2sndMSG(wsMSG);wsMSG.clear();
+			tweet2sndMSG(wsMSG); wsMSG.clear();
 		}
 		else {
 			tweet2statusMSG(woMSG.str()); woMSG.str(L""); woMSG.clear();
 			wsMSG = L"No RCV MSG";
-			tweet2rcvMSG(wsMSG);wsMSG.clear();
+			tweet2rcvMSG(wsMSG); wsMSG.clear();
 			wsMSG = L"No SND MSG";
-			tweet2sndMSG(wsMSG);wsMSG.clear();
-
-			close_WorkWnd();
+			tweet2sndMSG(wsMSG); wsMSG.clear();
+			//close_WorkWnd();
 		}
 
-		//振れセンサ送信タイマ起動
+		//タイマ起動
 		SetTimer(hwnd, ID_WORK_WND_TIMER, WORK_SCAN_TIME, NULL);
 
 	}break;
 	case WM_TIMER: {
-//		int n = sprintf_s(szBuf,sizeof(szBuf), "%08d", nSnd);
-	
 
-		int n = sizeof(ST_SWAY_RCV_MSG);
-		nRtn = sendto(s, reinterpret_cast<const char*> (&pProcObj->pSIM_work->rcv_msg),n,0,(LPSOCKADDR)&client, sizeof(client));//reinterpret_cast 強制的な型変換
-		if (nRtn == n) {
-			nSnd++;
-			woMSG << L" SND len: " << nRtn << L"  Count > " << nSnd;
+		//振れセンサ模擬データをSWAY_IFへ送信
+		if (is_sway_packet_send) {
+			int n = sizeof(ST_SWAY_RCV_MSG);
+			nRtn = sendto(s, reinterpret_cast<const char*> (&pProcObj->pSIM_work->rcv_msg), n, 0, (LPSOCKADDR)&client, sizeof(client));//reinterpret_cast 強制的な型変換
+			woMSG.str(L""); woMSG.clear();
+			if (nRtn == n) {
+				nSnd++;
+				woMSG << L" SND len: " << nRtn << L"  Count > " << nSnd;
+			}
+			else {
+				woMSG << L" sendto ERROR ";
+			}
+			tweet2sndMSG(woMSG.str()); woMSG.str(L""); woMSG.clear();
 		}
-		else {
-			woMSG << L" sendto ERROR ";
-		}
-		tweet2sndMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+
+		update_siminf();//シミュレーション状態表示
+
 	}break;
 	case ID_UDP_EVENT: {
 		nEvent = WSAGETSELECTEVENT(lp);
@@ -217,21 +232,22 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 			nRcv++;
 			clientlen = (int)sizeof(client);
 
-			nRtn = recvfrom(s, (char*)(&pProcObj->pSIM_work->snd_msg) , (int)sizeof(ST_SWAY_SND_MSG), 0, (SOCKADDR*)&client, &clientlen);
+			nRtn = recvfrom(s, (char*)(&pProcObj->pSIM_work->snd_msg), (int)sizeof(ST_SWAY_SND_MSG), 0, (SOCKADDR*)&client, &clientlen);
+			woMSG.str(L""); woMSG.clear();
 			if (nRtn == SOCKET_ERROR) {
 				woMSG << L" recvfrom ERROR";
 			}
 			else {
-				woMSG << L" RCV len : " << nRtn << L" Count :" << nRcv ;
+				woMSG << L" RCV len : " << nRtn << L" Count :" << nRcv;
 				woMSG << L" >>> ID : " << pProcObj->pSIM_work->snd_msg.head.id[0] << pProcObj->pSIM_work->snd_msg.head.id[1] << pProcObj->pSIM_work->snd_msg.head.id[2] << pProcObj->pSIM_work->snd_msg.head.id[3];
-				woMSG << L"\n  IP : " << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b1<< L".";
+				woMSG << L"\n  IP : " << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b1 << L".";
 				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b2 << L".";
 				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b3 << L".";
-				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b4 ;
+				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b4;
 				woMSG << L"  PORT : " << ntohs(pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_port);
 
 			}
-			tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+			tweet2rcvMSG(woMSG.str()); 
 
 		}break;
 		case FD_WRITE: {
@@ -252,11 +268,34 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		switch (LOWORD(wp)) {
 		case ID_WORK_WND_CLOSE_PB: {
 		}break;
+		case ID_CHK_PACKET_SND: {
+			if (BST_CHECKED == SendMessage(hwndChkBoxSwAct, BM_GETCHECK, 0, 0)) {
+				is_sway_packet_send = true;
+			}
+			else {
+				is_sway_packet_send = false;
+			}
+			break;
 		}
-	}break;
-
+		default:break;
+		}
+	}
 	default:
 		return DefWindowProc(hwnd, msg, wp, lp);
 	}
 	return 0;
+}
+
+void CWorkWindow::update_siminf() {
+
+	woMSG.str(L"SIM STAT\n"); woMSG.clear();
+	woMSG << L"nd[].p>> MH:" << pSimStat->nd[ID_HOIST].p << L" AH:" << pSimStat->nd[ID_AHOIST].p << L" BH:" << pSimStat->nd[ID_BOOM_H].p << L" SL:" << pSimStat->nd[ID_SLEW].p;
+	woMSG<<L"\n";
+	woMSG << L"nd[].a>> MH:" << pSimStat->nd[ID_HOIST].a << L" AH:" << pSimStat->nd[ID_AHOIST].a << L" BH:" << pSimStat->nd[ID_BOOM_H].a << L" SL:" << pSimStat->nd[ID_SLEW].a;
+	woMSG << L"\n";
+	woMSG << L"pos[]>>  MH" << pSimStat->pos[ID_HOIST] << L" AH" << pSimStat->pos[ID_AHOIST] << L" BH" << pSimStat->pos[ID_BOOM_H] << L" SL" << pSimStat->pos[ID_SLEW];
+
+
+	SetWindowText(hwndStaticSimInf, woMSG.str().c_str());
+	return;
 }

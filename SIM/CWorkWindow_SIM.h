@@ -5,12 +5,13 @@
 #include <time.h>
 #include <string>
 #include "spec.h"
+#include "CSharedMem.h"	    //# 共有メモリクラス
 
 
-#define WORK_WND_X							1050		//MAP表示位置X
-#define WORK_WND_Y							20			//MAP表示位置Y
-#define WORK_WND_W							400		    //MAP WINDOW幅
-#define WORK_WND_H							180			//MAP WINDOW高さ
+#define WORK_WND_X							858		//MAP表示位置X
+#define WORK_WND_Y							600			//MAP表示位置Y
+#define WORK_WND_W							530		    //MAP WINDOW幅
+#define WORK_WND_H							550			//MAP WINDOW高さ
 
 #define WORK_SCAN_TIME						100			// SWAY IF送信周期msec
 
@@ -25,7 +26,8 @@
 
 #define ID_UDP_EVENT				        10606
 
-
+#define ID_CHK_PACKET_SND					10607
+#define ID_STATIC_SIM_INF					10608
 
 
 //起動タイマーID
@@ -50,10 +52,20 @@ public:
 	static HWND hwndSTATMSG;
 	static HWND hwndRCVMSG;
 	static HWND hwndSNDMSG;
+	static HWND hwndStaticInf;
+	static HWND hwndChkBoxSwAct;
+	static HWND hwndStaticSimInf;
+	static LPST_SIMULATION_STATUS pSimStat;
+	static bool is_sway_packet_send;							//振れセンサのパケットを送信する
+
+	void set_sim_stat(LPST_SIMULATION_STATUS _p) { pSimStat = _p;  return; }
+
 private:
 	static void tweet2statusMSG(const std::wstring& srcw);
 	static void tweet2rcvMSG(const std::wstring& srcw);
 	static void tweet2sndMSG(const std::wstring& srcw);
+
+	static void update_siminf();
 };
 
 

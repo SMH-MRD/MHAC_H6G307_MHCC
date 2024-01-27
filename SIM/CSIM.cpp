@@ -69,6 +69,8 @@ int CSIM::init_proc() {
     pPLC = (LPST_PLC_IO)pPLCioObj->get_pMap();
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
+    pSIM_work = &sim_stat_workbuf;
+
    //CraneStat立ち上がり待ち
     while (pCraneStat->is_crane_status_ok !=true) {
         Sleep(100);
@@ -103,14 +105,13 @@ int CSIM::init_proc() {
     //補巻
     double th0 = acos(SIM_INIT_MHR / def_spec.Lm);
     double ar0 = def_spec.La * cos(th0 - def_spec.rad_Lm_La);
-    _r.x = ar0 * cos(SIM_INIT_TH) + SIM_INIT_X;; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = SIM_INIT_AH;
+    _r.x = ar0 * cos(SIM_INIT_TH) + SIM_INIT_X;; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = pCrane->r0[ID_AHOIST];
   
-  pLoad2->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
+    pLoad2->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad2->set_m(def_spec.Load0_ah);
 
     //振れ角計算用カメラパラメータセット
-   
-
+  
     return int(mode & 0xff00);
 }
 //*********************************************************************************************
