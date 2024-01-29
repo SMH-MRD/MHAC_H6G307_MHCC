@@ -202,7 +202,7 @@ int CSIM::set_cran_motion() {
     sim_stat_workbuf.pos[ID_GANTRY] = pCrane->r0[ID_GANTRY];
     sim_stat_workbuf.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
     sim_stat_workbuf.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
-    sim_stat_workbuf.pos[ID_HOIST] = pCrane->r0[ID_AHOIST];
+    sim_stat_workbuf.pos[ID_AHOIST] = pCrane->r0[ID_AHOIST];
 
     sim_stat_workbuf.L = pLoad->L;
     sim_stat_workbuf.vL = pLoad->vL;

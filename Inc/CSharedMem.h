@@ -186,6 +186,7 @@ typedef struct StSimulationStatus {
 	ST_MOVE_SET	d;									//ポスト‐起伏シーブ間状態（距離・速度・加速度）
 	ST_MOVE_SET	db;									//ジブポスト‐起伏シーブ間状態（距離・速度・加速度）
 	ST_MOVE_SET	ph;									//φ
+	ST_MOVE_SET	phb;									//φ
 	ST_MOVE_SET	th;									//θ
 
 	UINT32 i_layer[MOTION_ID_MAX];					//ドラム現在層数

@@ -76,8 +76,8 @@ public:
 
     double slw_rad_per_turn;                        //旋回ピニオン1回転の旋回角度
     double gnt_m_per_turn;                          //走行車輪1回転の移動量
-    double c_ph, s_ph;                              //cosφ sinφ
-    double cal_d1, cal_d2;                          //ｄ計算用中間変数
+    double c_ph, s_ph, c_phb, s_phb;                              //cosφ sinφ
+    double cal_Lm2Lp2,cal_Lb2Lp2, cal_2LmLp, cal_2LbLp;                          //ｄ計算用中間変数
  
     Vector3 rc;                                     //クレーン中心点の位置ベクトル
     Vector3 vc;                                     //クレーン中心点の速度ベクトル
