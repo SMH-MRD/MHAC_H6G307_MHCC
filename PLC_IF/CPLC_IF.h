@@ -19,21 +19,6 @@
 #define PLC_IF_SIM_HCNT_PLS1N       2048        //高速カウンタモータ1回転パルス
 #define PLC_IF_SIM_HCNT_DEF         100000000   //デフォルトカウント値
 
-typedef struct st_PanelSim {//パネルシミュレート用構造体
-    double nscan1sec = 1000.0 / 25.0;//1秒間のスキャン回数
-    INT32 hcnt[MOTION_ID_MAX] = {//高速カウンタカウント値
-        PLC_IF_SIM_HCNT_DEF,PLC_IF_SIM_HCNT_DEF,PLC_IF_SIM_HCNT_DEF,PLC_IF_SIM_HCNT_DEF,PLC_IF_SIM_HCNT_DEF,PLC_IF_SIM_HCNT_DEF
-    };
-    double vcnt100[MOTION_ID_MAX] = {//100％速度でのカウント速度
-        25600.0,0.0,0.0,5973.3,5973.3,34133.33
-    };
-    double vcnt1invscan[MOTION_ID_MAX] = {//インバータ１指令当りのスキャン毎カウント速度
-        0.0096,0.0,0.0,0.074667,0.074667,0.085333
-    };
-    double ndrm[MOTION_ID_MAX] = {//ドラム回転数
-        25600,0.0,0.0,64.0,0.0,65.526
-    };
-}ST_PANEL_SIM, * LPST_PANEL_SIM;
 
 class CPLC_IF :    public CBasicControl
 {
@@ -45,8 +30,7 @@ public:
     HWND hWnd_parent;       //親ウィンドウのハンドル
     HWND hWnd_plcif;
 
-    ST_PANEL_SIM st_pnl_sim;
-
+    
     //オーバーライド
     int set_outbuf(LPVOID); //出力バッファセット
     int init_proc();        //初期化処理
@@ -104,5 +88,6 @@ private:
 
     UINT16 get_notch_code(INT16 notch);
     INT16 get_notch_pos(UINT16 code);
+    void set_pg_abs_cnt();//シミュレータドラム回転数からカウント値セット
 
  };

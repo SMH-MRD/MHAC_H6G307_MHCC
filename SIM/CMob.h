@@ -128,6 +128,10 @@ public:
     void set_ah_layer();                                   //主巻ドラム状態、ロープ状態をセットする
     void set_sl_layer();                                   //旋回ドラム状態をセットする
     void set_gt_layer();                                   //走行ドラム状態をセットする
+
+    void set_load(int id, double m, double x, double y, double z) {   //荷重セット
+        pSimStat->load[id].m = m; pSimStat->load[id].wx = x; pSimStat->load[id].dy = y;  pSimStat->load[id].hz = z; return;
+    }
         
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC;

@@ -160,6 +160,13 @@ typedef struct StSwayIO {
 /*   シミュレーション信号定義構造体                                  　   　*/
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
 #pragma region SIMULATOR
+typedef struct StSimLoad {//負荷
+	double m;	//質量
+	double wx;	//幅
+	double dy;	//奥行
+	double hz;	//高さ
+}ST_SIM_LOAD, * LPST_SIM_LOAD;
+
 #define SIM_ACTIVE_MODE			0x00000100					//シミュレーション実行モード
 #define SIM_SWAY_PACKET_MODE	0x00000010					//振れセンサパケット送信モード
 #define SIM_N_SENSOR			128							//センサ数
@@ -173,9 +180,7 @@ typedef struct StSimulationStatus {
 	double v_fb[MOTION_ID_MAX];								//軸座標速度fb
 	double pos[MOTION_ID_MAX];								//軸座標位置fb
 	double mtrq[MOTION_ID_MAX];								//モータトルクfb
-	double load_m[MOTION_ID_MAX];							//軸負荷（巻は荷重）
-	double load_l[MOTION_ID_MAX];							//軸負荷サイズ（巻は荷重ロープ長）
-
+	ST_SIM_LOAD load[MOTION_ID_MAX];						//軸負荷（巻は荷重）
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角,振れ角速度
 	double kbh;												//引込半径に依存する速度、加速度補正係数
 	ST_SWAY_RCV_MSG rcv_msg;

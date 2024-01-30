@@ -16,6 +16,7 @@ ST_PLC_NOTCH_PTN notch_ptn;//PLCのノッチ信号入力パターン
 CABPLC_BOUT_MAP cab_bout_map;
 ERMPLC_BOUT_MAP erm_bout_map;
 ERMPLC_YOUT_MAP erm_yout_map;
+ERMPLC_UXIN_MAP  erm_uxin_map;
 ERMPLC_XIN_MAP  erm_xin_map;
 ERMPLC_M900_MAP  erm_m900_map;
 INV_IF_X_MAP inv_x_map; 
@@ -308,12 +309,95 @@ int CPLC_IF::parse_data_out() {
         plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y;
 
     }
-
-    //モーメントリミッタ
-    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_100.x] |= cab_bout_map.mlim_load_100.y;
-    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_normal.x] |= cab_bout_map.mlim_normal.y;
-    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.whip_5t_ng.x] |= cab_bout_map.whip_5t_ng.y;
+ 
 #pragma endregion OPEROOM
+
+#pragma region MOMENT Limitter
+    //モーメントリミッタ
+    double load_lim_mh, load_lim_ah;
+    //DI
+    if (pSim->pos[ID_BOOM_H] < 25.0) {
+        load_lim_mh = 300.0; load_lim_ah = 45.0;
+    }
+    else if (pSim->pos[ID_BOOM_H] < 57.0) {
+        load_lim_mh = -5.274 * pSim->pos[ID_BOOM_H] + 406.78;
+        load_lim_ah = 45.0;
+    }
+    else if (pSim->pos[ID_BOOM_H] < 62.0) {
+        load_lim_mh = 60.0;
+        load_lim_ah = 45.0;
+    }
+    else {
+        load_lim_mh = 60.0;
+        load_lim_ah = 45.0;
+    }
+
+    if (pSim->load[ID_HOIST].m - def_spec.Load0_mh > load_lim_mh) {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_100.x] &= ~cab_bout_map.mlim_load_100.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_90.x] |= cab_bout_map.mlim_load_90.y;
+    }
+    else if (pSim->load[ID_HOIST].m - def_spec.Load0_mh > load_lim_mh * 0.9) {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_100.x] |=cab_bout_map.mlim_load_100.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_90.x] |= cab_bout_map.mlim_load_90.y;
+    }
+    else {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_100.x] |= cab_bout_map.mlim_load_100.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_90.x] &= ~cab_bout_map.mlim_load_90.y;
+
+    }
+  
+    if (pSim->load[ID_HOIST].m - def_spec.Load0_mh > load_lim_mh) {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_100.x] &= ~cab_bout_map.mlim_load_100.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_load_90.x] |= cab_bout_map.mlim_load_90.y;
+    }
+
+    if (pSim->load[ID_HOIST].m - def_spec.Load0_mh > 150.0) {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_high_load.x] &= ~cab_bout_map.mlim_high_load.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_3times.x] &= ~cab_bout_map.mlim_3times.y;
+    }
+    else if (pSim->load[ID_HOIST].m - def_spec.Load0_mh > 20.0) {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_high_load.x] |= cab_bout_map.mlim_high_load.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_3times.x] &= ~cab_bout_map.mlim_3times.y;
+    }
+    else {
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_high_load.x] |= cab_bout_map.mlim_high_load.y;
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_3times.x] |= cab_bout_map.mlim_3times.y;
+    }
+
+    if (pSim->load[ID_AHOIST].m - def_spec.Load0_ah > 5.0) 
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.whip_5t_ng.x] &= ~cab_bout_map.whip_5t_ng.y;
+    else
+        plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.whip_5t_ng.x] |= cab_bout_map.whip_5t_ng.y;
+     
+    plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.mlim_normal.x] |= cab_bout_map.mlim_normal.y;
+
+    //AI
+    plc_if_workbuf.output.wbuf.cab_ai[0] = 0.0;//フットブレーキトルク　未使用
+
+    plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(21.0-pSim->pos[ID_BOOM_H])*39.0244;//半径
+    if (plc_if_workbuf.output.wbuf.cab_ai[1] < 0)plc_if_workbuf.output.wbuf.cab_ai[1] = 0;
+
+    plc_if_workbuf.output.wbuf.cab_ai[2] = (INT16)pSim->load[ID_HOIST].m*0.0048485;//主巻荷重
+
+    plc_if_workbuf.output.wbuf.cab_ai[3] = (INT16)pSim->load[ID_AHOIST].m * 0.032;//補巻荷重
+
+    plc_if_workbuf.output.wbuf.cab_ai[4] = (INT16)((pSim->th.p-0.7787659)/0.00031416);//起伏角
+
+
+
+   
+#pragma endregion MOMENT Limitter
+
+#pragma region ERM UNITX
+    //X20
+     plc_if_workbuf.output.wbuf.erm_unitx[erm_uxin_map.hcnt_mh_ah_ready.x] |= erm_uxin_map.hcnt_mh_ah_ready.y;
+    //X30
+     plc_if_workbuf.output.wbuf.erm_unitx[erm_uxin_map.hcnt_bh_sl_ready.x] |= erm_uxin_map.hcnt_bh_sl_ready.y;
+    //X40
+     plc_if_workbuf.output.wbuf.erm_unitx[erm_uxin_map.abs_mh_ready.x] |= erm_uxin_map.abs_mh_ready.y;
+    //X120
+     plc_if_workbuf.output.wbuf.erm_unitx[erm_uxin_map.abs_ah_ready.x] |= erm_uxin_map.abs_ah_ready.y;
+#pragma endregion ERM UNITX
 
 #pragma region ERM X
     //X60 極限信号
@@ -514,16 +598,17 @@ int CPLC_IF::parse_data_out() {
 #pragma endregion PLC_CC_LINK
 #pragma region PLC_HCOUNTER_ABS
     //高速カウンタ
-    (INT32)(st_pnl_sim.hcnt[ID_HOIST] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_MH1] * st_pnl_sim.vcnt1invscan[ID_HOIST]);
-    (INT32)(st_pnl_sim.hcnt[ID_AHOIST] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_AH] * st_pnl_sim.vcnt1invscan[ID_AHOIST]);
-    (INT32)(st_pnl_sim.hcnt[ID_BOOM_H] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_BH] * st_pnl_sim.vcnt1invscan[ID_BOOM_H]);
-    (INT32)(st_pnl_sim.hcnt[ID_SLEW] += (double)plc_if_workbuf.output.wbuf.inv_cc_Wr1[PLC_IF_CCID_SL] * st_pnl_sim.vcnt1invscan[ID_SLEW]);
-    plc_if_workbuf.output.wbuf.hcounter[0] =st_pnl_sim.hcnt[ID_HOIST];
-    plc_if_workbuf.output.wbuf.hcounter[1] = st_pnl_sim.hcnt[ID_AHOIST];
-    plc_if_workbuf.output.wbuf.hcounter[2] = st_pnl_sim.hcnt[ID_BOOM_H] ;
-    plc_if_workbuf.output.wbuf.hcounter[3] = st_pnl_sim.hcnt[ID_SLEW];
+    plc_if_workbuf.output.wbuf.hcounter[0] = (UINT32)(100000000.0 - (80.86 - pSim->nd[ID_HOIST].p)*261802.07);
+    plc_if_workbuf.output.wbuf.hcounter[1] = (UINT32)(100000000.0 - (65.526- pSim->nd[ID_AHOIST].p) * 243302.4);
+    plc_if_workbuf.output.wbuf.hcounter[2] = (UINT32)(72354000.0 - (64.0 - pSim->nd[ID_BOOM_H].p) * 465539.66);
+    plc_if_workbuf.output.wbuf.hcounter[3] = (UINT32)(15000000.0 + pSim->nd[ID_SLEW].p * 877363.2);
+
+    //アブソコーダ
+    plc_if_workbuf.output.wbuf.absocoder[0] = (UINT32)(1024 * pSim->nd[ID_HOIST].p + 19280.0);
+    plc_if_workbuf.output.wbuf.absocoder[1] = (UINT32)(1024 * pSim->nd[ID_AHOIST].p + 19280.0);
 
 #pragma endregion PLC__HCOUNTER_ABS
+
 
      return 0;
 }
@@ -595,7 +680,7 @@ int CPLC_IF::parse() {
 
     //### シミュレーションの結果を出力
     parse_sim_status();
- 
+
     //共有メモリデータセット
     plc_if_workbuf.mode = this->mode;                   //モードセット
 

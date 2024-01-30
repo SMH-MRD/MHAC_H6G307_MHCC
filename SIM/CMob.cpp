@@ -489,6 +489,14 @@ void CJC::init_crane(double _dt) {
 	cal_Lb2Lp2 = pspec->Lb * pspec->Lb + pspec->Lp * pspec->Lp;
 	cal_2LbLp = 2.0 * pspec->Lb * pspec->Lp;
 
+	//荷重セット
+	for (int i = 0; i < MOTION_ID_MAX; i++) {
+		pSimStat->load[i].m = pSimStat->load[i].wx = pSimStat->load[i].dy = pSimStat->load[i].hz = 0.0;
+	}
+
+	pSimStat->load[ID_HOIST].m = pspec->Load0_mh;
+	pSimStat->load[ID_AHOIST].m = pspec->Load0_ah;;
+
 }
 // 各モーションのブレーキ状態をセット
 void CJC::update_break_status() {

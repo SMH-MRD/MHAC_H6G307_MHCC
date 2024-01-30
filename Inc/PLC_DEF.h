@@ -163,14 +163,16 @@ struct ST_PLC_NOTCH_PTN {
 typedef struct st_PLCwrite_tag {//制御PC→PLC
     INT16 helthy;               //PCヘルシー出力信号
     INT16 ctrl_mode;            //自動制御フラグ
-    INT32 cab_ai[8];            //運転室PLC AI信号【将来用】
+    INT16 cab_ai[8];            //運転室PLC AI信号【将来用】
     INT16 cab_di[6];            //運転室PLC→電気室PLC b出力
-    INT32 hcounter[4];          //高速カウンタユニット 
-    INT32 absocoder[2];         //アブソコーダ 
+    INT16 spare0[8];            //運転室PLC→電気室PLC b出力
+    UINT32 hcounter[4];          //高速カウンタユニット 
+    UINT32 absocoder[2];         //アブソコーダ 
     INT16 spare1[4];            //予備
     INT16 pc_fault[2];          //PC検出異常マップ
-    INT16 spare2[20];           //予備
-    INT16 erm_x[8];             //電気室X
+    INT16 spare2[16];           //予備
+    INT16 erm_unitx[4];         //電気室ユニットX 020-03F：カウンタユニット　040-04F　120-12F：ABSユニット
+    INT16 erm_x[8];             //電気室X 060-0CF
     INT16 inv_cc_x[6];          //インバータFB書き込み値　ｘデバイス
     INT16 inv_cc_Wr1[6];        //インバータFB書き込み値　rpm
     INT16 inv_cc_Wr2[6];        //インバータFB書き込み値　トルク0.1%
@@ -360,6 +362,22 @@ struct ERMPLC_YOUT_MAP {
     POINT ah_fan_mc                         = { 2,0x0008 };
     POINT gt_alarm                          = { 2,0x0010 };
     POINT initial_charge                    = { 2,0x0020 };
+};
+
+#define ID_ERMPLC_X20                           0
+#define ID_ERMPLC_X30                           1
+#define ID_ERMPLC_X40                           2
+#define ID_ERMPLC_X120                          3
+
+struct ERMPLC_UXIN_MAP {
+    //X20
+    POINT hcnt_mh_ah_ready = { ID_ERMPLC_X20,0x0001 };
+    //X30
+    POINT hcnt_bh_sl_ready = { ID_ERMPLC_X30,0x0001 };
+    //X40
+    POINT abs_mh_ready = { ID_ERMPLC_X40,0x0002 };
+    //X120
+    POINT abs_ah_ready = { ID_ERMPLC_X120,0x0002 };
 };
 
 #define ID_ERMPLC_X60                           0
