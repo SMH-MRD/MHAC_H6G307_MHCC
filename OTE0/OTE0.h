@@ -68,6 +68,7 @@
 //メインウィンドウ管理構造体
 typedef struct stOte0DataTag {
 	double pos[MOTION_ID_MAX];
+	double load[MOTION_ID_MAX];
 	double v_fb[MOTION_ID_MAX];
 	double v_ref[MOTION_ID_MAX];
 	double deg_sl;//旋回角°

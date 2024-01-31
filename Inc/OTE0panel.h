@@ -192,16 +192,16 @@ using namespace Gdiplus;
 #define OTE0_GR_AREA_Y			280
 #define OTE0_GR_AREA_W			320
 #define OTE0_GR_AREA_H			250
-#define OTE0_GR_AREA_CX			280
-#define OTE0_GR_AREA_CY			405
-#define OTE0_GR_AREA_PIX1M		2.0	//1m当りのPIX数
+#define OTE0_GR_AREA_CX			280		//AREA1中心
+#define OTE0_GR_AREA_CY			405		//AREA1中心
+#define OTE0_GR_AREA_PIX1M		2.0		//1m当りのPIX数
 
 #define OTE0_GR_AREA2_X			460
 #define OTE0_GR_AREA2_Y			280
 #define OTE0_GR_AREA2_W			320
 #define OTE0_GR_AREA2_H			250
-#define OTE0_GR_AREA2_CX		620
-#define OTE0_GR_AREA2_CY		405
+#define OTE0_GR_AREA2_CX		620		//AREA2中心
+#define OTE0_GR_AREA2_CY		405		//AREA2中心
 #define OTE0_GR_AREA2_PIX1M		3.0		//1m当りのPIX数
 #define OTE0_GR_AREA2_LV0_Y		515		//高さ0のPIX位置
 #define OTE0_GR_AREA2_R0_X		540		//半径0のPIX位置

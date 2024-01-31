@@ -245,6 +245,9 @@ LPST_PC_U_MSG COteIF:: set_msg_pc_u() {
 	//PLC“ü—Íƒf[ƒ^
 	memcpy(&st_msg_pc_u_snd.body.plc_in, &(pPLCio->input),sizeof(st_msg_pc_u_snd.body.plc_in));
 
+	for (int i = 0; i < MOTION_ID_MAX; i++) {
+		st_msg_pc_u_snd.body.pos[i] = pPLCio->pos[i];
+	}
     return &st_msg_pc_u_snd;
 } 
 //*********************************************************************************************

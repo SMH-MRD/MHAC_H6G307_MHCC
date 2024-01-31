@@ -157,7 +157,7 @@ int CPLC_IF::input() {
 
     UINT16 plc_helthy = lp_PLCread->helthy;
 
-     return 0;
+    return 0;
 }
 //*********************************************************************************************
 // parse()
@@ -174,6 +174,12 @@ int CPLC_IF::parse_data_in() {
 
     //受信バッファの内容をワークバッファにコピー
     memcpy_s(&(plc_if_workbuf.input), sizeof(PLC_READ_BUF),lp_PLCread, sizeof(PLC_READ_BUF));
+
+    //共有メモリ出力内容取り込みセット
+    plc_if_workbuf.pos[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;
+    plc_if_workbuf.pos[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;
+    plc_if_workbuf.pos[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 1000.0;
+    plc_if_workbuf.pos[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.pos[3] -(INT32)15000000)*0.00000716144;
 
     return 0;
 }
@@ -374,14 +380,15 @@ int CPLC_IF::parse_data_out() {
     //AI
     plc_if_workbuf.output.wbuf.cab_ai[0] = 0.0;//フットブレーキトルク　未使用
 
-    plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(21.0-pSim->pos[ID_BOOM_H])*39.0244;//半径
+ //   plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(21.0-pSim->pos[ID_BOOM_H])*39.0244;//半径
+    plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(pSim->pos[ID_BOOM_H]*1000.0);//半径
     if (plc_if_workbuf.output.wbuf.cab_ai[1] < 0)plc_if_workbuf.output.wbuf.cab_ai[1] = 0;
 
-    plc_if_workbuf.output.wbuf.cab_ai[2] = (INT16)pSim->load[ID_HOIST].m*0.0048485;//主巻荷重
+    plc_if_workbuf.output.wbuf.cab_ai[2] = (INT16)pSim->load[ID_HOIST].m*0.0048485 + 6;//主巻荷重
 
     plc_if_workbuf.output.wbuf.cab_ai[3] = (INT16)pSim->load[ID_AHOIST].m * 0.032;//補巻荷重
 
-    plc_if_workbuf.output.wbuf.cab_ai[4] = (INT16)((pSim->th.p-0.7787659)/0.00031416);//起伏角
+    plc_if_workbuf.output.wbuf.cab_ai[4] = (INT16)(3183.1*pSim->th.p-247.8883);//起伏角
 
 
 

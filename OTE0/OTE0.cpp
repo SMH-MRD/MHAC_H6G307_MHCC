@@ -296,6 +296,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	}break;
 	case WM_TIMER: {
 
+		pCOte0->parse();//受信データ展開
+
 		if (wParam == ID_OTE_UNICAST_TIMER) {
 			set_lamp();
 
@@ -341,33 +343,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 		
 		//PB Stat 更新　PBはカウントダウン
-		//メインパネル
-		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME;i++) {
-			if(st_work_wnd.pb_stat[i] >0)st_work_wnd.pb_stat[i]--;
-		}
-		//故障サブウィンドウ
-		if (st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] > 0)st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET]--;
+		{
+			//メインパネル
+			for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME; i++) {
+				if (st_work_wnd.pb_stat[i] > 0)st_work_wnd.pb_stat[i]--;
+			}
+			//故障サブウィンドウ
+			if (st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] > 0)st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET]--;
 
-		//状態サブウィンドウ
-		
-		//モードウィンドウ
-		for (int i = ID_OTE_RADIO_MHSPD_7; i <= ID_OTE_RADIO_MHSPD_21; i++) {
-			if (i == st_work_wnd.mh_spd_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
-			else st_work_wnd.pb_stat[i] = L_OFF;
+			//状態サブウィンドウ
+
+			//モードウィンドウ
+			for (int i = ID_OTE_RADIO_MHSPD_7; i <= ID_OTE_RADIO_MHSPD_21; i++) {
+				if (i == st_work_wnd.mh_spd_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+				else st_work_wnd.pb_stat[i] = L_OFF;
+			}
+			for (int i = ID_OTE_RADIO_AHSPD_14; i <= ID_OTE_RADIO_AHSPD_24; i++) {
+				if (i == st_work_wnd.ah_spd_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+				else st_work_wnd.pb_stat[i] = L_OFF;
+			}
+			for (int i = ID_OTE_RADIO_BH_57; i <= ID_OTE_RADIO_BH_REST; i++) {
+				if (i == st_work_wnd.bh_work_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+				else st_work_wnd.pb_stat[i] = L_OFF;
+			}
+			for (int i = ID_OTE_RADIO_JIB_NARROW; i <= ID_OTE_RADIO_JIB_WIDE; i++) {
+				if (i == st_work_wnd.jib_chk_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
+				else st_work_wnd.pb_stat[i] = L_OFF;
+			}
+
 		}
-		for (int i = ID_OTE_RADIO_AHSPD_14; i <= ID_OTE_RADIO_AHSPD_24; i++) {
-			if (i == st_work_wnd.ah_spd_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
-			else st_work_wnd.pb_stat[i] = L_OFF;
-		}
-		for (int i = ID_OTE_RADIO_BH_57; i <= ID_OTE_RADIO_BH_REST; i++) {
-			if (i == st_work_wnd.bh_work_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
-			else st_work_wnd.pb_stat[i] = L_OFF;
-		}
-		for (int i = ID_OTE_RADIO_JIB_NARROW; i <= ID_OTE_RADIO_JIB_WIDE; i++) {
-			if (i == st_work_wnd.jib_chk_mode) st_work_wnd.pb_stat[i] = OTE0_PB_OFF_DELAY_COUNT;
-			else st_work_wnd.pb_stat[i] = L_OFF;
-		}
-		
 
 		//半自動目標CHK更新（CHK PBはONでカウントアップ　OFFで0
 		for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
@@ -383,6 +387,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			else st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = 0;
 		}
 
+		//サブウィンドウ情報 更新
 		switch (st_work_wnd.subpanel_sel) {
 		case ID_OTE_RADIO_COM: {
 			switch (st_work_wnd.connect_wnd_item) {
@@ -1762,22 +1767,22 @@ void draw_graphic() {
 	ahy = pCOte0->data.pos[ID_AHOIST];
 
 #endif
-	double srad_bh = sin(rad_bh), crad_bh = cos(rad_bh);
-	double srad_sl = sin(rad_sl), crad_sl = cos(rad_sl);
-	double ah_r_add = spec.La_add * cos(rad_bh + rad_ah_off);
+	double srad_bh = sin(rad_bh), crad_bh = cos(rad_bh);		//sin cos 使い回し用
+	double srad_sl = sin(rad_sl), crad_sl = cos(rad_sl);		//sin cos 使い回し用
+	double ah_r_add = spec.La_add * cos(rad_bh + rad_ah_off);	//主補巻シーブ相対高さ
 	
-	mh_r = spec.Lm * crad_bh;
-	ah_r = mh_r + ah_r_add;
+	mh_r = spec.Lm * crad_bh;	//主巻吊点ジブ元との相対距離
+	ah_r = mh_r + ah_r_add;		//補巻吊点ジブ元との相対距離
 
 	//吊点
 	//補巻PIX位置
-	INT px_ah_x = OTE0_GR_AREA_CX + (INT)(ah_r * crad_sl * OTE0_GR_AREA_PIX1M), px_ah_y = OTE0_GR_AREA_CY + (INT)(ah_r * srad_sl * OTE0_GR_AREA_PIX1M);
-	INT px_ah_x2 = OTE0_GR_AREA_CX + (INT)(ah_r * crad_sl * 0.5 * OTE0_GR_AREA_PIX1M), px_ah_y2 = OTE0_GR_AREA_CY + (INT)(ah_r * srad_sl * 0.5 * OTE0_GR_AREA_PIX1M);
+	INT px_ah_x = OTE0_GR_AREA_CX + (INT)(ah_r * crad_sl * OTE0_GR_AREA_PIX1M), px_ah_y = OTE0_GR_AREA_CY - (INT)(ah_r * srad_sl * OTE0_GR_AREA_PIX1M);					//先端位置
+	INT px_ah_x2 = OTE0_GR_AREA_CX + (INT)(ah_r * crad_sl * 0.5 * OTE0_GR_AREA_PIX1M), px_ah_y2 = OTE0_GR_AREA_CY - (INT)(ah_r * srad_sl * 0.5 * OTE0_GR_AREA_PIX1M);	//中間位置
 	//主巻PIX位置
-	INT px_mh_x = OTE0_GR_AREA_CX + (INT)(mh_r * crad_sl * OTE0_GR_AREA_PIX1M), px_mh_y = OTE0_GR_AREA_CY + (INT)(mh_r * srad_sl * OTE0_GR_AREA_PIX1M);
+	INT px_mh_x = OTE0_GR_AREA_CX + (INT)(mh_r * crad_sl * OTE0_GR_AREA_PIX1M), px_mh_y = OTE0_GR_AREA_CY - (INT)(mh_r * srad_sl * OTE0_GR_AREA_PIX1M);
 
-	INT px_ddx = -(INT)(8.0 * srad_sl), px_ddy = (INT)(8.0 * crad_sl);		//吊点描画オフセット量
-	INT px_ddx0 = -(INT)(3.0 * srad_sl), px_ddy0 = (INT)(3.0 * crad_sl);	//ジブ描画オフセット量
+	INT px_ddx = -(INT)(8.0 * srad_sl), px_ddy = (INT)(8.0 * crad_sl);		//吊点描画オフセット量 　吊点幅分
+	INT px_ddx0 = -(INT)(3.0 * srad_sl), px_ddy0 = (INT)(3.0 * crad_sl);	//ジブ描画オフセット量 　ジブ先幅分
 
 	//AREA1
 	//極限描画
@@ -1788,14 +1793,16 @@ void draw_graphic() {
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawEllipse(st_work_wnd.ppen[OTE0_RED], OTE0_GR_AREA_CX - px_mhr, OTE0_GR_AREA_CY - px_mhr, px_mhd, px_mhd);
 
 	//JIB 6角形で表現　補巻位置まで描画
-	Point pts[] = { Point(px_ah_x - px_ddx0, px_ah_y - px_ddy0),Point(px_ah_x + px_ddx0, px_ah_y + px_ddy0),Point(px_ah_x2 + px_ddx0*2, px_ah_y2 + px_ddy0*2),Point(OTE0_GR_AREA_CX + px_ddx0 *2, OTE0_GR_AREA_CY + px_ddy0 *2),Point(OTE0_GR_AREA_CX - px_ddx0 *2, OTE0_GR_AREA_CY - px_ddy0 *2),Point(px_ah_x2 - px_ddx0*2, px_ah_y2 - px_ddy0*2)};
+	Point pts[] = { Point(px_ah_x - px_ddx0, px_ah_y + px_ddy0),Point(px_ah_x + px_ddx0, px_ah_y - px_ddy0),Point(px_ah_x2 + px_ddx0*2, px_ah_y2 - px_ddy0*2),Point(OTE0_GR_AREA_CX + px_ddx0 *2, OTE0_GR_AREA_CY - px_ddy0 *2),Point(OTE0_GR_AREA_CX - px_ddx0 *2, OTE0_GR_AREA_CY + px_ddy0 *2),Point(px_ah_x2 - px_ddx0*2, px_ah_y2 + px_ddy0*2)};
 	st_work_wnd.pbrush[OTE0_RED]->SetColor(Color(100, 255, 0, 0));
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawPolygon(st_work_wnd.ppen[OTE0_GREEN], pts,6);
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillPolygon(st_work_wnd.pbrush[OTE0_RED], pts, 6);
 
 	//JIB 先
+	//PEN設定
 	st_work_wnd.ppen[OTE0_RED]->SetWidth(6.0); st_work_wnd.ppen[OTE0_RED]->SetDashStyle(DashStyleSolid); st_work_wnd.ppen[OTE0_RED]->SetColor(Color(255, 255, 0, 0));
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_RED], px_mh_x + px_ddx, px_mh_y + px_ddy, px_mh_x - px_ddx, px_mh_y - px_ddy);
+	//線で描画
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_RED], px_mh_x + px_ddx, px_mh_y - px_ddy, px_mh_x - px_ddx, px_mh_y + px_ddy);
 
 	//ポスト
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_CX - 10, OTE0_GR_AREA_CY - 10, 18, 18);
@@ -1927,6 +1934,7 @@ void draw_info() {
 	wo_msg << L"旋回径(m):" << pCOte0->data.pos[ID_BOOM_H];
 	TextOutW(hdc, OTE0_GR_AREA_X+5, OTE0_GR_AREA_Y+20, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
+
 	wo_msg.str(L"");
 	wo_msg << L"自動目標";
 	TextOutW(hdc, OTE0_IF_AREA_X+5, OTE0_IF_AREA_Y+5, wo_msg.str().c_str(), (int)wo_msg.str().length());
@@ -1940,6 +1948,14 @@ void draw_info() {
 	wo_msg.str(L"");
 	wo_msg <<  L"起伏角(deg):" << pCOte0->data.deg_bh;
 	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+	wo_msg.str(L"");
+	wo_msg << L"主巻荷重(t):" << pCOte0->data.load[ID_HOIST];
+	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+	wo_msg.str(L"");
+	wo_msg << L"補巻荷重(t):" << pCOte0->data.load[ID_AHOIST];
+	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 50, wo_msg.str().c_str(), (int)wo_msg.str().length());
 }
 void draw_graphic_swy() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR];

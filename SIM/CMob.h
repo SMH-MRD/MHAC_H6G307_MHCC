@@ -52,7 +52,7 @@ private:
 #define SIM_INIT_MHR                21.90       //デフォルト旋回半径主巻
 #define SIM_INIT_AHR                26.06       //デフォルト旋回半径補巻
 #define SIM_INIT_MH                 60.0        //デフォルト主巻高さ
-#define SIM_INIT_AH                 59.2        //デフォルト補巻高さ
+#define SIM_INIT_AH                 70.0        //デフォルト補巻高さ
 #define SIM_INIT_TH                 PI90        //旋回初期値 rad
 #define SIM_INIT_L                  9.8         //ロープ長初期値 m
 #define SIM_INIT_X                  10.0        //走行初期値 m

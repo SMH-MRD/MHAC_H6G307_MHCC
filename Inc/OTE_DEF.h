@@ -110,11 +110,11 @@ typedef struct PcUBody {
 	ST_OTE_LAMP_COM		notch_lamp[N_OTE_PNL_NOTCH];
 	//INT16				plc_in[PLC_IO_MONT_WORD_NUM];//PLC IFデータ
 	ST_PLC_READ			plc_in;//PLC IFデータ
-	INT32				pos[MOTION_ID_MAX];			//位置FB
-	INT32				v_fb[MOTION_ID_MAX];		//速度FB
-	INT32				v_ref[MOTION_ID_MAX];		//速度指令
-	INT32				ld_pos[8];					//吊荷位置FB
-	INT32				ld_spd[8];					//吊荷位置FB
+	double				pos[MOTION_ID_MAX];			//位置FB
+	double				v_fb[MOTION_ID_MAX];		//速度FB
+	double				v_ref[MOTION_ID_MAX];		//速度指令
+	double				ld_pos[8];					//吊荷位置FB
+	double				ld_spd[8];					//吊荷位置FB
 	INT16				brk[MOTION_ID_MAX];			//ブレーキ状態
 	INT16				tg_pos[8][MOTION_ID_MAX];	//目標位置座標
 }ST_PC_U_BODY, * LPST_PC_U_BODY;
