@@ -124,15 +124,8 @@ int CSIM::input() {
     source_counter = pCraneStat->env_act_count;
 
     //PLC 指令は100%→1.0　ドラム回転速度指令でセット
-    pCrane->set_v_ref(
-        pPLC->v_ref[ID_HOIST] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_HOIST],
-        pPLC->v_ref[ID_GANTRY] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_GANTRY],
-        pPLC->v_ref[ID_SLEW] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_SLEW],
-        pPLC->v_ref[ID_BOOM_H] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_BOOM_H],
-        pPLC->v_ref[ID_AHOIST] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_AHOIST]
-    );
-
-    //スキャンタイムセット dtはマルチメディアタイマ　コールバックでセット
+    pCrane->set_v_ref(pPLC->nv_ref[ID_HOIST], pPLC->nv_ref[ID_GANTRY], pPLC->nv_ref[ID_SLEW], pPLC->nv_ref[ID_BOOM_H], pPLC->nv_ref[ID_AHOIST]);
+     //スキャンタイムセット dtはマルチメディアタイマ　コールバックでセット
     pCrane->set_dt(dt);
     pLoad->set_dt(dt);
     pLoad2->set_dt(dt);

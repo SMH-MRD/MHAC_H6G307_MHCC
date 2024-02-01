@@ -75,6 +75,9 @@ BOOL CPLC_IF::hide_if_wnd() {
 /// init_proc()
 /// </summary>
 /// <returns></returns>
+ 
+static double knv_inv[MOTION_ID_MAX];//インバータの速度指令をドラムrpsへ変換する係数
+
 int CPLC_IF::init_proc() {
 
     // 共有メモリ取得
@@ -137,11 +140,14 @@ int CPLC_IF::init_proc() {
     lp_PLCread = (LPST_PLC_READ)(pMCProtocol->mc_res_msg_r.res_data);
     lp_PLCwrite = (LPST_PLC_WRITE)(pMCProtocol->mc_req_msg_w.req_data);
 
+    knv_inv[ID_HOIST]= def_spec.prm_drv[DRIVE_ITEM_NMAX_RATIO][ID_HOIST] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_HOIST] / 20000.0;
+    knv_inv[ID_AHOIST] = def_spec.prm_drv[DRIVE_ITEM_NMAX_RATIO][ID_AHOIST] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_AHOIST] / 20000.0;
+    knv_inv[ID_BOOM_H] = def_spec.prm_drv[DRIVE_ITEM_NMAX_RATIO][ID_BOOM_H] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_BOOM_H] / 20000.0;
+    knv_inv[ID_SLEW] = def_spec.prm_drv[DRIVE_ITEM_NMAX_RATIO][ID_SLEW] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_SLEW] / 20000.0;
+    knv_inv[ID_GANTRY] = def_spec.prm_drv[DRIVE_ITEM_NMAX_RATIO][ID_GANTRY] * def_spec.prm_drv[DRIVE_ITEM_RATE_NV][ID_GANTRY] / 20000.0;
 
     //データ変換計算用パラメータセット
     while (!pCrane->is_crane_status_ok) Sleep(100);//MAINプロセスの仕様取り込み完了待ち
-
-
 
     return int(mode & 0xff00);
 }
@@ -176,10 +182,49 @@ int CPLC_IF::parse_data_in() {
     memcpy_s(&(plc_if_workbuf.input), sizeof(PLC_READ_BUF),lp_PLCread, sizeof(PLC_READ_BUF));
 
     //共有メモリ出力内容取り込みセット
-    plc_if_workbuf.pos[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;
-    plc_if_workbuf.pos[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;
-    plc_if_workbuf.pos[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 1000.0;
-    plc_if_workbuf.pos[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.pos[3] -(INT32)15000000)*0.00000716144;
+    //単位m
+    plc_if_workbuf.pos[ID_HOIST]    = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;
+    plc_if_workbuf.pos[ID_AHOIST]   = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;
+    plc_if_workbuf.pos[ID_BOOM_H]   = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 1000.0;
+   // plc_if_workbuf.pos[ID_SLEW]     = (double)(plc_if_workbuf.input.rbuf.pos[3] -(INT32)15000000)*0.00000716144;//ピニオン回転位置
+    //plc_if_workbuf.pos[ID_SLEW]     *= 14.0/166.0;//旋回角度（ピニオン径／TTB径）
+    plc_if_workbuf.pos[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.pos[3] - (INT32)15000000) * 0.000000603977;//ピニオン回転位置
+   
+    //PLC読み込み値は0.1％単位絶対値　SIMへのセットは符号化して1.0で正規化
+    plc_if_workbuf.nv_tg[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.spd_tg[0]) / 1000.0;
+    plc_if_workbuf.nv_tg[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.spd_tg[1]) / 1000.0;
+    plc_if_workbuf.nv_tg[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.spd_tg[2]) / 1000.0;
+    plc_if_workbuf.nv_tg[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.spd_tg[3]) / 1000.0;
+    plc_if_workbuf.nv_tg[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.spd_tg[4]) / 1000.0;
+
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_GNT] & 0x0002)   plc_if_workbuf.nv_tg[ID_GANTRY] *= -1.0;//逆転指令時
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_AH] & 0x0002)   plc_if_workbuf.nv_tg[ID_AHOIST] *= -1.0;
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_SLW] & 0x0002)   plc_if_workbuf.nv_tg[ID_SLEW] *= -1.0;
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_BH] & 0x0002)   plc_if_workbuf.nv_tg[ID_BOOM_H] *= -1.0;
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_MH1] & 0x0002)   plc_if_workbuf.nv_tg[ID_HOIST] *= -1.0;
+
+    //INV 指令は±20000が±Nmax　SIMへのセットはドラムのrpsでセット
+    plc_if_workbuf.nv_ref[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_MH1]) * knv_inv[ID_HOIST];
+    plc_if_workbuf.nv_ref[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH]) * knv_inv[ID_AHOIST];
+    plc_if_workbuf.nv_ref[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_BH]) * knv_inv[ID_BOOM_H];
+    plc_if_workbuf.nv_ref[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_SLW]) * knv_inv[ID_SLEW];
+    plc_if_workbuf.nv_ref[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_GNT]) * knv_inv[ID_GANTRY];
+
+   //INV FBはrpm そのままセット
+    plc_if_workbuf.v_fb[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_MH1]);
+    plc_if_workbuf.v_fb[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_AH]);
+    plc_if_workbuf.v_fb[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_BH]);
+    plc_if_workbuf.v_fb[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_SLW]) ;
+    plc_if_workbuf.v_fb[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_GNT]);
+
+    //ブレーキ状態セット
+    if (plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.mh_brk_mc.x] & erm_xin_map.mh_brk_mc.y) plc_if_workbuf.brk[ID_HOIST] = true; else plc_if_workbuf.brk[ID_HOIST] = false;
+    if (plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.ah_brk_mc.x] & erm_xin_map.ah_brk_mc.y)plc_if_workbuf.brk[ID_AHOIST] = true; else plc_if_workbuf.brk[ID_AHOIST] = false;
+    if (plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.gt_brk_mc.x] & erm_xin_map.gt_brk_mc.y)plc_if_workbuf.brk[ID_GANTRY] = true; else plc_if_workbuf.brk[ID_GANTRY] = false;
+    if (plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.bh_brk_mc.x] & erm_xin_map.bh_brk_mc.y)plc_if_workbuf.brk[ID_BOOM_H] = true; else plc_if_workbuf.brk[ID_BOOM_H] = false;
+    plc_if_workbuf.brk[ID_SLEW]  = true; //旋回はブレーキ無し
+
+
 
     return 0;
 }
@@ -380,7 +425,6 @@ int CPLC_IF::parse_data_out() {
     //AI
     plc_if_workbuf.output.wbuf.cab_ai[0] = 0.0;//フットブレーキトルク　未使用
 
- //   plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(21.0-pSim->pos[ID_BOOM_H])*39.0244;//半径
     plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(pSim->pos[ID_BOOM_H]*1000.0);//半径
     if (plc_if_workbuf.output.wbuf.cab_ai[1] < 0)plc_if_workbuf.output.wbuf.cab_ai[1] = 0;
 
@@ -389,10 +433,7 @@ int CPLC_IF::parse_data_out() {
     plc_if_workbuf.output.wbuf.cab_ai[3] = (INT16)pSim->load[ID_AHOIST].m * 0.032;//補巻荷重
 
     plc_if_workbuf.output.wbuf.cab_ai[4] = (INT16)(3183.1*pSim->th.p-247.8883);//起伏角
-
-
-
-   
+       
 #pragma endregion MOMENT Limitter
 
 #pragma region ERM UNITX
@@ -589,13 +630,30 @@ int CPLC_IF::parse_data_out() {
         else{
             plc_if_workbuf.output.wbuf.inv_cc_x[i] &= 0xfffd;
         }
+
+ 
         if (!(plc_if_workbuf.input.rbuf.inv_cc_y[i] & 0x3)) {//正逆転無し
             plc_if_workbuf.output.wbuf.inv_cc_Wr2[i] = 0;//トルククリア
-            plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = 0.0;//速度FBクリア
+            plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = 0;//速度FBクリア
         }
         else {
-            //速度FB
-            plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = plc_if_workbuf.input.rbuf.inv_cc_Ww1[i];//PLC計算値を折り返し
+            //モータ速度FB(rpm)
+            if (i == ID_MC_INV_MH1) {
+                plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = (INT16)(pSim->nd[ID_HOIST].v / def_spec.prm_drv[DRIVE_ITEM_GEAR][ID_HOIST]*60.0);
+            }
+            if (i == ID_MC_INV_AH) {
+                plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = (INT16)(pSim->nd[ID_AHOIST].v / def_spec.prm_drv[DRIVE_ITEM_GEAR][ID_AHOIST] * 60.0);
+            }
+            if (i == ID_MC_INV_GNT){
+                plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = (INT16)(pSim->nd[ID_GANTRY].v / def_spec.prm_drv[DRIVE_ITEM_GEAR][ID_GANTRY] * 60.0);
+            }
+            if (i == ID_MC_INV_SLW) {
+                plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = (INT16)(pSim->nd[ID_SLEW].v * 428.4 * 60.0);
+            }
+            if (i == ID_MC_INV_BH) {
+                plc_if_workbuf.output.wbuf.inv_cc_Wr1[i] = (INT16)(pSim->nd[ID_BOOM_H].v / def_spec.prm_drv[DRIVE_ITEM_GEAR][ID_BOOM_H] * 60.0);
+            }
+ 
         }
 
   
@@ -603,12 +661,13 @@ int CPLC_IF::parse_data_out() {
     }
  
 #pragma endregion PLC_CC_LINK
+
 #pragma region PLC_HCOUNTER_ABS
     //高速カウンタ
     plc_if_workbuf.output.wbuf.hcounter[0] = (UINT32)(100000000.0 - (80.86 - pSim->nd[ID_HOIST].p)*261802.07);
     plc_if_workbuf.output.wbuf.hcounter[1] = (UINT32)(100000000.0 - (65.526- pSim->nd[ID_AHOIST].p) * 243302.4);
     plc_if_workbuf.output.wbuf.hcounter[2] = (UINT32)(72354000.0 - (64.0 - pSim->nd[ID_BOOM_H].p) * 465539.66);
-    plc_if_workbuf.output.wbuf.hcounter[3] = (UINT32)(15000000.0 + pSim->nd[ID_SLEW].p * 877363.2);
+    plc_if_workbuf.output.wbuf.hcounter[3] = (UINT32)(15000000.0 + pSim->nd[ID_SLEW].p * 877363.2);                 //ピニオン回転位置
 
     //アブソコーダ
     plc_if_workbuf.output.wbuf.absocoder[0] = (UINT32)(1024 * pSim->nd[ID_HOIST].p + 19280.0);

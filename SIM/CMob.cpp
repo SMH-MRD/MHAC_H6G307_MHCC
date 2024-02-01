@@ -124,7 +124,7 @@ CJC::CJC() {
 CJC::~CJC() {}
 
 /// <summary>
-/// ドラム速度指令取り込み
+/// ドラム速度指令取り込み(rps)
 /// </summary>
 /// <param name="hoist_ref"></param>
 /// <param name="gantry_ref"></param>
@@ -311,10 +311,7 @@ void CJC::Ac() {	//加速度計算
 		else {
 			pSimStat->nd[ID_GANTRY].a = 0.0;
 		}
-
 	}
-
-
 	return;
 }
 void CJC::timeEvolution() {
@@ -402,7 +399,7 @@ void CJC::timeEvolution() {
 	r0[ID_HOIST]	= pspec->Hp + pspec->Lm * sin(pSimStat->th.p) - pSimStat->lrm.p;
 	r0[ID_AHOIST]	= pspec->Hp + pspec->La * sin(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.p;
 	
-	r0[ID_SLEW]		= pSimStat->nd[ID_SLEW].p * PI360;
+	r0[ID_SLEW]		= pSimStat->nd[ID_SLEW].p * PI360*14/166;
 	if (r0[ID_SLEW] > PI180)		r0[ID_SLEW] -= PI180;
 	else if (r0[ID_SLEW] < -PI180)	r0[ID_SLEW] += PI180;
 	else;
@@ -500,77 +497,11 @@ void CJC::init_crane(double _dt) {
 }
 // 各モーションのブレーキ状態をセット
 void CJC::update_break_status() {
-
-	if(pPLC->brk[ID_HOIST]	!= 0) motion_break[ID_HOIST]	= true;
-	if(pPLC->brk[ID_AHOIST]	!= 0) motion_break[ID_AHOIST] = true;
-	if(pPLC->brk[ID_GANTRY]	!= 0) motion_break[ID_GANTRY] = true;
-	if(pPLC->brk[ID_BOOM_H]	!= 0) motion_break[ID_BOOM_H] = true;
-	if(pPLC->brk[ID_SLEW]	!= 0) motion_break[ID_SLEW] = true;
-
-#if 0
-	if (v_ref[ID_HOIST] != 0.0) {
-		motion_break[ID_HOIST] = true;
-	}
-	else if ((v0[ID_HOIST] > pspec->notch_spd_r[ID_HOIST][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_HOIST] < pspec->notch_spd_f[ID_HOIST][1] * BREAK_CLOSE_RETIO)) {
-		motion_break[ID_HOIST] = false;
-	}
-	else;
-
-	if (v_ref[ID_GANTRY] != 0.0) {
-		motion_break[ID_GANTRY] = true;
-	}
-	else if ((v0[ID_GANTRY] > pspec->notch_spd_r[ID_GANTRY][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_GANTRY] < pspec->notch_spd_f[ID_GANTRY][1] * BREAK_CLOSE_RETIO)) {
-		motion_break[ID_GANTRY] = false;
-	}
-	else;
-
-	if (v_ref[ID_SLEW] != 0.0) {
-		motion_break[ID_SLEW] = true;
-	}
-	else if ((v0[ID_SLEW] > pspec->notch_spd_r[ID_SLEW][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_SLEW] < pspec->notch_spd_f[ID_SLEW][1] * BREAK_CLOSE_RETIO)) {
-		motion_break[ID_SLEW] = false;
-	}
-	else;
-
-	if (v_ref[ID_BOOM_H] != 0.0) {
-		motion_break[ID_BOOM_H] = true;
-	}
-	else if ((v0[ID_BOOM_H] > pspec->notch_spd_r[ID_BOOM_H][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_BOOM_H] < pspec->notch_spd_f[ID_BOOM_H][1] * BREAK_CLOSE_RETIO)) {
-		motion_break[ID_BOOM_H] = false;
-	}
-	else;
-
-
-	if (motion_break[ID_HOIST]) {
-		brk_elaped_time[ID_HOIST] += dt;
-	}
-	else {
-		brk_elaped_time[ID_HOIST] = 0.0;
-	}
-	if (motion_break[ID_BOOM_H]) {
-		brk_elaped_time[ID_BOOM_H] += dt;
-	}
-	else {
-		brk_elaped_time[ID_BOOM_H] = 0.0;
-	}
-	if (motion_break[ID_SLEW]) {
-		brk_elaped_time[ID_SLEW] += dt;
-	}
-	else {
-		brk_elaped_time[ID_SLEW] = 0.0;
-	}
-	if (motion_break[ID_GANTRY]) {
-		brk_elaped_time[ID_GANTRY] += dt;
-	}
-	else {
-		brk_elaped_time[ID_GANTRY] = 0.0;
-	}
-
-#endif
+	motion_break[ID_HOIST]	= pPLC->brk[ID_HOIST];
+	motion_break[ID_AHOIST]	= pPLC->brk[ID_AHOIST];
+	motion_break[ID_GANTRY]	= pPLC->brk[ID_GANTRY];
+	motion_break[ID_BOOM_H]	= pPLC->brk[ID_BOOM_H];
+	motion_break[ID_SLEW]	= pPLC->brk[ID_SLEW];
 	return;
 }
 void CJC::set_nbh_d_ph_th_from_r(double r) {

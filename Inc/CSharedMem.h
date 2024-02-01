@@ -83,11 +83,15 @@ typedef struct StMoveSet {
 
 // IO割付内容は、PLC_DEF.hに定義
 // PLC_状態信号構造体（機上センサ信号)
+#define PLC_IF_BRK_OPEN		true
+#define PLC_IF_BRK_CLOSE	false
+
 typedef struct StPLC_IO {
 	INT32 mode;
 	INT32 healthy_cnt;
 	double v_fb[MOTION_ID_MAX];						//速度FB
-	double v_ref[MOTION_ID_MAX];					//PLCへの速度指令出力
+	double nv_ref[MOTION_ID_MAX];					//PLCのINVへの速度指令出力
+	double nv_tg[MOTION_ID_MAX];					//PLC目標速度
 	double trq_fb_01per[MOTION_ID_MAX];				//トルクFB
 	double pos[MOTION_ID_MAX];						//位置FB
 	double weight;									//主巻荷重FB
