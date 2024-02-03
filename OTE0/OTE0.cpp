@@ -7,7 +7,6 @@
 #include "CPsaMain.h"
 #include "PLC_DEF.h"
 #include "COTE0_GR.h"
-#include <Xinput.h>
 #include "spec.h"
 
 #include <windowsx.h>       //# コモンコントロール
@@ -20,6 +19,11 @@
 #include <objbase.h>//gdiplus.hのコンパイルを通すために必要
 #include <gdiplus.h>
 using namespace Gdiplus;
+
+//DIRECTINPUT
+#define DIRECTINPUT_VERSION 0x0800
+#include <dinput.h>
+
 
 #define MAX_LOADSTRING 100
 
@@ -42,6 +46,9 @@ CPsaMain* pPSA;					//PSApi処理用オブジェクト
 GdiplusStartupInput gdiSI;
 ULONG_PTR           gdiToken;
 
+//DIRECTINPUT
+static LPDIRECTINPUT8 lpDI = NULL;			//!< DIRECTINPUT8のポインタ
+static LPDIRECTINPUTDEVICE8 lpGamePad;		//!< DIRECTINPUTDEVICE8のポインタ
 
 static INT16 disp_cnt=0;
 static bool is_init_disp = true;
@@ -259,6 +266,41 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	st_work_wnd.pimg[OTE0_GRID_JC_HOOK1] = new Image(L"C:/Users/SHI/source/repos/MHAC_H6G307_MHCC/Img/JC_HOOK1.png");
 	st_work_wnd.pimg[OTE0_GRID_JC_HOOK2] = new Image(L"C:/Users/SHI/source/repos/MHAC_H6G307_MHCC/Img/JC_HOOK2.png");
 
+
+	//DIRECTINPUT
+	HRESULT ret = DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8, (LPVOID*)&lpDI, NULL);
+	if (FAILED(ret)) {
+		// 作成に失敗
+		return -1;
+	}
+	// IDirectInputDevice8の取得
+	ret = lpDI->CreateDevice(GUID_Joystick, &lpGamePad, NULL);
+	if (FAILED(ret)) {
+		lpDI->Release();
+		return -1;
+	}
+
+
+	// 入力データ形式のセット
+	ret = lpGamePad->SetDataFormat(&c_dfDIJoystick);
+	if (FAILED(ret)) {
+		lpGamePad->Release();
+		lpDI->Release();
+		return -1;
+	}
+
+#if 0
+	// 排他制御のセット
+	ret = lpGamePad->SetCooperativeLevel(hWnd_work, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+	if (FAILED(ret)) {
+		lpGamePad->Release();
+		lpDI->Release();
+		return -1;
+	}
+#endif
+	// 動作開始
+	lpGamePad->Acquire();
+
    return TRUE;
 }
 
@@ -272,6 +314,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 /// <param name="lParam"></param>
 /// <returns></returns>
 static int tmp_counter = 0;
+static DIJOYSTATE pad_data;					//!< DIRECTINPUTDEVICE8の状態読み込みバッファ
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
@@ -485,6 +528,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//サブウィンドウにSTATIC表示更新メッセージ送信
 		if (disp_cnt & OTE_CODE_SUB_STATIC_FREQ) {
 			SendMessage(hwnd_current_subwnd, ID_OTE0_STATIC_UPDATE, 0L, 0L);
+		}
+
+		//ゲームパッド
+		HRESULT hr = lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+		if (FAILED(hr)) {
+			lpGamePad->Acquire();
+			lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
 		}
 
 	}break;
@@ -1952,6 +2002,17 @@ void draw_info() {
 	wo_msg << L"旋回径(m):" << pCOte0->data.pos[ID_BOOM_H];
 	TextOutW(hdc, OTE0_GR_AREA_X+5, OTE0_GR_AREA_Y+20, wo_msg.str().c_str(), (int)wo_msg.str().length());
 	wo_msg.str(L"");
+
+	wo_msg.str(L"");
+	wo_msg << L"lX:" << pad_data.lX << L"  lY:" << pad_data.lY << L"  lZ:" << pad_data.lZ;
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+	wo_msg.str(L"PB:");
+	for (int i = 0; i < 16; i++) wo_msg << L"[" << i << L"]" << pad_data.rgbButtons[i] << L" ";
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 50, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+
+	wo_msg.str(L"");
 	wo_msg << L"走行位置(m):" << pCOte0->data.pos[ID_GANTRY];
 	TextOutW(hdc, OTE0_GR_AREA_X + 200, OTE0_GR_AREA_Y + 215, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
@@ -1976,6 +2037,7 @@ void draw_info() {
 	wo_msg.str(L"");
 	wo_msg << L"補巻荷重(t):" << pCOte0->data.load[ID_AHOIST];
 	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 230, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
 }
 void draw_graphic_swy() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR];
