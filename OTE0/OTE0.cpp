@@ -7,6 +7,7 @@
 #include "CPsaMain.h"
 #include "PLC_DEF.h"
 #include "COTE0_GR.h"
+#include <Xinput.h>
 #include "spec.h"
 
 #include <windowsx.h>       //# コモンコントロール
