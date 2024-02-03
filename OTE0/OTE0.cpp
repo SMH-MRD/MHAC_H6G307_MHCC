@@ -1794,12 +1794,12 @@ void draw_graphic() {
 
 	//JIB 6角形で表現　補巻位置まで描画
 	Point pts[] = { Point(px_ah_x - px_ddx0, px_ah_y + px_ddy0),Point(px_ah_x + px_ddx0, px_ah_y - px_ddy0),Point(px_ah_x2 + px_ddx0*2, px_ah_y2 - px_ddy0*2),Point(OTE0_GR_AREA_CX + px_ddx0 *2, OTE0_GR_AREA_CY - px_ddy0 *2),Point(OTE0_GR_AREA_CX - px_ddx0 *2, OTE0_GR_AREA_CY + px_ddy0 *2),Point(px_ah_x2 - px_ddx0*2, px_ah_y2 + px_ddy0*2)};
-	st_work_wnd.pbrush[OTE0_RED]->SetColor(Color(100, 255, 0, 0));
+	st_work_wnd.pbrush[OTE0_RED]->SetColor(Color(100, 255, 0, 0));//赤ブラシの色を仮変更
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawPolygon(st_work_wnd.ppen[OTE0_GREEN], pts,6);
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillPolygon(st_work_wnd.pbrush[OTE0_RED], pts, 6);
 
 	//JIB 先
-	//PEN設定
+	//PEN設定（幅6　Solid
 	st_work_wnd.ppen[OTE0_RED]->SetWidth(6.0); st_work_wnd.ppen[OTE0_RED]->SetDashStyle(DashStyleSolid); st_work_wnd.ppen[OTE0_RED]->SetColor(Color(255, 255, 0, 0));
 	//線で描画
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_RED], px_mh_x + px_ddx, px_mh_y - px_ddy, px_mh_x - px_ddx, px_mh_y + px_ddy);
@@ -1807,6 +1807,17 @@ void draw_graphic() {
 	//ポスト
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_CX - 10, OTE0_GR_AREA_CY - 10, 18, 18);
 
+	//走行位置描画
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
+	INT posx =(INT) pCOte0->data.pos[ID_GANTRY];
+	px_ddx = (INT)(pCOte0->data.pos[ID_BOOM_H] * crad_sl), px_ddy = (INT)(pCOte0->data.pos[ID_BOOM_H] * srad_sl);
+
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_X+ 10 + posx-5, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20, 10, 10);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_MAZENDA], OTE0_GR_AREA_X + 10 + posx, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20 +5	
+																					, OTE0_GR_AREA_X + 10 + posx + px_ddx, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20 + 5 - px_ddy);
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
+
+	
 	//AREA2
 	//JIB
 	//転写先エリア計算
@@ -1898,6 +1909,7 @@ void init_graphic() {
 	INT r = 120;INT dia = 2 * r;
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->FillEllipse(&mySolidBrush, OTE0_GR_AREA_CX-r, OTE0_GR_AREA_CY-r, dia,dia);
 
+	//JC脚部ライン及びポータル部
 	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
 	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 150, 150, 255));
 
@@ -1908,6 +1920,11 @@ void init_graphic() {
 	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
 	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
 
+	//走行レール(1m/pix)
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY],  OTE0_GR_AREA_X + 10, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20
+																				, OTE0_GR_AREA_X + 310, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY], OTE0_GR_AREA_X + 10, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 10
+																				, OTE0_GR_AREA_X + 310, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 10);
 	//AREA2 背景グラフィック
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Height,
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR].Y, SRCCOPY);
@@ -1933,7 +1950,9 @@ void draw_info() {
 	wo_msg.str(L"");
 	wo_msg << L"旋回径(m):" << pCOte0->data.pos[ID_BOOM_H];
 	TextOutW(hdc, OTE0_GR_AREA_X+5, OTE0_GR_AREA_Y+20, wo_msg.str().c_str(), (int)wo_msg.str().length());
-
+	wo_msg.str(L"");
+	wo_msg << L"走行位置(m):" << pCOte0->data.pos[ID_GANTRY];
+	TextOutW(hdc, OTE0_GR_AREA_X + 200, OTE0_GR_AREA_Y + 215, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"自動目標";
@@ -1944,18 +1963,18 @@ void draw_info() {
 
 	wo_msg.str(L"");
 	wo_msg << L"主巻m:" << pCOte0->data.pos[ID_HOIST] << L" 補巻m:" << pCOte0->data.pos[ID_AHOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 5, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 185, wo_msg.str().c_str(), (int)wo_msg.str().length());
 	wo_msg.str(L"");
 	wo_msg <<  L"起伏角(deg):" << pCOte0->data.deg_bh;
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 200, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"主巻荷重(t):" << pCOte0->data.load[ID_HOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 215, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"補巻荷重(t):" << pCOte0->data.load[ID_AHOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 50, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 230, wo_msg.str().c_str(), (int)wo_msg.str().length());
 }
 void draw_graphic_swy() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR];

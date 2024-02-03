@@ -289,12 +289,11 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 void CWorkWindow::update_siminf() {
 
 	woMSG.str(L"SIM STAT\n"); woMSG.clear();
-	woMSG << L"nd[].p>> MH:" << pSimStat->nd[ID_HOIST].p << L" AH:" << pSimStat->nd[ID_AHOIST].p << L" BH:" << pSimStat->nd[ID_BOOM_H].p << L" SL:" << pSimStat->nd[ID_SLEW].p;
+	woMSG << L"nd[].p>> MH:" << pSimStat->nd[ID_HOIST].p << L" AH:" << pSimStat->nd[ID_AHOIST].p << L" BH:" << pSimStat->nd[ID_BOOM_H].p << L" SL:" << pSimStat->nd[ID_SLEW].p << L" GT" << pSimStat->nd[ID_GANTRY].p;
 	woMSG<<L"\n";
-	woMSG << L"nd[].a>> MH:" << pSimStat->nd[ID_HOIST].a << L" AH:" << pSimStat->nd[ID_AHOIST].a << L" BH:" << pSimStat->nd[ID_BOOM_H].a << L" SL:" << pSimStat->nd[ID_SLEW].a;
+	woMSG << L"nd[].a>> MH:" << pSimStat->nd[ID_HOIST].a << L" AH:" << pSimStat->nd[ID_AHOIST].a << L" BH:" << pSimStat->nd[ID_BOOM_H].a << L" SL:" << pSimStat->nd[ID_SLEW].a << pSimStat->nd[ID_GANTRY].a;
 	woMSG << L"\n";
-	woMSG << L"pos[]>>  MH" << pSimStat->pos[ID_HOIST] << L" AH" << pSimStat->pos[ID_AHOIST] << L" BH" << pSimStat->pos[ID_BOOM_H] << L" SL" << pSimStat->pos[ID_SLEW];
-
+	woMSG << L"pos[]>>  MH" << pSimStat->pos[ID_HOIST] << L" AH:" << pSimStat->pos[ID_AHOIST] << L" BH:" << pSimStat->pos[ID_BOOM_H] << L" SL:" << pSimStat->pos[ID_SLEW] << L" GT:" << pSimStat->pos[ID_GANTRY];
 
 	SetWindowText(hwndStaticSimInf, woMSG.str().c_str());
 	return;

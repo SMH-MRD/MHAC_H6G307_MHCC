@@ -174,7 +174,7 @@ int CPLC_IF::clear_plc_write() {
 }
 
 //*********************************************************************************************
-// parse_data_out() PLCからの入力信号を展開
+// parse_data_in() PLCからの入力信号を展開
 //*********************************************************************************************
 int CPLC_IF::parse_data_in() {
 
@@ -183,12 +183,16 @@ int CPLC_IF::parse_data_in() {
 
     //共有メモリ出力内容取り込みセット
     //単位m
-    plc_if_workbuf.pos[ID_HOIST]    = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;
-    plc_if_workbuf.pos[ID_AHOIST]   = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;
-    plc_if_workbuf.pos[ID_BOOM_H]   = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 1000.0;
-   // plc_if_workbuf.pos[ID_SLEW]     = (double)(plc_if_workbuf.input.rbuf.pos[3] -(INT32)15000000)*0.00000716144;//ピニオン回転位置
+    plc_if_workbuf.pos[ID_HOIST]    = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;//アブソコーダのPLC計算結果mmをm単位で
+    plc_if_workbuf.pos[ID_AHOIST]   = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;//アブソコーダのPLC計算結果mmをm単位で
+    plc_if_workbuf.pos[ID_BOOM_H]   = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 100.0;//モーメントリミッタの半径出力をm単位で
+    //旋回、起伏は高速カウンタとモーメントリミッタより
+    //高速カウンタユニットのカウント値を変換　カウント値15000000の時旋回角0 20201510の時旋回角π
+    //θ=count×π/(20201510-15000000)モータ1回転で　ピニオン減速比428.4　旋回角＝ピニオン回転数*2π*14/166 0.00000716144;//ピニオン回転位置
     //plc_if_workbuf.pos[ID_SLEW]     *= 14.0/166.0;//旋回角度（ピニオン径／TTB径）
     plc_if_workbuf.pos[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.pos[3] - (INT32)15000000) * 0.000000603977;//ピニオン回転位置
+    //想定アブソコーダのPLC計算結果mmをm単位で
+    plc_if_workbuf.pos[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.pos[4]) / 1000.0;
    
     //PLC読み込み値は0.1％単位絶対値　SIMへのセットは符号化して1.0で正規化
     plc_if_workbuf.nv_tg[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.spd_tg[0]) / 1000.0;
@@ -205,12 +209,21 @@ int CPLC_IF::parse_data_in() {
 
     //INV 指令は±20000が±Nmax　SIMへのセットはドラムのrpsでセット
     plc_if_workbuf.nv_ref[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_MH1]) * knv_inv[ID_HOIST];
-    plc_if_workbuf.nv_ref[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH]) * knv_inv[ID_AHOIST];
-    plc_if_workbuf.nv_ref[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_BH]) * knv_inv[ID_BOOM_H];
-    plc_if_workbuf.nv_ref[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_SLW]) * knv_inv[ID_SLEW];
-    plc_if_workbuf.nv_ref[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_GNT]) * knv_inv[ID_GANTRY];
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_MH1] & PLC_IF_INV_DIO_REV) plc_if_workbuf.nv_ref[ID_HOIST] *= -1.0;
 
-   //INV FBはrpm そのままセット
+    plc_if_workbuf.nv_ref[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_AH]) * knv_inv[ID_AHOIST];
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_AH] & PLC_IF_INV_DIO_REV) plc_if_workbuf.nv_ref[ID_AHOIST] *= -1.0;
+
+    plc_if_workbuf.nv_ref[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_BH]) * knv_inv[ID_BOOM_H];
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_BH] & PLC_IF_INV_DIO_REV) plc_if_workbuf.nv_ref[ID_BOOM_H] *= -1.0;
+
+    plc_if_workbuf.nv_ref[ID_SLEW] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_SLW]) * knv_inv[ID_SLEW];
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_SLW] & PLC_IF_INV_DIO_REV) plc_if_workbuf.nv_ref[ID_SLEW] *= -1.0;
+
+    plc_if_workbuf.nv_ref[ID_GANTRY] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Ww1[ID_MC_INV_GNT]) * knv_inv[ID_GANTRY];
+    if (plc_if_workbuf.input.rbuf.inv_cc_y[ID_MC_INV_GNT] & PLC_IF_INV_DIO_REV) plc_if_workbuf.nv_ref[ID_GANTRY] *= -1.0;
+
+    //INV FBはrpm そのままセット
     plc_if_workbuf.v_fb[ID_HOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_MH1]);
     plc_if_workbuf.v_fb[ID_AHOIST] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_AH]);
     plc_if_workbuf.v_fb[ID_BOOM_H] = (double)(plc_if_workbuf.input.rbuf.inv_cc_Wr1[ID_MC_INV_BH]);
@@ -224,8 +237,59 @@ int CPLC_IF::parse_data_in() {
     if (plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.bh_brk_mc.x] & erm_xin_map.bh_brk_mc.y)plc_if_workbuf.brk[ID_BOOM_H] = true; else plc_if_workbuf.brk[ID_BOOM_H] = false;
     plc_if_workbuf.brk[ID_SLEW]  = true; //旋回はブレーキ無し
 
+    //極限LIMIT
+   //共有メモリへの極限信号状態セット
+    plc_if_workbuf.endlim[ID_HOIST] = 0;
+    if (!(plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.mh_high_area_emr_up_lim.x] & erm_xin_map.mh_high_area_emr_up_lim.y))
+        plc_if_workbuf.endlim[ID_HOIST] |= PLC_IF_LIMIT_COM_FWD_EMR;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_down_area_emr_up_lim.x] & erm_xin_map.bh_down_area_emr_up_lim.y))
+        plc_if_workbuf.endlim[ID_HOIST] |= PLC_IF_LIMIT_COM_FWD_EMR_EX1;
+    if (!(plc_if_workbuf.input.rbuf.erm_x[erm_xin_map.mh_emr_lower_lim.x] & erm_xin_map.mh_emr_lower_lim.y))
+        plc_if_workbuf.endlim[ID_HOIST] |= PLC_IF_LIMIT_COM_REV_EMR;
 
+    plc_if_workbuf.endlim[ID_BOOM_H] = 0;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_emr_in_lim.x] & erm_xin_map.bh_emr_in_lim.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_FWD_EMR;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_normal_in_lim.x] & erm_xin_map.bh_normal_in_lim.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_FWD_NORM;
+    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.slw_spd_change.x] |= erm_xin_map.slw_spd_change.y;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.high_pos_emr_out_lim.x] & erm_xin_map.high_pos_emr_out_lim.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_REV_EMR_EX1;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_emr_out_lim.x] & erm_xin_map.bh_emr_out_lim.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_REV_EMR;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_down_area_out_lim.x] & erm_xin_map.bh_down_area_out_lim.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_REV_NORM_EX1;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_rest_slow.x] & erm_xin_map.bh_rest_slow.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_REV_SLOW;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.bh_rest_lim.x] & erm_xin_map.bh_rest_lim.y))
+        plc_if_workbuf.endlim[ID_BOOM_H] |= PLC_IF_LIMIT_COM_REV_NORM;
 
+    //X70
+    plc_if_workbuf.endlim[ID_GANTRY] = 0;
+    if (plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_stop.x] & erm_xin_map.gt_anticol_stop.y) //衝突防止　信号1点なので正逆同時セット
+        plc_if_workbuf.endlim[ID_GANTRY] |= (PLC_IF_LIMIT_COM_FWD_NORM_EX1 | PLC_IF_LIMIT_COM_REV_NORM_EX1);
+    if (plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_east_lim_slow.x] & erm_xin_map.gt_east_lim_slow.y)
+        plc_if_workbuf.endlim[ID_GANTRY] |= PLC_IF_LIMIT_COM_FWD_SLOW;
+    if (plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_east_lim_stop.x] & erm_xin_map.gt_east_lim_stop.y)
+        plc_if_workbuf.endlim[ID_GANTRY] |= PLC_IF_LIMIT_COM_FWD_NORM;
+    if (plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_slow.x] & erm_xin_map.gt_west_lim_slow.y)
+        plc_if_workbuf.endlim[ID_GANTRY] |= PLC_IF_LIMIT_COM_REV_SLOW;
+    if (plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_stop.x] & erm_xin_map.gt_west_lim_stop.y)
+        plc_if_workbuf.endlim[ID_GANTRY] |= PLC_IF_LIMIT_COM_REV_NORM;
+ 
+    //X80
+    plc_if_workbuf.endlim[ID_AHOIST] = 0;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_high_area_emr_up.x] & erm_xin_map.ah_camlim_high_area_emr_up.y))
+        plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_FWD_EMR;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_normal_area1_emr_up.x] & erm_xin_map.ah_camlim_normal_area1_emr_up.y))
+        plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_FWD_EMR_EX1;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_normal_area2_emr_up.x] & erm_xin_map.ah_camlim_normal_area2_emr_up.y))
+        plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_FWD_EMR_EX2;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_bh_down_area_emr_up.x] & erm_xin_map.ah_camlim_bh_down_area_emr_up.y))
+        plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_FWD_EMR_EX3;
+    if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_emr_low.x] & erm_xin_map.ah_camlim_emr_low.y))
+        plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_REV_EMR;
+ 
     return 0;
 }
 //*********************************************************************************************
@@ -366,7 +430,7 @@ int CPLC_IF::parse_data_out() {
 #pragma region MOMENT Limitter
     //モーメントリミッタ
     double load_lim_mh, load_lim_ah;
-    //DI
+    //DI生成用
     if (pSim->pos[ID_BOOM_H] < 25.0) {
         load_lim_mh = 300.0; load_lim_ah = 45.0;
     }
@@ -425,7 +489,7 @@ int CPLC_IF::parse_data_out() {
     //AI
     plc_if_workbuf.output.wbuf.cab_ai[0] = 0.0;//フットブレーキトルク　未使用
 
-    plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(pSim->pos[ID_BOOM_H]*1000.0);//半径
+    plc_if_workbuf.output.wbuf.cab_ai[1] = (INT16)(pSim->pos[ID_BOOM_H]*100.0);//半径0.1m単位
     if (plc_if_workbuf.output.wbuf.cab_ai[1] < 0)plc_if_workbuf.output.wbuf.cab_ai[1] = 0;
 
     plc_if_workbuf.output.wbuf.cab_ai[2] = (INT16)pSim->load[ID_HOIST].m*0.0048485 + 6;//主巻荷重
@@ -464,13 +528,13 @@ int CPLC_IF::parse_data_out() {
 
     //X70
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.muliti_transmit_ok.x] |= erm_xin_map.muliti_transmit_ok.y;
-    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_stop.x] |= erm_xin_map.gt_anticol_stop.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_stop.x] |= erm_xin_map.gt_anticol_stop.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_alarm.x] |= erm_xin_map.gt_anticol_alarm.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_anticol_fault.x] |= erm_xin_map.gt_anticol_fault.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_east_lim_slow.x] |= erm_xin_map.gt_east_lim_slow.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_east_lim_stop.x] |= erm_xin_map.gt_east_lim_stop.y;
     //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_slow.x] |= erm_xin_map.gt_west_lim_slow.y;
-    //plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_stop.x] |= erm_xin_map.gt_west_lim_stop.y;
+    plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_west_lim_stop.x] |= erm_xin_map.gt_west_lim_stop.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_fix_open.x] |= erm_xin_map.gt_fix_open.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.gt_motor_thermal_trip.x] |= erm_xin_map.gt_motor_thermal_trip.y;
     plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.mh_motor_fan_mc.x] |= erm_xin_map.mh_motor_fan_mc.y;
@@ -670,11 +734,11 @@ int CPLC_IF::parse_data_out() {
     plc_if_workbuf.output.wbuf.hcounter[3] = (UINT32)(15000000.0 + pSim->nd[ID_SLEW].p * 877363.2);                 //ピニオン回転位置
 
     //アブソコーダ
-    plc_if_workbuf.output.wbuf.absocoder[0] = (UINT32)(1024 * pSim->nd[ID_HOIST].p + 19280.0);
-    plc_if_workbuf.output.wbuf.absocoder[1] = (UINT32)(1024 * pSim->nd[ID_AHOIST].p + 19280.0);
+    plc_if_workbuf.output.wbuf.absocoder[0] = (UINT32)(1024 * pSim->nd[ID_HOIST].p + 19280.0);//主巻 1928.0はドラム3層開始（3回転）で50000カウントの条件より
+    plc_if_workbuf.output.wbuf.absocoder[1] = (UINT32)(1024 * pSim->nd[ID_AHOIST].p + 19280.0);//補巻1928.0はドラム3層開始（3回転）で50000カウントの
+    plc_if_workbuf.output.wbuf.absocoder[2] = (UINT32)(pSim->pos[ID_GANTRY] *1000.0);//走行（仮想）はとりあえずmm単位とする
 
 #pragma endregion PLC__HCOUNTER_ABS
-
 
      return 0;
 }

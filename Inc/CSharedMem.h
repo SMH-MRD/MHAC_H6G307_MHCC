@@ -73,19 +73,42 @@ typedef struct StMoveSet {
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 #pragma region PLC IO
-#define PLC_IF_REMOTE_OFF_MODE	0x00000000		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
-#define PLC_IF_RMT_MODE_0		0x00000001		//遠隔運転モード（PCからの出力有効　通常運用モード）
-#define PLC_IF_SIM_MODE_1		0x00000003		//操作端末からの操作入力有効通常運用モード
-#define PLC_IF_SIM_MODE_2		0x00000007		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
+#define PLC_IF_REMOTE_OFF_MODE		0x00000000		//機上運転モード（PCからの出力無効,端末にて状態のモニタのみ）
+#define PLC_IF_RMT_MODE_0			0x00000001		//遠隔運転モード（PCからの出力有効　通常運用モード）
+#define PLC_IF_SIM_MODE_1			0x00000003		//操作端末からの操作入力有効通常運用モード
+#define PLC_IF_SIM_MODE_2			0x00000007		//PLC切り離しモード（PLC IFで機器への指定（ブレーキ,MC等）をシミュレート）
 
-
-#define PLC_DRUM_LAYER_MAX		10				//ドラム層数最大値
+#define PLC_DRUM_LAYER_MAX			10				//ドラム層数最大値
 
 // IO割付内容は、PLC_DEF.hに定義
 // PLC_状態信号構造体（機上センサ信号)
-#define PLC_IF_BRK_OPEN		true
-#define PLC_IF_BRK_CLOSE	false
+#define PLC_IF_BRK_OPEN				true
+#define PLC_IF_BRK_CLOSE			false
 
+#define PLC_IF_INV_DIO_FWD			0x0001
+#define PLC_IF_INV_DIO_REV			0x0002
+
+#define PLC_IF_LIMIT_COM_FWD_NORM		0x0000001
+#define PLC_IF_LIMIT_COM_REV_NORM		0x0000002
+#define PLC_IF_LIMIT_COM_FWD_EMR		0x0000004
+#define PLC_IF_LIMIT_COM_REV_EMR		0x0000008
+#define PLC_IF_LIMIT_COM_FWD_SLOW		0x0000010
+#define PLC_IF_LIMIT_COM_REV_SLOW		0x0000020
+#define PLC_IF_LIMIT_COM_FWD_SLOW2		0x0000040
+#define PLC_IF_LIMIT_COM_REV_SLOW2		0x0000080
+#define PLC_IF_LIMIT_COM_FWD_NORM_EX1	0x0000100
+#define PLC_IF_LIMIT_COM_REV_NORM_EX1	0x0000200
+#define PLC_IF_LIMIT_COM_FWD_EMR_EX1	0x0000400
+#define PLC_IF_LIMIT_COM_REV_EMR_EX1	0x0000800
+#define PLC_IF_LIMIT_COM_FWD_NORM_EX2	0x0001000
+#define PLC_IF_LIMIT_COM_REV_NORM_EX2	0x0002000
+#define PLC_IF_LIMIT_COM_FWD_EMR_EX2	0x0004000
+#define PLC_IF_LIMIT_COM_REV_EMR_EX2	0x0008000
+#define PLC_IF_LIMIT_COM_FWD_NORM_EX3	0x0010000
+#define PLC_IF_LIMIT_COM_REV_NORM_EX3	0x0020000
+#define PLC_IF_LIMIT_COM_FWD_EMR_EX3	0x0040000
+#define PLC_IF_LIMIT_COM_REV_EMR_EX3	0x0080000
+										   
 typedef struct StPLC_IO {
 	INT32 mode;
 	INT32 healthy_cnt;
@@ -97,6 +120,7 @@ typedef struct StPLC_IO {
 	double weight;									//主巻荷重FB
 	double weight_ah;								//補巻荷重FB
 	INT16 brk[MOTION_ID_MAX];						//ブレーキ状態FB 0閉
+	INT32 endlim[MOTION_ID_MAX];					//極限センサ状態
 	INT16 notch_ref[MOTION_ID_MAX];					//ノッチ指令入力FB（OTE入力含む）
 	PLC_READ_BUF		input;						//PLCからの読み取り信号生値
 	PLC_WRITE_BUF		output;						//PLCへの書き込み信号生値

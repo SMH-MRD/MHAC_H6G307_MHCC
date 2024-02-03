@@ -582,7 +582,7 @@ void CJC::set_nah_from_ah(double ah) {
 //旋回位置(rad)から旋回ピニオン回転数をセットする
 void CJC::set_nsl_from_slr(double sl_rad) { 
 	
-	pSimStat->nd[ID_SLEW].p = sl_rad / PI360;						//Cdr[0]ピニオン円周
+	pSimStat->nd[ID_SLEW].p = sl_rad / PI360 *166.0/14.0; //166.0/14.0 TTB径/ピニオン径
 	pSimStat->i_layer[ID_SLEW] = 1;
 	pSimStat->n_layer[ID_SLEW] = sl_rad/PI360;
 

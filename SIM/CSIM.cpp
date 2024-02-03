@@ -132,8 +132,8 @@ int CSIM::input() {
 
     //ˆÚ“®‹ÉŒÀó‘Ô
     for (int i = 0; i < MOTION_ID_MAX;i++) {
-        pCrane->is_fwd_endstop[i] = pCraneStat->is_fwd_endstop[i];
-        pCrane->is_rev_endstop[i] = pCraneStat->is_rev_endstop[i];
+        pCrane->is_fwd_endstop[i] = pPLC->endlim[i] & PLC_IF_LIMIT_COM_FWD_EMR;
+        pCrane->is_rev_endstop[i] = pPLC->endlim[i] & PLC_IF_LIMIT_COM_REV_EMR;
     }
     return 0;
 }

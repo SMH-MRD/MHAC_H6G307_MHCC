@@ -55,7 +55,7 @@ private:
 #define SIM_INIT_AH                 70.0        //デフォルト補巻高さ
 #define SIM_INIT_TH                 PI90        //旋回初期値 rad
 #define SIM_INIT_L                  9.8         //ロープ長初期値 m
-#define SIM_INIT_X                  10.0        //走行初期値 m
+#define SIM_INIT_X                  50.0        //走行初期値 m
 #define SIM_INIT_M                  10000.0     //荷重初期値 kg
 
 #define MOB_MODE_SIM                0

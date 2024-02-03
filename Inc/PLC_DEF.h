@@ -167,8 +167,8 @@ typedef struct st_PLCwrite_tag {//制御PC→PLC
     INT16 cab_di[6];            //運転室PLC→電気室PLC b出力
     INT16 spare0[8];            //運転室PLC→電気室PLC b出力
     UINT32 hcounter[4];          //高速カウンタユニット 
-    UINT32 absocoder[2];         //アブソコーダ 
-    INT16 spare1[4];            //予備
+    UINT32 absocoder[3];         //アブソコーダ 
+    INT16 spare1[2];            //予備
     INT16 pc_fault[2];          //PC検出異常マップ
     INT16 spare2[16];           //予備
     INT16 erm_unitx[4];         //電気室ユニットX 020-03F：カウンタユニット　040-04F　120-12F：ABSユニット
@@ -350,8 +350,8 @@ struct ERMPLC_YOUT_MAP {
     POINT mh_brk_mc                         = { 0,0x0002 };
     POINT ah_brk_mc                         = { 0,0x0004 };
     POINT bh_brk_mc                         = { 0,0x0008 };
-    POINT sl_brk_mc                         = { 0,0x0010 };
-    POINT gt_brk_mc                         = { 0,0x0020 };
+    POINT gt_brk_mc                         = { 0,0x0010 };
+    POINT multi_trans_reset                 = { 0,0x0020 };
     POINT inv_reel_preset                   = { 0,0x0800 };
     POINT inv_reel_power_on                 = { 0,0x1000 };
     POINT inv_reel_gt_start                 = { 0,0x2000 };
