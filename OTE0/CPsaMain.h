@@ -19,18 +19,21 @@
 #define DEF_SPD_CAM_ZOOM  1
 #define DEF_SPD_CAM_IRIS  1
 
+#define DEF_STREAM_FORMAT_H264	3
+#define DEF_STREAM_FORMAT_JPEG	0
+
 
 class CPsaMain
 {
 
 public:
-	CPsaMain(HWND hWnd); 
+	CPsaMain(HWND hWnd, const char* _ip, const char* _user, const char* _pass,long format);
 	CPsaMain();
 
 	~CPsaMain();
 
 	HWND hwork_wnd;
-	HRESULT init_psa(HWND hWnd);
+	HRESULT init_psa(HWND hWnd, const char* _ip, const char* _user, const char* _pass, long format);
 
 	void OnClose();
 	void OnPaint();
@@ -39,6 +42,10 @@ public:
 	void LiveStop();
 	void CtrlStop();
 	void UpdateControl();
+
+	void SwitchCamera(HWND hWnd, const char* _ip, const char* _user, const char* _pass, long format);
+
+
 	
 	//-----------------------------------------------------
 	// Define variables
@@ -60,5 +67,13 @@ public:
 	long	lzoom = 0;
 	long	lfocus = 0;
 	long	liris = 0;
+
+
+	void SetImageSize(long w, long h) {
+		m_psapi->SetImageWidth(640);            //Image width
+		m_psapi->SetImageHeight(480);           //Imgae Height
+		return;
+	}
+
 };
 

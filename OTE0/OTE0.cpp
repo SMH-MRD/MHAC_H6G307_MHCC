@@ -37,10 +37,8 @@ HWND hWnd_work;					//操作端末メインウィンドウハンドル
 HWND hWnd_swy;					//振れウィンドウハンドル
 HWND hWnd_sub[OTE0_N_SUB_WND];	//
 HWND hwnd_current_subwnd = NULL;
-HWND hwnd_camera;
 
-COte* pCOte0;					//OTE0オブジェクト
-CPsaMain* pPSA;					//PSApi処理用オブジェクト
+COte* pCOte0;						//OTE0オブジェクト
 
 //@GDI+
 GdiplusStartupInput gdiSI;
@@ -49,17 +47,20 @@ ULONG_PTR           gdiToken;
 //DIRECTINPUT
 static LPDIRECTINPUT8 lpDI = NULL;			//!< DIRECTINPUT8のポインタ
 static LPDIRECTINPUTDEVICE8 lpGamePad;		//!< DIRECTINPUTDEVICE8のポインタ
+static DIJOYSTATE pad_data;					//!< DIRECTINPUTDEVICE8の状態読み込みバッファ
 
 static INT16 disp_cnt=0;
 static bool is_init_disp = true;
 
-static std::wostringstream msg_wos;
+//IP CAMERA
+static ST_IPCAM_SET st_ipcam[OTE0_N_IP_CAMERA];
 
+static std::wostringstream msg_wos;
 static ST_SPEC spec;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
+ATOM MyRegisterClass(HINSTANCE hInstance);
+BOOL InitInstance(HINSTANCE, int);
 
 HWND open_connect_Wnd(HWND hwnd);
 HWND open_mode_Wnd(HWND hwnd);
@@ -67,7 +68,8 @@ HWND open_fault_Wnd(HWND hwnd);
 HWND open_status_Wnd(HWND hwnd);
 HWND open_auto_Wnd(HWND hwnd);
 HWND open_swy_Wnd(HWND hwnd); 
-HWND open_camera_Wnd(HWND hwnd);
+HWND open_camera_Wnd(HWND hwnd,int id_cam);
+HWND open_camera_Wnd2(HWND hwnd, int id_cam);
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndConnectProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -77,6 +79,7 @@ LRESULT CALLBACK WndFaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 LRESULT CALLBACK WndStatusProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WndCam2Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 void set_OTE_panel_objects(HWND hWnd);			//OTEウィンドウ上へコントロール配置
 void disp_msg_cnt();
@@ -92,7 +95,6 @@ void init_graphic();
 
 void draw_graphic_swy();
 void draw_bk_swy();
-
 
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
@@ -280,7 +282,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		return -1;
 	}
 
-
 	// 入力データ形式のセット
 	ret = lpGamePad->SetDataFormat(&c_dfDIJoystick);
 	if (FAILED(ret)) {
@@ -291,7 +292,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 #if 0
 	// 排他制御のセット
-	ret = lpGamePad->SetCooperativeLevel(hWnd_work, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+	ret = lpGamePad->SetCooperativeLevel(hWnd_work, DISCL_FOREGROUND | DISCL_EXCLUSIVE);
 	if (FAILED(ret)) {
 		lpGamePad->Release();
 		lpDI->Release();
@@ -300,6 +301,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 #endif
 	// 動作開始
 	lpGamePad->Acquire();
+
+
+	//IP CAMERA
+	for (int i = 0; i < OTE0_N_IP_CAMERA; i++) {
+		st_ipcam[i].hwnd = NULL;
+		st_ipcam[i].pPSA = NULL;
+		st_ipcam[i].icam = OTE_CAMERA_ID_NA;
+	}
 
    return TRUE;
 }
@@ -314,7 +323,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 /// <param name="lParam"></param>
 /// <returns></returns>
 static int tmp_counter = 0;
-static DIJOYSTATE pad_data;					//!< DIRECTINPUTDEVICE8の状態読み込みバッファ
+static BYTE gmpad_PB_last[32];
+static DWORD gmpad_POV_last[4];
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
@@ -346,7 +356,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			set_lamp();
 
 			//ON PAINT　呼び出し　表示更新
-			InvalidateRect(hWnd, NULL, FALSE);
+			RECT rc = { 0,245,840,800 };
+			InvalidateRect(hWnd, &rc, FALSE);
+			rc.left = 600; rc.top = 0; rc.bottom = 450;
+			InvalidateRect(hWnd, &rc, FALSE);
+//			InvalidateRect(hWnd, NULL, FALSE);
 				//######
 		}
 
@@ -522,7 +536,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 
 		disp_cnt++;//表示更新用カウンタ（STATIC　Lampフリッカ）
-
 		disp_msg_cnt();	//通信カウント表示更新
 
 		//サブウィンドウにSTATIC表示更新メッセージ送信
@@ -531,12 +544,133 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 
 		//ゲームパッド
-		HRESULT hr = lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
-		if (FAILED(hr)) {
-			lpGamePad->Acquire();
-			lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+		if (lpGamePad != NULL) {
+			HRESULT hr = lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+			if (FAILED(hr)) {
+				lpGamePad->Acquire();
+				lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+			}
 		}
 
+		//Game pad入力
+		//主幹PB
+		if (pad_data.rgbButtons[0]) st_work_wnd.pb_stat[ID_OTE_PB_SYUKAN] = OTE0_PB_OFF_DELAY_COUNT;
+		//故障リセットPB
+		if (pad_data.rgbButtons[6]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
+
+		if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
+			if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = (INT16)((pad_data.lRz - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = ID_OTE_0NOTCH_POS;
+			}
+			if ((pad_data.lZ < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lZ > OTE0_GMPAD_NOTCH0_MAX)) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = (INT16)((pad_data.lZ - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
+			}
+		}
+		if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+			if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = ID_OTE_0NOTCH_POS;
+			}
+			if ((pad_data.lX < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lX > OTE0_GMPAD_NOTCH0_MAX)) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = (INT16)((pad_data.lX - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
+			}
+		}
+		if (pad_data.rgbButtons[11]!= gmpad_PB_last[11]) {
+			st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
+		}
+		if (pad_data.rgbButtons[10] != gmpad_PB_last[10]) {
+			st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
+		}
+		//カメラチルト、パン、ズーム
+		if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd == NULL);							//表示カメラ未登録時はスルー
+		else{ 
+			
+			CPsaMain* pPSA = st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
+
+			//カメラズーム,チルト、パン
+			if (pad_data.rgbButtons[7]) {
+				pPSA->lzoom = DEF_SPD_CAM_ZOOM;//ZOOM N
+			}
+			else if (pad_data.rgbButtons[9]) {
+				pPSA->lzoom = -DEF_SPD_CAM_ZOOM;//ZOOM W
+			}
+			else;
+			if ((pad_data.rgbButtons[7] != gmpad_PB_last[7]) || (pad_data.rgbButtons[9] != gmpad_PB_last[9])) {
+				pPSA->lzoom = 0;
+			}
+			else;
+
+			if ((gmpad_POV_last[0] > 36000) && (pad_data.rgdwPOV[0] <= 36000)) {//入力ON時指令クリア
+				pPSA->ltilt = pPSA->lpan = 0;
+			}
+			else if ((gmpad_POV_last[0] <= 36000) && (pad_data.rgdwPOV[0] > 36000)) {//入力OFF時指令クリア
+				pPSA->ltilt = pPSA->lpan = 0;
+			}
+			else if (pad_data.rgdwPOV[0] < 1500) {
+				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = 0;
+			}
+			else if (pad_data.rgdwPOV[0] < 7500) {
+				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = DEF_SPD_CAM_PAN;
+			}
+			else if (pad_data.rgdwPOV[0] < 10500) {
+				pPSA->ltilt = 0; pPSA->lpan = DEF_SPD_CAM_PAN;
+			}
+			else if (pad_data.rgdwPOV[0] < 16500) {
+				pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = DEF_SPD_CAM_PAN;
+			}
+			else if (pad_data.rgdwPOV[0] < 19500) {
+				pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = 0;
+			}
+			else if (pad_data.rgdwPOV[0] < 25500) {
+				pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = -DEF_SPD_CAM_PAN;
+			}
+			else if (pad_data.rgdwPOV[0] < 28500) {
+				pPSA->ltilt = 0; pPSA->lpan = -DEF_SPD_CAM_PAN;
+			}
+			else if (pad_data.rgdwPOV[0] < 34500) {
+				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = -DEF_SPD_CAM_PAN;
+			}
+			else if (pad_data.rgdwPOV[0] <= 36000) {
+				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = 0;
+			}
+			else;
+
+			//全方位カメラ
+			if (pad_data.rgbButtons[12] > gmpad_PB_last[12]) {
+				pPSA->m_psapi->SetCameraImageCap(20, 0);//魚眼天井
+				pPSA->LiveStop(); Sleep(1000);
+				pPSA->LiveStart();
+			}
+			else if (pad_data.rgbButtons[13] > gmpad_PB_last[13]) {
+
+				pPSA->m_psapi->SetCameraImageCap(21, 1);//１PTZ壁
+				pPSA->LiveStop(); Sleep(1000);
+				pPSA->LiveStart();
+			}
+			else if (pad_data.rgbButtons[14] > gmpad_PB_last[14]) {
+				pPSA->m_psapi->SetCameraImageCap(22, 0);//4PTZ天井
+				pPSA->LiveStop(); Sleep(1000);
+				pPSA->LiveStart();
+			}
+			else;
+
+		}
+
+		//前回値保持
+		for (int i = 0; i < 16; i++) gmpad_PB_last[i] = pad_data.rgbButtons[i];
+		gmpad_POV_last[0] = pad_data.rgdwPOV[0];
+			
 	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
@@ -545,6 +679,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_PB_TEISHI) && (wmId <= BASE_ID_OTE_PB + ID_OTE_PB_FUREDOME)) {
 			st_work_wnd.pb_stat[wmId - BASE_ID_OTE_PB] = OTE0_PB_OFF_DELAY_COUNT;
 		}
+
 		//NOTCH　RADIO PB
 		if ((wmId >= ID_OTE_NOTCH_MH_MIN) && (wmId <= ID_OTE_NOTCH_AH_MAX)) {
 			if (wmId < ID_OTE_NOTCH_MH_MAX) {
@@ -587,6 +722,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 		//表示カメラ選択　RADIO PB
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_WIDE) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_OPE2)) {
+			if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA,0, wmId - BASE_ID_OTE_PB);
+			}
 			st_work_wnd.camera_sel = wmId - BASE_ID_OTE_PB;
 			break;
 		}
@@ -613,10 +751,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 		//カメラウィンドウ表示
 		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_WND: {
-			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) 
-				DestroyWindow(hwnd_camera);
-			else 
-				open_camera_Wnd(hWnd);
+			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) {
+				
+				if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
+					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStop();
+					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->OnClose();
+					delete st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
+					DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd);
+				}
+
+				if (st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd != NULL) {
+					st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->LiveStop();
+					st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->OnClose();
+					delete st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA;
+					DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd);
+				}
+			}
+			else {
+				if (st_work_wnd.camera_sel == ID_OTE_RADIO_WIDE)open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
+				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_OPE1)open_camera_Wnd(hWnd, OTE_CAMERA_ID_FISH0);
+				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_HOOK)open_camera_Wnd(hWnd, OTE_CAMERA_ID_HOOK0);
+				else open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
+
+				open_camera_Wnd2(hWnd, OTE_CAMERA_ID_HOOK0);
+			}
+
 		}
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -699,6 +858,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		KillTimer(hWnd_work, ID_OTE_MULTICAST_TIMER);
 		KillTimer(hWnd_work, ID_OTE_UNICAST_TIMER);
 		delete_objects(hWnd_work);
+
+		for (int i = 0; i < OTE0_N_IP_CAMERA; i++) {
+			if (st_ipcam[i].hwnd!=NULL) {
+				st_ipcam[i].pPSA->LiveStop();
+				st_ipcam[i].pPSA->OnClose();
+				delete st_ipcam[i].pPSA;
+				DestroyWindow(st_ipcam[i].hwnd);
+			}
+		}
+
 		PostQuitMessage(0);
 	}break;
 	default:
@@ -1127,14 +1296,26 @@ LRESULT CALLBACK WndStatusProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	}
 	return S_OK;
 }
+
+static HDC hCaptureDC;
+static HBITMAP hCaptureBitmap;
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
 	switch (message)
 	{
 	case WM_CREATE: {
 		InitCommonControls();//コモンコントロール初期化
+
 		//ウィンドウにコントロール追加
 
+		
+		// ウィンドウを透明にする
+		SetLayeredWindowAttributes(hWnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
+
+		SetTimer(hWnd, 123, 100, NULL);
+	}
+	case WM_TIMER: {
+		InvalidateRect(hWnd_sub[ID_OTE0_SWY_WND], NULL, TRUE);//表示更新
 	}
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
@@ -1151,15 +1332,21 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 
-		draw_bk_swy();
-		draw_graphic_swy();
+		if (1) {
+		//if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd == NULL) {
+			draw_bk_swy();
+			draw_graphic_swy();
 
-		BitBlt(hdc, 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_BK], 0, 0, SRCCOPY);
-		//グラフィックを重ね合わせ
-		TransparentBlt(	hdc, 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
-			st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
-						RGB(255, 255, 255));
-
+			BitBlt(hdc, 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_BK], 0, 0, SRCCOPY);
+			//グラフィックを重ね合わせ
+			TransparentBlt(hdc, 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+				st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+				RGB(255, 255, 255));
+		}
+		else {
+			HDC hCamDC = GetDC(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd);
+			StretchBlt(hdc, 0, 0, 280, 240, hCamDC, 0, 0, 640, 480, SRCCOPY);
+		}
 		EndPaint(hWnd, &ps);
 	}break;
 	case WM_DESTROY: {
@@ -1172,19 +1359,29 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	return S_OK;
 }
 
-static HDC hCaptureDC;
-static HBITMAP hCaptureBitmap;
 
 LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
 	int id;
 	HINSTANCE hInst = GetModuleHandle(0);
+
+	CPsaMain* pPSA=NULL;
+	int id_cam;
+	if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
+		pPSA = st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
+		id_cam = st_ipcam[OTE_CAMERA_WND_ID_BASE].icam;
+	}
+	else
+		;//	return S_OK;
+
 	switch (message)
 	{
+
 	case WM_CREATE: {
 		InitCommonControls();//コモンコントロール初期化
 		//マルチキャストタイマ起動 
 		SetTimer(hWnd, ID_OTE_CAMERA_TIMER, OTE_CAMERA_SCAN_MS,NULL);
+		//SetTimer(hWnd, ID_OTE_CAMERA_TIMER, 1000, NULL);
 
 		//CHECK BOX
 		for (LONGLONG i = ID_OTE_CHK_CAMERA_LIVE; i <= ID_OTE_CHK_CAMERA_ZOMN; i++) {
@@ -1205,15 +1402,18 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 			st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_TOUCH].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_TOUCH].cy,
 			hWnd, (HMENU)(BASE_ID_OTE_PB + ID_OTE_CHK_TOUCH), hInst, NULL);
 
-		// PSAPI処理オブジェクト
-		pPSA = new CPsaMain();
-		pPSA->init_psa(hWnd);
+		//カメラ起動
+		SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_LIVE], BM_SETCHECK, BST_CHECKED, 0);
+		st_work_wnd.pb_lamp[ID_OTE_CHK_CAMERA_LIVE].com = L_ON;
+		
 
 	}break;
 	case WM_TIMER: {
-			InvalidateRect(hWnd, NULL, FALSE);
-		}
+	//	InvalidateRect(hWnd, NULL, FALSE);
 
+		pPSA->UpdateControl();
+
+	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
 
@@ -1237,8 +1437,193 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				pPSA->ltilt = -DEF_SPD_CAM_TILT;
 				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILD], BM_SETCHECK, BST_UNCHECKED, 0L);
 			}
+			else {
+				pPSA->ltilt = 0;
+			}
+			pPSA->UpdateControl();
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILD: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILD], BM_GETCHECK, 0, 0)) {
+				pPSA->ltilt = DEF_SPD_CAM_TILT;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILU], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
 			else
 				pPSA->ltilt = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANL: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANL], BM_GETCHECK, 0, 0)) {
+				pPSA->lpan = -DEF_SPD_CAM_PAN;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANR], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lpan = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_PANR: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANR], BM_GETCHECK, 0, 0)) {
+				pPSA->lpan = DEF_SPD_CAM_PAN;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_PANL], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lpan = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMW: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMW], BM_GETCHECK, 0, 0)) {
+				pPSA->lzoom = -DEF_SPD_CAM_ZOOM;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMN], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lzoom = 0;
+
+			pPSA->UpdateControl();
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_ZOMN: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMN], BM_GETCHECK, 0, 0)) {
+				pPSA->lzoom = DEF_SPD_CAM_ZOOM;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_ZOMW], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else
+				pPSA->lzoom = 0;
+
+			pPSA->UpdateControl();
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_PB_CAMERA_STOP: {
+			pPSA->CtrlStop();
+			for (int i = ID_OTE_CHK_CAMERA_TILU; i <= ID_OTE_CHK_CAMERA_ZOMN; i++) {
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+		}break;
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_TOUCH: {
+			RECT rc;
+			if (st_work_wnd.is_test_wnd_follow_main) {
+				st_work_wnd.is_test_wnd_follow_main = false;
+				GetWindowRect(hWnd, &rc);
+				SetWindowPos(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, HWND_TOPMOST, rc.left + 100, rc.top + 80, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
+			}
+			else {
+				st_work_wnd.is_test_wnd_follow_main = true;
+				GetWindowRect(hWnd_work, &rc);
+				SetWindowPos(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, HWND_TOPMOST, rc.left + 280, rc.top + 40, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
+			}
+		}
+
+		}
+	}break;
+	case OTE0_MSG_SWICH_CAMERA: 
+	{
+		
+		pPSA->LiveStop();
+		switch (lParam) {
+		case ID_OTE_RADIO_HOOK: {
+			pPSA->SwitchCamera(hWnd,OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_H264);
+		}break;
+		case ID_OTE_RADIO_OPE1: 
+		case ID_OTE_RADIO_OPE2:
+		{
+			pPSA->SwitchCamera(hWnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_JPEG);
+		}break;
+
+		case ID_OTE_RADIO_WIDE:
+		case ID_OTE_RADIO_ZOOM:
+		default:
+		{
+			pPSA->SwitchCamera(hWnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_H264);
+		}break;
+		}
+	}break;
+	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+//画面切取サンプル
+#if 0
+		// ウィンドウを透明にする
+		SetLayeredWindowAttributes(hwnd_camera[0], RGB(0, 0, 0), 0, LWA_COLORKEY);
+
+		// デスクトップ画面の一部を切り取る
+		//st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW] = GetDC(NULL);
+		
+		hCaptureDC = CreateCompatibleDC(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW]);
+		hCaptureBitmap = CreateCompatibleBitmap(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], 640, 480);
+		SelectObject(hCaptureDC, hCaptureBitmap);
+		BitBlt(hCaptureDC, 0, 0, 640, 480, st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], OTE0_CAM_WND_TG_X, OTE0_CAM_WND_TG_Y, SRCCOPY);
+
+		// 切り取った画像をウィンドウに表示する
+	//	HDC hWindowDC = GetDC(hwnd_camera[0]);
+		BitBlt(hdc, 0, 0, 640, 480, hCaptureDC, 0, 0, SRCCOPY);
+
+		// 後始末
+//		SelectObject(hCaptureDC, hOldBitmap);
+
+#endif
+		EndPaint(hWnd, &ps);
+	}break;
+	case WM_DESTROY: {
+		id_cam = OTE_CAMERA_ID_NA;
+		st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd = NULL;
+
+		KillTimer(hWnd_work, ID_OTE_CAMERA_TIMER);
+		DeleteObject(hCaptureBitmap);
+		//PostQuitMessage(0);
+	}break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return S_OK;
+}
+LRESULT CALLBACK WndCam2Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	HDC hdc;
+	int id;
+	HINSTANCE hInst = GetModuleHandle(0);
+
+	CPsaMain* pPSA = NULL;
+	int id_cam;
+	if (st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd != NULL) {
+		pPSA = st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA;
+		id_cam = st_ipcam[OTE_CAMERA_WND_ID_OPT1].icam;
+	}
+
+	switch (message)
+	{
+	
+	case WM_TIMER: {
+		SetTimer(hWnd, 12345, 100, NULL);
+	}break;
+	case WM_COMMAND: {
+		int wmId = LOWORD(wParam);
+#if 0
+		switch (wmId)
+		{
+
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_LIVE:
+		{
+			//コマンドのON/OFFはLamp指令領域を利用
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+				pPSA->LiveStart();
+			}
+			else {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
+				pPSA->LiveStop();
+			}
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILU: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILU], BM_GETCHECK, 0, 0)) {
+				pPSA->ltilt = -DEF_SPD_CAM_TILT;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_TILD], BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			else {
+				pPSA->ltilt = 0;
+			}
 			pPSA->UpdateControl();
 		}break;
 		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_TILD: {
@@ -1303,39 +1688,21 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		}break;
 
 		}
+#endif
 	}break;
+	case OTE0_MSG_SWICH_CAMERA:
+	{
 
+	}break;
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-//画面切取サンプル
-#if 0 
-		// ウィンドウを透明にする
-		SetLayeredWindowAttributes(hwnd_camera, RGB(0, 0, 0), 0, LWA_COLORKEY);
-
-		// デスクトップ画面の一部を切り取る
-		st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW] = GetDC(NULL);
-		hCaptureDC = CreateCompatibleDC(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW]);
-		hCaptureBitmap = CreateCompatibleBitmap(st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], 640, 480);
-		SelectObject(hCaptureDC, hCaptureBitmap);
-		BitBlt(hCaptureDC, 0, 0, 640, 480, st_work_wnd.hdc[ID_OTE_HDC_CAMERA_VIEW], OTE0_CAM_WND_TG_X, OTE0_CAM_WND_TG_Y, SRCCOPY);
-
-		// 切り取った画像をウィンドウに表示する
-	//	HDC hWindowDC = GetDC(hwnd_camera);
-		BitBlt(hdc, 0, 0, 640, 480, hCaptureDC, 0, 0, SRCCOPY);
-
-		// 後始末
-//		SelectObject(hCaptureDC, hOldBitmap);
-
-#endif
+		//画面切取サンプル
 		EndPaint(hWnd, &ps);
 	}break;
 	case WM_DESTROY: {
-		KillTimer(hWnd_work, ID_OTE_CAMERA_TIMER);
-		DeleteObject(hCaptureBitmap);
-		pPSA->OnClose();
-		delete pPSA;
-		//PostQuitMessage(0);
+		id_cam = OTE_CAMERA_ID_NA;
+		st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd = NULL;
 	}break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -1585,21 +1952,23 @@ HWND open_swy_Wnd(HWND hwnd) {
 	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_BK], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, WHITENESS);
 	PatBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, WHITENESS);
 
-	InvalidateRect(hWnd_sub[ID_OTE0_SWY_WND], NULL, TRUE);//表示更新
+	//InvalidateRect(hWnd_sub[ID_OTE0_SWY_WND], NULL, TRUE);//表示更新
 
 	ShowWindow(hWnd_sub[ID_OTE0_SWY_WND], SW_SHOW);
 	UpdateWindow(hWnd_sub[ID_OTE0_SWY_WND]);
 
 	return hWnd_sub[ID_OTE0_SWY_WND];
 }
-#if 1
-HWND open_camera_Wnd(HWND hwnd) {
+
+HWND open_camera_Wnd(HWND hwnd, int id_cam) {
+		
 	InitCommonControls();//コモンコントロール初期化
 	HINSTANCE hInst = GetModuleHandle(0);
+
 	WNDCLASSEXW wcex;
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndCamProc;
+	wcex.lpfnWndProc = WndCamProc; //WndSwyProc2;
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
 	wcex.hInstance = (HINSTANCE)GetModuleHandle(0);;
@@ -1611,65 +1980,89 @@ HWND open_camera_Wnd(HWND hwnd) {
 	wcex.hIconSm = NULL;
 
 	ATOM fb = RegisterClassExW(&wcex);
-	
-	hwnd_camera = CreateWindowW(TEXT("CAMERA VIEW"), TEXT("CAMERA VIEW"), WS_POPUP | WS_BORDER | WS_OVERLAPPEDWINDOW,
-			OTE0_CAM_WND_X, OTE0_CAM_WND_Y, OTE0_CAM_WND_W, OTE0_CAM_WND_H,
-			hwnd, nullptr, hInst, nullptr);
+	HWND hcamwnd=NULL;
 
-	//デバイスコンテキスト
-	HDC hdc = GetDC(hwnd_camera);
-	TextOutW(hdc, 10, 10, L"<<Camera>>", 15);
-	ReleaseDC(hwnd_camera, hdc);
+	st_ipcam[OTE_CAMERA_WND_ID_BASE].icam = id_cam;
+	hcamwnd = st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd = CreateWindowW(TEXT("Camera View"), TEXT("Camera View"), WS_POPUP | WS_BORDER ,//| WS_OVERLAPPEDWINDOW,
+														OTE0_CAM_WND_X, OTE0_CAM_WND_Y, OTE0_CAM_WND_W, OTE0_CAM_WND_H,
+														hwnd, nullptr, hInst, nullptr);
 
-	InvalidateRect(hwnd_camera, NULL, TRUE);//表示更新
+	if (hcamwnd != NULL) {
+		if (id_cam == OTE_CAMERA_ID_PTZ0) {
+			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+		}
+		else if (id_cam == OTE_CAMERA_ID_FISH0) {
+			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_JPEG);
+		}
+		else if (id_cam == OTE_CAMERA_ID_HOOK0) {
+			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+		}
+		else {
+			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+		}
+		st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStart();
+	}
 
-	ShowWindow(hwnd_camera, SW_SHOW);
-	UpdateWindow(hwnd_camera);
+	ShowWindow(hcamwnd, SW_SHOW);
+	UpdateWindow(hcamwnd);
 
-	return hwnd_camera;
+	return hcamwnd;
 }
-#else
-HWND open_camera_Wnd(HWND hwnd) {
+
+HWND open_camera_Wnd2(HWND hwnd, int id_cam) {
 	InitCommonControls();//コモンコントロール初期化
 	HINSTANCE hInst = GetModuleHandle(0);
-	// ウィンドウを作成
-	hwnd_camera = CreateWindowEx(
-		WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+	WNDCLASSEXW wcex;
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndCam2Proc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = (HINSTANCE)GetModuleHandle(0);;
+	wcex.hIcon = NULL;
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = NULL;// TEXT("OTECON");
+	wcex.lpszClassName = TEXT("Camera2 View");
+	wcex.hIconSm = NULL;
 
-		L"STATIC",
-		L"Desktop Capture",
-		WS_POPUP,
-		900, 650, 640, 480,
-		NULL, NULL, NULL, NULL);
+	ATOM fb = RegisterClassExW(&wcex);
+	HWND hcamwnd;
 
-	// ウィンドウを透明にする
-	SetLayeredWindowAttributes(hwnd_camera, RGB(0, 0, 255), 0, LWA_COLORKEY);
-
-	// デスクトップ画面の一部を切り取る
-	HDC hDC = GetDC(NULL);
-	HDC hCaptureDC = CreateCompatibleDC(hDC);
-	HBITMAP hCaptureBitmap = CreateCompatibleBitmap(hDC, 640, 480);
-	HGDIOBJ hOldBitmap = SelectObject(hCaptureDC, hCaptureBitmap);
-	BitBlt(hCaptureDC, 0, 0, 640, 480, hDC, 0, 0, SRCCOPY);
-
-	// 切り取った画像をウィンドウに表示する
-	HDC hWindowDC = GetDC(hwnd_camera);
-	BitBlt(hWindowDC, 0, 0, 640, 480, hCaptureDC, 0, 0, SRCCOPY);
-
-	// 後始末
-	SelectObject(hCaptureDC, hOldBitmap);
-	DeleteObject(hCaptureBitmap);
-	DeleteDC(hCaptureDC);
-	ReleaseDC(NULL, hDC);
-	ReleaseDC(hwnd_camera, hWindowDC);
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].icam = id_cam;
+	hcamwnd = st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd = CreateWindowW(TEXT("Camera2 View"), TEXT("CAMERA VIEW"), WS_POPUP | WS_BORDER,//| WS_OVERLAPPEDWINDOW,
+		OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H,
+		hwnd, nullptr, hInst, nullptr);
+	if (id_cam == OTE_CAMERA_ID_PTZ0) {
+		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+	}
+	else if (id_cam == OTE_CAMERA_ID_FISH0) {
+		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_JPEG);
+	}
+	else if (id_cam == OTE_CAMERA_ID_HOOK0) {
+		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+	}
+	else {
+		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+	}
 
 
-	// ウィンドウを表示
-	ShowWindow(hwnd_camera, SW_SHOW);
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetH264Resolution(320);
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetJPEGResolution(320);
 
-	return hwnd_camera;
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetImageWidth(320);            //Image width
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetImageHeight(240);           //Imgae Height
+
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->LiveStart();
+
+
+	ShowWindow(hcamwnd, SW_SHOW);
+	UpdateWindow(hcamwnd);
+
+	MoveWindow(hcamwnd, OTE0_CAM2_WND_X - 1280, OTE0_CAM2_WND_Y-3, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
+
+	return hcamwnd;
 }
-#endif
 
 //*********************************************************************************************
 /// <summary>
@@ -2002,15 +2395,19 @@ void draw_info() {
 	wo_msg << L"旋回径(m):" << pCOte0->data.pos[ID_BOOM_H];
 	TextOutW(hdc, OTE0_GR_AREA_X+5, OTE0_GR_AREA_Y+20, wo_msg.str().c_str(), (int)wo_msg.str().length());
 	wo_msg.str(L"");
+#if 0
+	wo_msg.str(L"");
+	wo_msg << L"lX:" << pad_data.lX << L"  lY:" << pad_data.lY << L"  lZ:" << pad_data.lZ << L"  lRz:" << pad_data.lRz;
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
-	wo_msg << L"lX:" << pad_data.lX << L"  lY:" << pad_data.lY << L"  lZ:" << pad_data.lZ;
-	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg << L"POV0:" << pad_data.rgdwPOV[0] << L"POV1:" << pad_data.rgdwPOV[1] << L"POV2:" << pad_data.rgdwPOV[2] << L"POV3:" << pad_data.rgdwPOV[3];
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 65, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"PB:");
 	for (int i = 0; i < 16; i++) wo_msg << L"[" << i << L"]" << pad_data.rgbButtons[i] << L" ";
 	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 50, wo_msg.str().c_str(), (int)wo_msg.str().length());
-
+#endif
 
 	wo_msg.str(L"");
 	wo_msg << L"走行位置(m):" << pCOte0->data.pos[ID_GANTRY];

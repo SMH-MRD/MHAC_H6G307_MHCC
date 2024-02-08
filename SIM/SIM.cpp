@@ -217,7 +217,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             5, 35, 80, 20, hWnd, (HMENU)IDC_PB_ACTIVE, hInst, NULL);
 
          stMainWnd.h_chk_monwnd = CreateWindow(L"BUTTON", L"MON", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-            5, 65, 80, 20, hWnd, (HMENU)IDC_CHK_MON_WND, hInst, NULL);
+            120, 35, 80, 20, hWnd, (HMENU)IDC_CHK_MON_WND, hInst, NULL);
         SendMessage(stMainWnd.h_chk_monwnd, BM_SETCHECK, BST_CHECKED, 0L);
         pWorkWnd->open_WorkWnd(hWnd);
     }

@@ -1,9 +1,9 @@
-﻿// OTE_IF.cpp : アプリケーションのエントリ ポイントを定義します。
+﻿// SWAY_IF.cpp : アプリケーションのエントリ ポイントを定義します。
 //
 
 #include "framework.h"
-#include "OTE_IF.h"
-#include "COTE_IF.h"
+#include "SWAY_IF.h"
+#include "CSwayIF.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <winsock2.h>
@@ -12,7 +12,6 @@
 
 
 #define MAX_LOADSTRING 100
-
 
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
@@ -23,14 +22,7 @@ static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
 DWORD* psource_proc_counter = NULL;             //メインプロセスのヘルシーカウンタ
 
-COteIF* pProcObj;                               //メイン処理オブジェクト:
-
-// #Touchタッチポイント
-    int wmId, wmEvent, i, x, y;
-    UINT cInputs;
-    PTOUCHINPUT pInputs;
-    POINT ptInput;
-// #Touchタッチポイント
+CSwayIF* pProcObj;          //メイン処理オブジェクト:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -44,7 +36,6 @@ HWND CreateStatusbarMain(HWND hWnd);
 //# マルチメディアタイマイベントコールバック関数
 VOID CALLBACK alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
 
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -57,7 +48,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_OTEIF, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_SWAYIF, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // アプリケーション初期化の実行:
@@ -66,7 +57,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_OTEIF));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SWAYIF));
 
     MSG msg;
 
@@ -99,17 +90,17 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_OTEIF));
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SWAYIF));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_OTEIF);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SWAYIF);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
 
-//******************************************************************************************
+//
 //   関数: InitInstance(HINSTANCE, int)
 //
 //   目的: インスタンス ハンドルを保存して、メイン ウィンドウを作成します
@@ -122,8 +113,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
-
-                           // メイン処理クラスの初期化
+     // メイン処理オブジェクトインスタンス化
+   pProcObj = new CSwayIF;                              // メイン処理クラスのインスタンス化
+   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
+   pProcObj->init_proc();                               // メイン処理クラスの初期化
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
@@ -132,14 +125,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    if (!hWnd)
    {
-       return FALSE;
+      return FALSE;
    }
 
-   // メイン処理オブジェクトインスタンス化
-   pProcObj = new COteIF(hWnd);                              // メイン処理クラスのインスタンス化
-   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
-   pProcObj->init_proc();
-   
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
@@ -168,23 +156,26 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
            return((DWORD)FALSE);
        }
    }
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
    return TRUE;
 }
-//******************************************************************************************
-/// <summary>
-/// メイン ウィンドウのメッセージを処理します。
-/// </summary>
-/// <param name="hWnd"></param>
-/// <param name="message"></param>
-/// <param name="wParam"></param>
-/// <param name="lParam"></param>
-/// <returns></returns>
+
+//
+//  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
+//
+//  目的: メイン ウィンドウのメッセージを処理します。
+//
+//  WM_COMMAND  - アプリケーション メニューの処理
+//  WM_PAINT    - メイン ウィンドウを描画する
+//  WM_DESTROY  - 中止メッセージを表示して戻る
+//
+//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-     switch (message)
+    switch (message)
     {
     case WM_CREATE:
     {
@@ -194,22 +185,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
         SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
 
-        stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            5, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+        //製品モードセット
+      //  pProcObj->set_debug_mode(L_OFF);
+        //メインウィンドウにコントロール追加
+        if (pProcObj->is_debug_mode()) {
+            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"DEBUG MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+                100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"NORMAL->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
 
-        stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-            5, 30, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
+        }
+        else {
+            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+                100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
 
-        stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE0", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-            90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_OTE, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_local_ote, BM_SETCHECK, BST_UNCHECKED, 0L);
-        
+        }
+
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            150, 5, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+            305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
-         //表示更新タイマ起動
+
+        //センサとの通信状態表示ツールウィンドウ表示切り替えボタン
+        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            20, 85, 80, 25, hWnd, (HMENU)IDC_CHK_COMWIN, hInst, NULL);
+
+
+
+        //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
+
+        //IF Window起動
+        if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
     }
     break;
     case WM_COMMAND:
@@ -218,23 +226,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
-        case IDC_CHK_IFCHK: {
-            if (pProcObj->hWnd_work != NULL) {
-                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_if, BM_GETCHECK, 0, 0)) {
-                    pProcObj->show_if_wnd();
-                }
-                else {
-                    pProcObj->hide_if_wnd();
-                    pProcObj->set_if_disp_hold(false);
-                }
-            }
-         }break;
-        case IDC_CHK_OTE: {
-            if (BST_CHECKED == SendMessage(stMainWnd.h_chk_local_ote, BM_GETCHECK, 0, 0))
-                ;// デフォルトオペレーションパネル起動
-            else
-                ;// デフォルトオペレーションパネルクローズ
-        }break;
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
@@ -242,20 +233,94 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDC_PB_EXIT:
             DestroyWindow(hWnd);
             break;
- 
+        case IDC_PB_DEBUG:
+            if (!(pProcObj->mode & SWAY_IF_SIM_DBG_MODE)) {
+                pProcObj->set_debug_mode(L_ON);
+                SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
+                SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
+            }
+            else {
+                pProcObj->set_debug_mode(L_OFF);
+                SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
+                SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
+            }
+
+            TCHAR tbuf[32];
+            wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+            break;
+
+            DestroyWindow(hWnd);
+            break;
+
+        case IDC_CHK_COMWIN:
+
+            if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
+            else                pProcObj->close_WorkWnd();
+            break;
+
+        case  IDC_PB_SENSOR_1:
+
+            break;
+        case  IDC_PB_SENSOR_2:
+            break;
+        case  IDC_PB_0SET_CAMERA:
+            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERA1_0SET);
+            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERA2_0SET);
+            break;
+        case  IDC_PB_0SET_TILT:
+            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT1_0SET);
+            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT2_0SET);
+            break;
+        case  IDC_PB_RESET_CAMERA:
+            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR1_RESET);
+            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR2_RESET);
+            break;
+        case  IDC_PB_RESET_TILT:
+            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT1_RESET);
+            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT2_RESET);
+            break;
+        case  IDC_PB_PC_RESET:
+            pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_PC_RESET);
+            break;
+        case  IDC_PB_SCREEN_SHOT:
+            pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_SAVE_IMG);
+            break;
+
+        case  ID_CHECK_SWAY_CAL_NO_OFFSET:
+            if (IsDlgButtonChecked(hWnd, ID_CHECK_SWAY_CAL_NO_OFFSET) == BST_CHECKED) pProcObj->cal_mode |= ID_SWAY_CAL_NO_OFFSET;
+            else pProcObj->cal_mode &= ~ID_SWAY_CAL_NO_OFFSET;
+            break;
+
+        case  ID_CHECK_SWAY_CAL_NO_TILT:
+            if (IsDlgButtonChecked(hWnd, ID_CHECK_SWAY_CAL_NO_TILT) == BST_CHECKED) pProcObj->cal_mode |= ID_SWAY_CAL_NO_TILT;
+            else pProcObj->cal_mode &= ~ID_SWAY_CAL_NO_TILT;
+            break;
+
+
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
     }
     break;
+    case WM_TIMER: {
+#if 0
+        if (pProcObj->is_debug_mode()) {
+            SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
+            SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
+        }
+        else {
+            SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
+            SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
+        }
+#endif
+    }break;
 
     case WM_PAINT:
     {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
-        hdc = BeginPaint(hWnd, &ps);
-        RECT client;
-        GetClientRect(hWnd, &client);
+        // TODO: HDC を使用する描画コードをここに追加してください...
         EndPaint(hWnd, &ps);
     }
     break;
@@ -267,15 +332,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return 0;
 }
-//******************************************************************************************
-/// <summary>
-/// バージョン情報ボックスのメッセージ ハンドラーです。
-/// </summary>
-/// <param name="hDlg"></param>
-/// <param name="message"></param>
-/// <param name="wParam"></param>
-/// <param name="lParam"></param>
-/// <returns></returns>
+// バージョン情報ボックスのメッセージ ハンドラーです。
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -294,16 +351,16 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-//******************************************************************************************
-/// <summary>
-/// メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
-/// </summary>
-/// <param name="hWnd"></param>
-/// <returns></returns>
+
+///#　******************************************************************************************
+//  関数: CreateStatusbarMain(HWND)
+//
+//  目的: メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
+//　******************************************************************************************  
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
-    int sb_size[] = { 60,90,120,180 };//ステータス区切り位置
+    int sb_size[] = { 60,120,180,240,290,360 };//ステータス区切り位置
 
     InitCommonControls();
     hSBWnd = CreateWindowEx(
@@ -317,20 +374,16 @@ HWND CreateStatusbarMain(HWND hWnd)
         (HMENU)ID_STATUS,           //ウィンドウのＩＤ
         hInst,                      //インスタンスハンドル
         NULL);
-    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)4, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
+    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)6, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
     ShowWindow(hSBWnd, SW_SHOW);
     return hSBWnd;
 }
+
+///#　****************************************************************************************
+//  関数: alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
+//  目的: アプリケーションメイン処理
+// 　マルチメディアタイマーイベント処理関数
 //  ******************************************************************************************
-/// <summary>
-/// アプリケーションメイン処理
-/// マルチメディアタイマーイベント処理関数
-/// </summary>
-/// <param name="uID"></param>
-/// <param name="uMsg"></param>
-/// <param name="dwUser"></param>
-/// <param name="dw1"></param>
-/// <param name="dw2"></param>
 VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
     knl_manage_set.sys_counter++;
@@ -341,15 +394,16 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     pProcObj->parse();      //データ解析処理
     pProcObj->output();    //出力
 
-
-
     //Statusバーにメインプロセスのカウンタ表示
     if (psource_proc_counter != NULL) {
         if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
             wsprintf(tbuf, L"%08d", *psource_proc_counter);
-            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 3, (LPARAM)tbuf);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
         }
     }
 
     return;
 }
+
+
+

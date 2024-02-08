@@ -4,7 +4,7 @@
 #include "common_def.h"
 #include "spec.h"
 #include "CVector3.h"
-#include "Swaysensor.h"
+#include "SwySensor_DEF.h"
 #include "OTE_DEF.h"
 #include "PLC_DEF.h"
 

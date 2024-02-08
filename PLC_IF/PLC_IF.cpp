@@ -199,21 +199,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             10, 5, 180, 20, hWnd, (HMENU)IDC_STATIC_0,hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT",  WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            150, 65, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+            150, 60, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-            5, 65, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
+            5, 60, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
         SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
         //pProcObj->hide_if_wnd();
 
         stMainWnd.h_redio_m0 = CreateWindow(L"BUTTON", L"M0", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-            5, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_M0, hInst, NULL);
+            5, 30, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_M0, hInst, NULL);
         stMainWnd.h_redio_m1 = CreateWindow(L"BUTTON", L"M1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
-            50, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M1, hInst, NULL);
+            50, 30, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M1, hInst, NULL);
         stMainWnd.h_redio_m2 = CreateWindow(L"BUTTON", L"M2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            95, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M2, hInst, NULL);
+            95, 30, 40, 25, hWnd, (HMENU)IDC_RADIO_SIM_M2, hInst, NULL);
         stMainWnd.h_redio_moff = CreateWindow(L"BUTTON", L"OF", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            140, 35, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_OFF, hInst, NULL);
+            140, 30, 40, 25, hWnd, (HMENU)IDC_RADIO_RMT_OFF, hInst, NULL);
         
         pProcObj->set_mode(PLC_IF_SIM_MODE_2);
         SendMessage(stMainWnd.h_redio_m2, BM_SETCHECK, BST_CHECKED, 0L);

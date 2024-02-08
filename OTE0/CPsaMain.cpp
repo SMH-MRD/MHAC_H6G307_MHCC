@@ -8,10 +8,11 @@
 //****************************************************************
 //* Function Name   : CPsaMain
 //****************************************************************/
-CPsaMain::CPsaMain(HWND hWnd){
+CPsaMain::CPsaMain(HWND hWnd, const char* _ip, const char* _user, const char* _pass, long _format){
 	hwork_wnd = hWnd;
 	PlayStatus = PLAYSTOP;
 	m_psapi = NULL;
+	init_psa(hWnd, _ip, _user, _pass, _format);
 }
 CPsaMain::CPsaMain() {
 	hwork_wnd = NULL;
@@ -23,7 +24,7 @@ CPsaMain::~CPsaMain(){}
 //****************************************************************
 //* Function Name   : OnInitDialog
 //****************************************************************/
-HRESULT CPsaMain::init_psa(HWND hWnd)
+HRESULT CPsaMain::init_psa(HWND hWnd, const char* _ip, const char* _user, const char* _pass,long _format)
 {
 	PlayStatus = PLAYSTOP;
 	m_csLog = L"";
@@ -41,9 +42,18 @@ HRESULT CPsaMain::init_psa(HWND hWnd)
 	//Set properties
 	//-----------------------------------------------------
 	//Set properties to connect the device
-	char ip[64] = "192.168.1.81";
-	char username[64] = "SHI";
-	char password[64] = "Shimh001";
+
+	char ip[64], username[64], password[64];
+	for (int i = 0; i < 16; i++) {//	char ip[64] = "192.168.1.91";
+		ip[i] = *(_ip + i);	if (ip[i] == '\0')break;
+	}
+	for (int i = 0; i < 64; i++) {//	char username[64] = "SHI"; 
+		username[i] = *(_user + i); if (username[i] == '\0')break;
+	}
+	for (int i = 0; i < 64; i++) {//	char password[64] = "Shimh001";
+		password[i] = *(_pass + i); if (password[i] == '\0')break;
+	}
+
 	m_psapi->SetIPAddr(ip); //IP address of the device
 	m_psapi->SetDeviceType(2);          //Device type:0-3
 	m_psapi->SetHttpPort(80);           //Port:0-65535
@@ -56,10 +66,12 @@ HRESULT CPsaMain::init_psa(HWND hWnd)
 	m_psapi->SetImageHeight(480);           //Imgae Height
 
 	//Set properties for image format
-	m_psapi->SetStreamFormat(3);        //Image format - JPEG:0,MPEG4:1
+//	m_psapi->SetStreamFormat(3);        //Image format - JPEG:0,MPEG4:1
+	m_psapi->SetStreamFormat(_format);  //Image format - JPEG:0,MPEG4:1
 	m_psapi->SetJPEGResolution(640);    //JPEG Resolution(It works in case of StreamFormat=0)
 	m_psapi->SetMPEG4Resolution(640);   //MPEG-4 Resolution(It works in case of StreamFormat=1)
-	m_psapi->SetH264Resolution(640);    //H.264 Resolution(It works in case of StreamFormat=3)
+//	m_psapi->SetH264Resolution(640);    //H.264 Resolution(It works in case of StreamFormat=3)
+	m_psapi->SetH264Resolution(1280);    //H.264 Resolution(It works in case of StreamFormat=3)
 
 	//-----------------------------------------------------
 	//Set Listener
@@ -244,5 +256,43 @@ void CPsaMain::UpdateControl()
 		//m_dlog.Logging(m_csLog);
 	}
 }
+
+void CPsaMain::SwitchCamera(HWND hWnd, const char* _ip, const char* _user, const char* _pass, long _format)
+{
+
+	LiveStop();
+	PlayStatus = PLAYSTOP;
+	m_psapi->SetVideoWindow(NULL);  //Set the window handle to display
+		
+	char ip[64], username[64], password[64];
+	for (int i = 0; i < 16; i++) {ip[i] = *(_ip + i);	if (ip[i] == '\0')break;}
+	for (int i = 0; i < 64; i++) {username[i] = *(_user + i); if (username[i] == '\0')break;}
+	for (int i = 0; i < 64; i++) {password[i] = *(_pass + i); if (password[i] == '\0')break;}
+
+	m_psapi->SetIPAddr(ip); //IP address of the device
+	m_psapi->SetDeviceType(2);          //Device type:0-3
+	m_psapi->SetHttpPort(80);           //Port:0-65535
+	m_psapi->SetUserName(username);      //User name to access the device
+	m_psapi->SetPassword(password);      //Password to access the device
+
+
+	//Set properties for image format
+//	m_psapi->SetStreamFormat(3);        //Image format - JPEG:0,MPEG4:1
+	m_psapi->SetStreamFormat(_format);  //Image format - JPEG:0,MPEG4:1H264:3,H265:6
+	m_psapi->SetJPEGResolution(640);    //JPEG Resolution(It works in case of StreamFormat=0)
+	m_psapi->SetMPEG4Resolution(640);   //MPEG-4 Resolution(It works in case of StreamFormat=1)
+//	m_psapi->SetH264Resolution(640);    //H.264 Resolution(It works in case of StreamFormat=3)
+	m_psapi->SetH264Resolution(1280);    //H.264 Resolution(It works in case of StreamFormat=3)
+
+	//Paint background color
+	m_psapi->ClearImage();
+	Sleep(100);
+	m_psapi->SetVideoWindow(hWnd);  //Set the window handle to display
+	LiveStart();
+	PlayStatus = PLAYSTART;
+	return ;  
+}
+
+
 
 

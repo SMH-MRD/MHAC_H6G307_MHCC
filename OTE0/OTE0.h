@@ -15,13 +15,41 @@
 
 #include "CPsaMain.H"
 
+//カメラ
+#define OTE_CAMERA_PTZ0_IP "192.168.1.91"
+#define OTE_CAMERA_FISH0_IP "192.168.1.92"
+#define OTE_CAMERA_HOOK0_IP "192.168.1.93"
+#define OTE_CAMERA_DOOM0_IP "192.168.1.94"
+
+#define OTE_CAMERA_USER "SHI"
+#define OTE_CAMERA_PASS "Shimh001"
+#define OTE_CAMERA_FORMAT_JPEG 0
+#define OTE_CAMERA_FORMAT_H264 3
+
+
+#define OTE0_N_IP_CAMERA					8//接続するIPカメラの台数
+#define OTE_CAMERA_ID_PTZ0					0//運転室PTZカメラ
+#define OTE_CAMERA_ID_FISH0					1//運転室全方位カメラ
+#define OTE_CAMERA_ID_DOOM0					2//接続するIPカメラの台数
+#define OTE_CAMERA_ID_HOOK0					3//接続するIPカメラの台数
+#define OTE_CAMERA_ID_NA					-1//接続するIPカメラの台数
+
+#define OTE_CAMERA_WND_ID_BASE				0//カメラ表示BASEウィンドウ
+#define OTE_CAMERA_WND_ID_OPT1				1//カメラ表示オプション１ウィンドウ
+#define OTE_CAMERA_WND_ID_OPT2				2//カメラ表示オプション１ウィンドウ
+#define OTE_CAMERA_WND_ID_OPT3				3//カメラ表示オプション１ウィンドウ
+#define OTE_CAMERA_WND_ID_OPT4				4//カメラ表示オプション１ウィンドウ
+#define OTE_CAMERA_WND_ID_OPT5				5//カメラ表示オプション１ウィンドウ
+#define OTE_CAMERA_WND_ID_OPT6				6//カメラ表示オプション１ウィンドウ
+#define OTE_CAMERA_WND_ID_OPT7				7//カメラ表示オプション１ウィンドウ
+
 //タイマー
 #define ID_OTE_MULTICAST_TIMER				199
 #define ID_OTE_UNICAST_TIMER				198
 #define ID_OTE_CAMERA_TIMER					197
 #define OTE_MULTICAST_SCAN_MS				1000	    // マルチキャスト IF送信周期
 #define OTE_UNICAST_SCAN_MS					100			// ユニキャスト IF送信周期　UI更新周期
-#define OTE_CAMERA_SCAN_MS					100			// ユニキャスト IF送信周期　UI更新周期
+#define OTE_CAMERA_SCAN_MS					100			// カメラ指令更新用タイマ
 
 //ソケットイベントID
 #define ID_SOCK_EVENT_PC_UNI_OTE 		    10653		//OTE受信ソケットイベント　PC UNICASTメッセージ
@@ -48,11 +76,18 @@
 
 #define OTE0_CAM_WND_X			850			//IP CAMERA 表示位置X
 #define OTE0_CAM_WND_Y			600			//IP CAMERA 表示位置Y
-#define OTE0_CAM_WND_W			720			//IP CAMERA WINDOW幅
-#define OTE0_CAM_WND_H			550			//IP CAMERA WINDOW高さ
+#define OTE0_CAM_WND_W			700			//IP CAMERA WINDOW幅
+#define OTE0_CAM_WND_H			500			//IP CAMERA WINDOW高さ
+
+#define OTE0_CAM2_WND_X			OTE0_CAM_WND_X + OTE0_CAM_WND_W + 10	//IP CAMERA2 表示位置X
+#define OTE0_CAM2_WND_Y			OTE0_CAM_WND_Y							//IP CAMERA 表示位置Y
+#define OTE0_CAM2_WND_W			OTE0_SWY_WND_W							//IP CAMERA WINDOW幅
+#define OTE0_CAM2_WND_H			OTE0_SWY_WND_H							//IP CAMERA WINDOW高さ
 
 #define OTE0_CAM_WND_TG_X		300			//画面切り取りX位置
 #define OTE0_CAM_WND_TG_Y		300			//画面切り取りY位置
+
+#define OTE0_MSG_SWICH_CAMERA   WM_USER + 1000
 
 #define OTE0_N_SUB_WND			6
 #define ID_OTE0_SUB_WND_CONNECT	0
@@ -75,6 +110,12 @@ typedef struct stOte0DataTag {
 	double deg_bh;//起伏角°
 }ST_OTE0_DATA, * LPST_OTE0_DATA;
 
+//カメラ映像処理用構造体
+typedef struct stIPCamSet {
+	HWND hwnd = NULL; 
+	int icam = OTE_CAMERA_ID_NA;
+	CPsaMain* pPSA = NULL;	//PSApi処理用オブジェクト
+}ST_IPCAM_SET, * LPST_IPCAM_SET;
 
 class COte
 {
@@ -145,8 +186,6 @@ public:
 		paddr->sin_port = htons(port);
 		inet_pton(AF_INET, ip, &(paddr->sin_addr.s_addr));
 	};
-
-
 
 	std::wstring msg_ws;
 	std::wostringstream msg_wos;

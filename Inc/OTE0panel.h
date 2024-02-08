@@ -237,6 +237,13 @@ using namespace Gdiplus;
 #define OTE0_GRID_PT_R			4	//鳥瞰ジブ先端
 #define OTE0_GRID_PT_R0			5	//鳥瞰ジブ中心
 
+#define OTE0_GMPAD_NOTCH0	    32767
+#define OTE0_GMPAD_NOTCH0_MIN	32667
+#define OTE0_GMPAD_NOTCH0_MAX	32867
+#define OTE0_GMPAD_NOTCH_PITCH	8000
+
+
+
 //操作端末ウィンドウ構造体
 typedef struct _stOTEWorkWnd {
 	int area_x = 0, area_y = 0, area_w = 0, area_h = 0; //メインウィンドウ上の表示エリア(デバイスコンテキスト用）
@@ -246,6 +253,7 @@ typedef struct _stOTEWorkWnd {
 	UINT16 pb_stat[N_OTE_PNL_PB];						//PB状態 OFFディレイカウント
 	UINT16 notch_pb_stat[N_OTE_PNL_PB];					//PB状態 OFFディレイカウント
 	INT16  notch_pos[3][MOTION_ID_MAX] = { { 0,0,0,0,0,0,0,0 }, { 0,0,0,0,0,0,0,0 } ,{ 0,0,0,0,0,0,0,0 } };//HOLD,TRIG,COUNT
+	DWORD notch_pos_gmpad[MOTION_ID_MAX];//ゲームパッドのノッチ入力値
 
 	UINT32 connect_wnd_item = ID_OTE_RADIO_SOCK_PU;
 	UINT32 mh_spd_mode = ID_OTE_RADIO_MHSPD_7;
@@ -255,6 +263,8 @@ typedef struct _stOTEWorkWnd {
 	UINT32 flt_disp_mode = ID_OTE_RADIO_FLT_ALL;
 	INT32  camera_sel = ID_OTE_RADIO_WIDE;
 	INT32  subpanel_sel = ID_OTE_RADIO_COM;
+
+	INT32 is_test_wnd_follow_main = true;
 
 	HBITMAP hBmap[N_OTE_HBMAP];								//ビットマップハンドル
 	HDC		hdc[N_OTE_HDC];			//メモリデバイスコンテキスト

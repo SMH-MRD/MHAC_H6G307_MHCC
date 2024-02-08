@@ -11,10 +11,9 @@
 #define WORK_WND_X							858		//MAP表示位置X
 #define WORK_WND_Y							600			//MAP表示位置Y
 #define WORK_WND_W							530		    //MAP WINDOW幅
-#define WORK_WND_H							550			//MAP WINDOW高さ
+#define WORK_WND_H							420			//MAP WINDOW高さ
 
 #define WORK_SCAN_TIME						100			// SWAY IF送信周期msec
-
 
 //コントロールID
 #define ID_WORK_WND_BASE                    10600
