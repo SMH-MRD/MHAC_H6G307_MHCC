@@ -205,6 +205,7 @@ typedef struct StSimulationStatus {
 	ST_SWAY_IO sway_io;
 	Vector3 L, vL;											//ﾛｰﾌﾟﾍﾞｸﾄﾙ(主巻振れ）
 	Vector3 L2, vL2;										//ﾛｰﾌﾟﾍﾞｸﾄﾙ(補巻振れ）
+	double a_fb[MOTION_ID_MAX];								//軸座標加速度fb
 	double v_fb[MOTION_ID_MAX];								//軸座標速度fb
 	double pos[MOTION_ID_MAX];								//軸座標位置fb
 	double mtrq[MOTION_ID_MAX];								//モータトルクfb

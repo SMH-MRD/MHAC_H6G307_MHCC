@@ -61,7 +61,7 @@
 
 #define WORK_WND_X							1380		//メンテパネル表示位置X
 #define WORK_WND_Y							394			//メンテパネル表示位置Y
-#define WORK_WND_W							540		    //メンテパネルWINDOW幅
+#define WORK_WND_W							545		    //メンテパネルWINDOW幅
 #define WORK_WND_H							630			//メンテパネルWINDOW高さ
 
 typedef struct SyayCamWork {

@@ -15,8 +15,6 @@
 class CSIM :
     public CBasicControl
 {
-
-
 private:
 
     //# 出力用共有メモリオブジェクトポインタ:

@@ -3,6 +3,80 @@
 #include <winsock.h>
 #include <time.h>
 
+//振れセンサ
+
+#define N_SWAY_SENSOR			3		//振れセンサの数
+#define SID_SENSOR1				0		//No.1振れセンサ
+#define SID_SENSOR2				1		//No.2振れセンサ
+#define SID_SIM					2		//シミュレータ
+
+#define SWAY_SENSOR_N_AXIS		2
+#define SID_AXIS_X				0		//X軸
+#define SID_AXIS_Y				1		//y軸
+
+#define N_SWAY_SENSOR_CAMERA    2		//振れセンサ１セットのカメラの数
+#define SID_CAMERA1				0		//No.1振れセンサ
+#define SID_CAMERA2				1		//No.2振れセンサ
+
+#define N_SWAY_SENSOR_TARGET    2		//振れセンサカメラ1台あたりのターゲット数
+#define SID_TARGET1				0		//No.1振れセンサ
+#define SID_TARGET2				1		//No.2振れセンサ
+
+#define SWAY_CAMERA_N_PARAM		5
+#define SID_L0					0		//カメラ回転軸距離
+#define SID_PH0					1		//カメラ回転軸角度
+#define SID_l0					2		//カメラ中心とハウジング回転軸間距離
+#define	SID_ph0					3		//カメラのハウジングへの取り付け角度
+#define	SID_phc					4		//カメラのハウジングへの取り付け角度
+#define	SID_PIXlRAD				5		//カメラのハウジングへの取り付け角度
+
+
+#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.100"
+#define SWAY_SENSOR_IP_ADDR		"192.168.1.100"
+
+
+#define SWAY_IF_IP_SWAY_PORT_C			10080
+#define SWAY_IF_IP_SWAY_PORT_S			10081
+#define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
+#define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_TE		20081	//マルチキャスト端末受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_CR		20080	//マルチキャストクレーン受信ポート
+
+typedef struct StSwySensParam{
+    double arr[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] =
+    {	//振れセンサ　パラメータ
+        {//No.1 センサ
+        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0,0.0,0.00,0.00}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        },
+        {//No.2 センサ
+        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        },
+        {//No.3 センサ
+        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        }
+    };
+
+    double rad2pix[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS] =
+    {
+        {{2800.0,2800.0}, {2800.0,2800.0}},
+        {{2800.0,2800.0}, {2800.0,2800.0}},
+        {{2800.0,2800.0}, {2800.0,2800.0}}
+     };
+
+#if 0
+    double rad2pix[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS] =
+    {
+      { 2800.0,2800.0},{ 2800.0,2800.0},
+      { 2800.0,2800.0},{ 2800.0,2800.0},
+      { 2800.0,2800.0},{ 2800.0,2800.0}
+    };
+#endif
+}ST_SWY_SENS_PRM, *LPST_SWY_SENS_PRM;
+
+
 #define SWAY_SENSOR_N_CAM       2
 #define SWAY_SENSOR_CAM1        0
 #define SWAY_SENSOR_CAM2        1

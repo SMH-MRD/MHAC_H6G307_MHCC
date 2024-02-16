@@ -295,6 +295,18 @@ void CWorkWindow::update_siminf() {
 	woMSG << L"\n";
 	woMSG << L"pos[]>>  MH" << pSimStat->pos[ID_HOIST] << L" AH:" << pSimStat->pos[ID_AHOIST] << L" BH:" << pSimStat->pos[ID_BOOM_H] << L" SL:" << pSimStat->pos[ID_SLEW] << L" GT:" << pSimStat->pos[ID_GANTRY];
 
+	woMSG << L"\n";
+	woMSG << setw(3) << L"MHL>>  X:" << pSimStat->L.x << L" Y:" << pSimStat->L.y << L" Z:" << pSimStat->L.z << L"\nAHL>>  X:" << pSimStat->L2.x << L" Y:" << pSimStat->L2.y << L" Z:" << pSimStat->L2.z;
+
+	woMSG << L"\n";
+	woMSG << L"Lrm>>  P:" << pSimStat->lrm.p << L" V:" << pSimStat->lrm.v << L" A:" << pSimStat->lrm.a << L"    Lra>>  P:" << pSimStat->lra.p << L" V:" << pSimStat->lra.v << L" A:" << pSimStat->lra.a;
+
+	woMSG << L"\n";
+	woMSG << L"V0>>  BH:" << pSimStat->v_fb[ID_BOOM_H] << L" SL:" << pSimStat->v_fb[ID_SLEW];
+
+	woMSG << L"\n";
+	woMSG << L"A0>>  BH:" << pSimStat->a_fb[ID_BOOM_H] << L" SL:" << pSimStat->a_fb[ID_SLEW];
+
 	SetWindowText(hwndStaticSimInf, woMSG.str().c_str());
 	return;
 }

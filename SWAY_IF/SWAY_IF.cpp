@@ -183,41 +183,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
-        SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
+        SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"-");
 
         //製品モードセット
       //  pProcObj->set_debug_mode(L_OFF);
         //メインウィンドウにコントロール追加
-        if (pProcObj->is_debug_mode()) {
-            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"DEBUG MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
-                100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
-            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"NORMAL->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
-
-        }
-        else {
-            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
-                100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
-            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
-
-        }
+         stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            5, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
-
+            150, 5, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         //センサとの通信状態表示ツールウィンドウ表示切り替えボタン
-        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            20, 85, 80, 25, hWnd, (HMENU)IDC_CHK_COMWIN, hInst, NULL);
-
-
-
-        //表示更新タイマ起動
-        SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
-
+        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+            5, 28, 80, 25, hWnd, (HMENU)IDC_CHK_COMWIN, hInst, NULL);
+        
         //IF Window起動
         if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
+        if (pProcObj->hWorkWnd != NULL)SendMessage(stMainWnd.h_pb_comwin, BM_SETCHECK, BST_CHECKED, 0L);
+
+  //      SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
     }
     break;
     case WM_COMMAND:
@@ -230,73 +215,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
         case IDM_EXIT:
-        case IDC_PB_EXIT:
+        case IDC_PB_EXIT: {
             DestroyWindow(hWnd);
-            break;
-        case IDC_PB_DEBUG:
-            if (!(pProcObj->mode & SWAY_IF_SIM_DBG_MODE)) {
-                pProcObj->set_debug_mode(L_ON);
-                SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
-                SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
+        }break;
+
+        case IDC_CHK_COMWIN: {
+            if (BST_CHECKED == SendMessage(stMainWnd.h_pb_comwin, BM_GETCHECK, 0, 0)) {
+                if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
             }
             else {
-                pProcObj->set_debug_mode(L_OFF);
-                SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
-                SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
+                pProcObj->close_WorkWnd();
             }
-
-            TCHAR tbuf[32];
-            wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
-            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
-            break;
-
-            DestroyWindow(hWnd);
-            break;
-
-        case IDC_CHK_COMWIN:
-
-            if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
-            else                pProcObj->close_WorkWnd();
-            break;
-
-        case  IDC_PB_SENSOR_1:
-
-            break;
-        case  IDC_PB_SENSOR_2:
-            break;
-        case  IDC_PB_0SET_CAMERA:
-            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERA1_0SET);
-            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERA2_0SET);
-            break;
-        case  IDC_PB_0SET_TILT:
-            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT1_0SET);
-            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT2_0SET);
-            break;
-        case  IDC_PB_RESET_CAMERA:
-            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR1_RESET);
-            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR2_RESET);
-            break;
-        case  IDC_PB_RESET_TILT:
-            if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT1_RESET);
-            else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT2_RESET);
-            break;
-        case  IDC_PB_PC_RESET:
-            pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_PC_RESET);
-            break;
-        case  IDC_PB_SCREEN_SHOT:
-            pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_SAVE_IMG);
-            break;
-
-        case  ID_CHECK_SWAY_CAL_NO_OFFSET:
-            if (IsDlgButtonChecked(hWnd, ID_CHECK_SWAY_CAL_NO_OFFSET) == BST_CHECKED) pProcObj->cal_mode |= ID_SWAY_CAL_NO_OFFSET;
-            else pProcObj->cal_mode &= ~ID_SWAY_CAL_NO_OFFSET;
-            break;
-
-        case  ID_CHECK_SWAY_CAL_NO_TILT:
-            if (IsDlgButtonChecked(hWnd, ID_CHECK_SWAY_CAL_NO_TILT) == BST_CHECKED) pProcObj->cal_mode |= ID_SWAY_CAL_NO_TILT;
-            else pProcObj->cal_mode &= ~ID_SWAY_CAL_NO_TILT;
-            break;
-
+        }break;
 
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
@@ -304,16 +234,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
     case WM_TIMER: {
-#if 0
-        if (pProcObj->is_debug_mode()) {
-            SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
-            SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
-        }
-        else {
-            SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
-            SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
-        }
-#endif
+
     }break;
 
     case WM_PAINT:

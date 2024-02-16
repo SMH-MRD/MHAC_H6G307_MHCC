@@ -284,69 +284,6 @@ typedef struct StSpec {
 	//極限
 	double hoist_pos_min = -10.0, hoist_pos_max = 20.0, boom_pos_min = 5.0, boom_pos_max = 28.0, gantry_pos_min = 0.0, gantry_pos_max = 300.0;
 
-
-	//振れセンサ
-
-#define N_SWAY_SENSOR			3		//振れセンサの数
-#define SID_SENSOR1				0		//No.1振れセンサ
-#define SID_SENSOR2				1		//No.2振れセンサ
-#define SID_SIM					2		//シミュレータ
-
-#define SWAY_SENSOR_N_AXIS		2
-#define SID_AXIS_X				0		//X軸
-#define SID_AXIS_Y				1		//y軸
-
-#define N_SWAY_SENSOR_CAMERA    2		//振れセンサ１セットのカメラの数
-#define SID_CAMERA1				0		//No.1振れセンサ
-#define SID_CAMERA2				1		//No.2振れセンサ
-
-#define N_SWAY_SENSOR_TARGET    2		//振れセンサカメラ1台あたりのターゲット数
-#define SID_TARGET1				0		//No.1振れセンサ
-#define SID_TARGET2				1		//No.2振れセンサ
-
-#define SWAY_CAMERA_N_PARAM		6
-#define SID_L0					0		//カメラ回転軸距離
-#define SID_PH0					1		//カメラ回転軸角度
-#define SID_l0					2		//カメラ中心とハウジング回転軸間距離
-#define	SID_ph0					3		//カメラのハウジングへの取り付け角度
-#define	SID_phc					4		//カメラのハウジングへの取り付け角度
-#define	SID_PIXlRAD				5		//カメラのハウジングへの取り付け角度
-
-
-#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.6"
-#define SWAY_SENSOR_IP_ADDR		"192.168.1.81"
-
-
-#define OTE_MULTI_IP_ADDR		"239.1.0.1"
-//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.201"
-#define CTRL_PC_IP_ADDR_OTE		"192.168.1.24"
-#define OTE_DEFAULT_IP_ADDR		"127.0.0.1"
-//#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
-
-
-#define SWAY_IF_IP_SWAY_PORT_C			10080
-#define SWAY_IF_IP_SWAY_PORT_S			10081
-#define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
-#define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
-#define OTE_IF_IP_MULTICAST_PORT_TE		20081	//マルチキャスト端末受信ポート
-#define OTE_IF_IP_MULTICAST_PORT_CR		20080	//マルチキャストクレーン受信ポート
-
-
-	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
-		{//No.1 センサ
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0,0.0,0.00,0.00,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-		},
-		{//No.2 センサ
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-		},
-		{//No.3 センサ
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-		}
-	};
-
 #define SEMI_AUTO_TARGET_MAX	6	// 半自動目標ホールド数
 
 	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX]{//半自動デフォルト目標位置

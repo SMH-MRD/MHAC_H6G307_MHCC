@@ -1297,8 +1297,8 @@ LRESULT CALLBACK WndStatusProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return S_OK;
 }
 
-static HDC hCaptureDC;
-static HBITMAP hCaptureBitmap;
+//static HDC hCaptureDC;
+//static HBITMAP hCaptureBitmap;
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
 	switch (message)
@@ -1358,8 +1358,6 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 	return S_OK;
 }
-
-
 LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
 	int id;
@@ -1572,7 +1570,6 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd = NULL;
 
 		KillTimer(hWnd_work, ID_OTE_CAMERA_TIMER);
-		DeleteObject(hCaptureBitmap);
 		//PostQuitMessage(0);
 	}break;
 	default:
@@ -1959,7 +1956,6 @@ HWND open_swy_Wnd(HWND hwnd) {
 
 	return hWnd_sub[ID_OTE0_SWY_WND];
 }
-
 HWND open_camera_Wnd(HWND hwnd, int id_cam) {
 		
 	InitCommonControls();//コモンコントロール初期化
@@ -2008,7 +2004,6 @@ HWND open_camera_Wnd(HWND hwnd, int id_cam) {
 
 	return hcamwnd;
 }
-
 HWND open_camera_Wnd2(HWND hwnd, int id_cam) {
 	InitCommonControls();//コモンコントロール初期化
 	HINSTANCE hInst = GetModuleHandle(0);
@@ -2284,9 +2279,9 @@ void draw_graphic() {
 			NULL, NULL, NULL);
 
 	//フック描画
-	px_mh_x = OTE0_GR_AREA2_R0_X + (INT)(mh_r * OTE0_GR_AREA2_PIX1M) -3;
+	px_mh_x = OTE0_GR_AREA2_R0_X + (INT)(mh_r * OTE0_GR_AREA2_PIX1M) +5;//吊具画像幅の半分
 	px_mh_y = OTE0_GR_AREA2_LV0_Y - (INT)(mhy * OTE0_GR_AREA2_PIX1M);
-	px_ah_x = OTE0_GR_AREA2_R0_X + (INT)(ah_r * OTE0_GR_AREA2_PIX1M) -0;
+	px_ah_x = OTE0_GR_AREA2_R0_X + (INT)(ah_r * OTE0_GR_AREA2_PIX1M) +3;//吊具画像幅の半分
 	px_ah_y = OTE0_GR_AREA2_LV0_Y - (INT)(ahy * OTE0_GR_AREA2_PIX1M);
 	
 	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X = px_mh_x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y = px_mh_y;

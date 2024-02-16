@@ -6,6 +6,8 @@
 
 extern ST_SPEC def_spec;
 
+static ST_SWY_SENS_PRM CamPrm;
+
 CSIM::CSIM() {
     // 共有メモリオブジェクトのインスタンス化
     pSimulationStatusObj    = new CSharedMem;
@@ -95,20 +97,22 @@ int CSIM::init_proc() {
 
     //吊荷の初期状態セット 
     Vector3 _r;
-    _r.x = pCrane->r.x , _r.y = pCrane->r.y, _r.z = pCrane->r0[ID_HOIST];    //主巻吊点位置
-    Vector3 _v(0.0, 0.0, 0.0);                                                                               //吊点速度
+    _r.x = pCrane->r.x , _r.y = pCrane->r.y, _r.z = pCrane->r0[ID_HOIST];    //主巻吊荷位置
+    Vector3 _v(0.0, 0.0, 0.0);                                               //吊荷速度
    
     //主巻
     pLoad->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad->set_m(def_spec.Load0_mh);
+    pLoad->set_type(ID_HOIST);
 
     //補巻
     double th0 = acos(SIM_INIT_MHR / def_spec.Lm);
     double ar0 = def_spec.La * cos(th0 - def_spec.rad_Lm_La);
-    _r.x = ar0 * cos(SIM_INIT_TH) + SIM_INIT_X;; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = pCrane->r0[ID_AHOIST];
+    _r.x = ar0 * cos(SIM_INIT_TH) + SIM_INIT_X; _r.y = SIM_INIT_AHR * sin(SIM_INIT_TH); _r.z = pCrane->r0[ID_AHOIST];
   
     pLoad2->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad2->set_m(def_spec.Load0_ah);
+    pLoad2->set_type(ID_AHOIST);
 
     //振れ角計算用カメラパラメータセット
   
@@ -185,6 +189,13 @@ int CSIM::output() {
 // set_cran_motion() クレーン位置、速度情報セット
 //*********************************************************************************************
 int CSIM::set_cran_motion() {
+
+    sim_stat_workbuf.a_fb[ID_HOIST] = pCrane->a0[ID_HOIST];
+    sim_stat_workbuf.a_fb[ID_GANTRY] = pCrane->a0[ID_GANTRY];
+    sim_stat_workbuf.a_fb[ID_SLEW] = pCrane->a0[ID_SLEW];
+    sim_stat_workbuf.a_fb[ID_BOOM_H] = pCrane->a0[ID_BOOM_H];
+    sim_stat_workbuf.a_fb[ID_AHOIST] = pCrane->a0[ID_AHOIST];
+
     sim_stat_workbuf.v_fb[ID_HOIST] = pCrane->v0[ID_HOIST];
     sim_stat_workbuf.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];
     sim_stat_workbuf.v_fb[ID_SLEW] = pCrane->v0[ID_SLEW];
@@ -237,23 +248,23 @@ int CSIM::set_sway_io() {
     double T = pCraneStat->T;
     double w = pCraneStat->w;
 
-    double swx_L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
-    double swy_L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+    double swx_L0 = CamPrm.arr[0][0][0][SID_L0];
+    double swy_L0 = CamPrm.arr[0][0][1][SID_L0];
 
-    double swx_PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
-    double swy_PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+    double swx_PH0 = CamPrm.arr[0][0][0][SID_PH0];
+    double swy_PH0 = CamPrm.arr[0][0][1][SID_PH0];
 
-    double swx_l0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_l0];
-    double swy_l0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_l0];
+    double swx_l0 = CamPrm.arr[0][0][0][SID_l0];
+    double swy_l0 = CamPrm.arr[0][0][1][SID_l0];
 
-    double swx_ph0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_ph0];
-    double swy_ph0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_ph0];
+    double swx_ph0 = CamPrm.arr[0][0][0][SID_ph0];
+    double swy_ph0 = CamPrm.arr[0][0][1][SID_ph0];
 
-    double swx_phc = pCraneStat->spec.SwayCamParam[0][0][0][SID_phc];
-    double swy_phc = pCraneStat->spec.SwayCamParam[0][0][1][SID_phc];
+    double swx_phc = CamPrm.arr[0][0][0][SID_phc];
+    double swy_phc = CamPrm.arr[0][0][1][SID_phc];
 
-    double swx_C = pCraneStat->spec.SwayCamParam[0][0][0][SID_PIXlRAD];
-    double swy_C = pCraneStat->spec.SwayCamParam[0][0][1][SID_PIXlRAD];
+    double swx_C = CamPrm.rad2pix[0][0][0];
+    double swy_C = CamPrm.rad2pix[0][0][1];
     
     double xrx = swx_L0 * sin(swx_PH0) + swx_l0 * sin(swx_ph0 + tilt_x);
     double yrx = swx_L0 * cos(swx_PH0) + swx_l0 * cos(swx_ph0 + tilt_x);

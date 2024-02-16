@@ -89,11 +89,11 @@ CJC::CJC() {
 
 	//0‘¬‚Æ‚Ý‚È‚·‘¬“xãŒÀiƒhƒ‰ƒ€‰ñ“]‘¬“xj
 	//‘¬“x•\Œ»‚Í1.0100%‚Å³‹K‰»‚·‚é
-	accdec_cut_spd_range[ID_HOIST]	= 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_HOIST];//0.5%
-	accdec_cut_spd_range[ID_BOOM_H] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_BOOM_H];//0.5%
-	accdec_cut_spd_range[ID_SLEW]	= 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_SLEW];//0.5%
-	accdec_cut_spd_range[ID_GANTRY] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_GANTRY];//0.5%	
-	accdec_cut_spd_range[ID_AHOIST] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_AHOIST];//0.5%
+	accdec_cut_spd_range[ID_HOIST]	= 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_HOIST];		//0.5%
+	accdec_cut_spd_range[ID_BOOM_H] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_BOOM_H];	//0.5%
+	accdec_cut_spd_range[ID_SLEW]	= 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_SLEW];		//0.5%
+	accdec_cut_spd_range[ID_GANTRY] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_GANTRY];	//0.5%	
+	accdec_cut_spd_range[ID_AHOIST] = 0.005 * pspec->prm_drv[DRIVE_ITEM_RATE_NV][ID_AHOIST];	//0.5%
 
 	mh_load = pspec->Load0_mh;//‰ŠúŽåŠª‰×d
 	ah_load = pspec->Load0_ah;//‰Šú•âŠª‰×d
@@ -113,9 +113,10 @@ CJC::CJC() {
 		motion_break[i] = false;
 	}
 
-	r0[ID_GANTRY] = pspec->gantry_pos_min;
-	r0[ID_HOIST] = pspec->boom_high - 9.8;	//‰Šú’l@ŽüŠú@2ƒÎ‚Æ‚È‚éŠª‚«ˆÊ’u
-	r0[ID_BOOM_H] = pspec->boom_pos_min;
+	r0[ID_GANTRY] = SIM_INIT_X;
+	r0[ID_HOIST] = SIM_INIT_MH;	
+	r0[ID_AHOIST] = SIM_INIT_AH;	
+	r0[ID_BOOM_H] = SIM_INIT_R;
 	r0[ID_SLEW] = 0.0;
 
 	source_mode = MOB_MODE_SIM;
@@ -141,15 +142,17 @@ void CJC::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double
 }
 // ÄÙ¸T(NEmj= F x R@= J x dƒÖ/dt  ŽdŽ–—¦P=TƒÖ=Mav@a=TƒÖ/Mv=MT/r
 //’Ý“_‰Á‘¬“x
-Vector3 CJC::A(Vector3& _r, Vector3& _v) {					//’Ý“_‚Ì‰Á‘¬“x
+Vector3 CJC::A(Vector3& _r, Vector3& _v) {	//JCƒNƒ‰ƒX‚Å‚Í–¢Žg—p@TimeEvolution“à‚ÅŒvŽZ
 
 	Vector3 a;
+
+	//JCƒNƒ‰ƒX‚Å‚Í–¢Žg—p@TimeEvolution“à‚ÅŒvŽZ
+#if 0
 	double r_bm = r0[ID_BOOM_H];//ù‰ñ”¼Œa
 	//“™Šp‰Á‘¬“x‰^“®@a = r x dƒÖ/dt(-sinƒÆ,cosƒÆ) -rxƒÖ^2(cosƒÆ,sinƒÆ)
 	a.x = v0[ID_BOOM_H] * sin(r0[ID_SLEW]) - r_bm * a0[ID_SLEW] * sin(r0[ID_SLEW]) - r_bm * v0[ID_SLEW] * v0[ID_SLEW] * cos(r0[ID_SLEW]) + a0[ID_GANTRY];
 	a.y = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) + r_bm * a0[ID_SLEW] * cos(r0[ID_SLEW]) - r_bm * v0[ID_SLEW] * v0[ID_SLEW] * sin(r0[ID_SLEW]);
 	a.z = 0.0;
-
 
 	//’Ý“_‰Á‘¬“xƒxƒNƒgƒ‹i‰~’ŒÀ•Wj
 	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//ˆøž•ûŒü‰Á‘¬“x@ˆøž‰Á‘¬“x{ù‰ñ•ª(RƒÖ2j
@@ -160,6 +163,8 @@ Vector3 CJC::A(Vector3& _r, Vector3& _v) {					//’Ý“_‚Ì‰Á‘¬“x
 	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
 	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
 	a.z = a_z;
+
+#endif
 
 	return a;
 }
@@ -311,6 +316,8 @@ void CJC::Ac() {	//‰Á‘¬“xŒvŽZ
 		else {
 			pSimStat->nd[ID_GANTRY].a = 0.0;
 		}
+		//0ƒŠƒ~ƒbƒg
+		for (int i = 0; i < 6; i++) if ((pSimStat->nd[i].a < 0.00001)&& (pSimStat->nd[i].a > -0.00001))pSimStat->nd[i].a = 0.0;
 	}
 	return;
 }
@@ -325,6 +332,12 @@ void CJC::timeEvolution() {
 	pSimStat->nd[ID_BOOM_H].v	+= pSimStat->nd[ID_BOOM_H].a * dt;	if (!motion_break[ID_BOOM_H])	pSimStat->nd[ID_BOOM_H].v = 0.0;
 	pSimStat->nd[ID_SLEW].v		+= pSimStat->nd[ID_SLEW].a * dt;	if (!motion_break[ID_SLEW])		pSimStat->nd[ID_SLEW].v = 0.0;
 	pSimStat->nd[ID_GANTRY].v	+= pSimStat->nd[ID_GANTRY].a * dt;	if (!motion_break[ID_GANTRY])	pSimStat->nd[ID_GANTRY].v = 0.0;
+
+	for (int i = 0; i < 6; i++) {
+		if (pSimStat->nd[i].a == 0.0) {
+			if ((pSimStat->nd[i].v < 0.001) && (pSimStat->nd[i].v > -0.001))pSimStat->nd[i].v = 0.0;
+		}
+	}
 
 	//ƒhƒ‰ƒ€ˆÊ’uŒvŽZ(ƒIƒCƒ‰[–@j
 	pSimStat->nd[ID_HOIST].p += pSimStat->nd[ID_HOIST].v * dt;
@@ -347,7 +360,7 @@ void CJC::timeEvolution() {
 
 	//ƒ[ƒv’·‰Á‘¬“xŒvŽZ
 	pSimStat->lrm.a = (
-		-pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//ŽåŠªƒhƒ‰ƒ€‰ñ“]•ª
+		- pCraneStat->Cdr[ID_HOIST][pSimStat->i_layer[ID_HOIST]] * pSimStat->nd[ID_HOIST].a		//ŽåŠªƒhƒ‰ƒ€‰ñ“]•ª
 		- pSimStat->db.a * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_HOIST]							//d•Ï‰»•ª
 		+ pCraneStat->Cdr[ID_BHMH][pSimStat->i_layer[ID_BHMH]] * pSimStat->nd[ID_BOOM_H].a		//‹N•šƒhƒ‰ƒ€‰ñ“]•ª
 		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];
@@ -391,10 +404,10 @@ void CJC::timeEvolution() {
 		- pSimStat->l_drum[ID_BHMH] - pSimStat->l_drum[ID_HOIST]							//ƒhƒ‰ƒ€•”ƒ[ƒv(ŽåŠªƒhƒ‰ƒ€{ˆøžƒhƒ‰ƒ€j
 		) / pspec->prm_nw[NW_ITEM_WIND][ID_HOIST];											//ƒƒCƒ„Š|‚¯”
 	pSimStat->lra.p = (
-		pCraneStat->Cdr[ID_AHOIST][0] 															//‘Sƒ[ƒv
-		- pSimStat->db.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]							//d•”ƒ[ƒv
-		- pSimStat->l_drum[ID_AHOIST]															//ƒhƒ‰ƒ€•”ƒ[ƒv
-		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];												//ƒƒCƒ„Š|‚¯”
+		pCraneStat->Cdr[ID_AHOIST][0] 														//‘Sƒ[ƒv
+		- pSimStat->db.p * pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_AHOIST]						//d•”ƒ[ƒv
+		- pSimStat->l_drum[ID_AHOIST]														//ƒhƒ‰ƒ€•”ƒ[ƒv
+		) / pspec->prm_nw[NW_ITEM_WIND][ID_AHOIST];											//ƒƒCƒ„Š|‚¯”
 
 	r0[ID_HOIST]	= pspec->Hp + pspec->Lm * sin(pSimStat->th.p) - pSimStat->lrm.p;
 	r0[ID_AHOIST]	= pspec->Hp + pspec->La * sin(pSimStat->th.p - pspec->Alpa_a) - pSimStat->lra.p;
@@ -412,18 +425,45 @@ void CJC::timeEvolution() {
 	rc.x = r0[ID_GANTRY]; rc.y = R0.y; rc.z = R0.z;		//ƒNƒŒ[ƒ“’†SˆÊ’u
 														
 	//’Ý“_•”
+	double cos_sl = cos(r0[ID_SLEW]);
+	double sin_sl = sin(r0[ID_SLEW]);
+	double cos_th = cos(pSimStat->th.p);
+	double sin_th = sin(pSimStat->th.p);
 
+#if 0
 	r.x = r0[ID_BOOM_H] * cos(r0[ID_SLEW]) + r0[ID_GANTRY];
 	r.y = r0[ID_BOOM_H] * sin(r0[ID_SLEW]);
-	r.z = pspec->Hp + r0[ID_BOOM_H] * sin(pSimStat->th.p);
+	r.z = pspec->Hp + pspec->Lm * sin(pSimStat->th.p);
 
 	v.x = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) - r0[ID_BOOM_H] * v0[ID_SLEW] * sin(r0[ID_SLEW]) + v0[ID_GANTRY];
 	v.y = v0[ID_BOOM_H] * sin(r0[ID_SLEW]) + r0[ID_BOOM_H] * v0[ID_SLEW] * cos(r0[ID_SLEW]);
-	v.z = pspec->Hp + r0[ID_BOOM_H] * sin(pSimStat->th.p);
+	v.z = pspec->Lm * pSimStat->th.v * cos(pSimStat->th.p);
 
 	a.x = v0[ID_BOOM_H] * cos(r0[ID_SLEW]) - r0[ID_BOOM_H] * v0[ID_SLEW] * sin(r0[ID_SLEW]) + v0[ID_GANTRY];
 	a.y = v0[ID_BOOM_H] * sin(r0[ID_SLEW]) + r0[ID_BOOM_H] * v0[ID_SLEW] * cos(r0[ID_SLEW]);
-	a.z = pspec->Hp + r0[ID_BOOM_H] * sin(pSimStat->th.p);
+	a.z = pspec->Lm * (pSimStat->th.a * cos(pSimStat->th.p) - pSimStat->th.v * pSimStat->th.v * sin(pSimStat->th.p));
+#else
+	r.x = r0[ID_BOOM_H] * cos_sl + r0[ID_GANTRY];
+	r.y = r0[ID_BOOM_H] * sin_sl;
+	r.z = pspec->Hp + pspec->Lm * sin_th;
+
+	v.x = v0[ID_BOOM_H] * cos_sl - r0[ID_BOOM_H] * v0[ID_SLEW] * sin(r0[ID_SLEW]) + v0[ID_GANTRY];
+	v.y = v0[ID_BOOM_H] * sin_sl + r0[ID_BOOM_H] * v0[ID_SLEW] * cos_sl;
+	v.z = pspec->Lm * pSimStat->th.v * cos_th;
+
+	a.x = v0[ID_BOOM_H] * cos_sl - r0[ID_BOOM_H] * v0[ID_SLEW] * sin_sl + a0[ID_GANTRY];
+	a.y = v0[ID_BOOM_H] * sin_sl + r0[ID_BOOM_H] * v0[ID_SLEW] * cos_sl;
+	a.z = pspec->Lm * (pSimStat->th.a * cos_th - pSimStat->th.v * pSimStat->th.v * sin_th);
+#endif
+
+
+	double ar0 = def_spec.La * cos(pSimStat->th.p - def_spec.rad_Lm_La);
+	r2.x = ar0 * cos_sl + r0[ID_GANTRY];
+	r2.y = ar0 * sin_sl;
+	r2.z = pspec->Hp + pspec->La * sin(pSimStat->th.p - def_spec.rad_Lm_La);
+
+	v2.copy(v);
+	a2.copy(a);
 
 	//ƒ[ƒv’·ƒZƒbƒg@LOADƒIƒuƒWƒFƒNƒg‚©‚çŽQÆ
 	l_mh = pSimStat->lrm.p;
@@ -467,6 +507,9 @@ void CJC::init_crane(double _dt) {
 	Vector3 _v(0.0, 0.0, 0.0);
 	init_mob(_dt, _r, _v);
 
+	//ƒ[ƒv’·
+	
+
 	set_v_ref(0.0, 0.0, 0.0, 0.0, 0.0);	//‰Šú‘¬“xŽw—ß’lƒZƒbƒg
 	set_fex(0.0, 0.0, 0.0);			//‰ŠúŠO—ÍƒZƒbƒg
 		
@@ -504,6 +547,7 @@ void CJC::update_break_status() {
 	motion_break[ID_SLEW]	= pPLC->brk[ID_SLEW];
 	return;
 }
+
 void CJC::set_nbh_d_ph_th_from_r(double r) {
 	pSimStat->th.p	= acos(r/pspec->Lm);					//”¼Œa‚ÍŽåŠª’Ý“_ˆÊ’u
 	pSimStat->ph.p	= pspec->Php - pSimStat->th.p;
@@ -620,7 +664,7 @@ void CJC::set_d_th_from_nbh() {
 	double LbLpsinPh = pspec->Lb * pspec->Lp * s_ph;
 	double Kw = pCraneStat->Cdr[ID_BOOM_H][pSimStat->i_layer[ID_BOOM_H]]/ pspec->prm_nw[NW_ITEM_WIND_BOOM][ID_BOOM_H];//ƒhƒ‰ƒ€Žü’·/ƒƒCƒ„Š|”
 	
-	pSimStat->db.v = -pSimStat->nd[ID_BOOM_H].v * Kw;//ƒhƒ‰ƒ€Žü’·/ƒƒCƒ„Š|”;
+	pSimStat->db.v = -pSimStat->nd[ID_BOOM_H].v * Kw;///ƒƒCƒ„Š|”;
 	pSimStat->d.v = (pSimStat->db.p - LmbCosAdb) / LmLb * pSimStat->db.v;
 
 	pSimStat->ph.v = pSimStat->d.p * pSimStat->d.v / LbLpsinPh;		//dƒÓ/dt = dd'/LpLbsinƒÓ
@@ -628,14 +672,14 @@ void CJC::set_d_th_from_nbh() {
 
 	//‰Á‘¬“x
 	pSimStat->db.a = -pSimStat->nd[ID_BOOM_H].a * Kw;														//‰ñ“]‚Íˆøž•ûŒü‚ª{i{‰ñ“]¨dkj
-	pSimStat->d.a = pSimStat->db.v* pSimStat->db.v/LmLb + pSimStat->d.v* pSimStat->db.a / pSimStat->db.v;	//‰ñ“]‚Íˆøž•ûŒü‚ª{i{‰ñ“]¨dkj
+	pSimStat->d.a = (pSimStat->db.v* pSimStat->db.v + (pSimStat->db.p - LmbCosAdb)*pSimStat->db.a)/LmLb;	//‰ñ“]‚Íˆøž•ûŒü‚ª{i{‰ñ“]¨dkj
 
-	pSimStat->ph.a = pSimStat->ph.v * (pSimStat->d.v / pSimStat->d.p + pSimStat->d.a/ pSimStat->d.v  - pSimStat->ph.v * c_ph / s_ph);
+	//pSimStat->ph.a = pSimStat->ph.v * (pSimStat->d.v / pSimStat->d.p + pSimStat->d.a/ pSimStat->d.v  - pSimStat->ph.v * c_ph / s_ph);
+	pSimStat->ph.a = (pSimStat->d.v * pSimStat->d.v + pSimStat->d.p * pSimStat->d.a)/(pspec->Lm * pspec->Lp * s_ph)- pSimStat->ph.v* pSimStat->ph.v* c_ph / s_ph;
 	pSimStat->th.a = -pSimStat->ph.a;
 
 	return; 
 } 
-
 //ˆøžƒhƒ‰ƒ€ó‘Ô‚ðƒZƒbƒg‚·‚é
 void  CJC::set_bh_layer() { 
 	UINT32 i = (UINT32)(pSimStat->nd[ID_BOOM_H].p  / pspec->prm_nw[NW_ITEM_GROOVE][ID_BOOM_H]); //Œ»Ý‘w”-1
@@ -704,7 +748,10 @@ Vector3 CLoad::A(Vector3& r, Vector3& v) {
 	Vector3 a;
 	Vector3 L_;
 
-	L_ = L_.subVectors(r, pCrane->r);
+	if (type == ID_AHOIST)
+		L_ = L_.subVectors(r, pCrane->r2);
+	else 					
+		L_ = L_.subVectors(r, pCrane->r);
 
 	double Sdivm = S() / m;
 
@@ -716,10 +763,22 @@ Vector3 CLoad::A(Vector3& r, Vector3& v) {
 	//ŒvŽZŒë·‚É‚æ‚éƒ[ƒv’·‚¸‚ê•â³
 	Vector3 hatL = L_.clone().normalize();
 	// •â³‚Î‚Ë’e«—Í
-	Vector3 ak = hatL.clone().multiplyScalor(-compensationK * (pCrane->l_mh - L_.length()));
-	Vector3 v_ = v_.subVectors(v, pCrane->v);
+	//Vector3 ak = hatL.clone().multiplyScalor(-compensationK * (pCrane->l_mh - L_.length()));
+
+	Vector3 ak, v_;
+	if (type == ID_AHOIST) {
+		ak = hatL.clone().multiplyScalor(-compensationK * ( L_.length() - pCrane->l_ah));
+		v_ = v_.subVectors(v, pCrane->v2);
+	}
+	else {
+		ak = hatL.clone().multiplyScalor(-compensationK * (L_.length() - pCrane->l_mh));
+		v_ = v_.subVectors(v, pCrane->v);
+	}
+
+
 	// •â³”S«’ïR—Í
 	Vector3 agamma = hatL.clone().multiplyScalor(-compensationGamma * v_.dot(hatL));
+	
 	// ’£—Í‚É‚Ð‚à‚Ì’·‚³‚Ì•â³—Í‚ð‰Á‚¦‚é
 	a.add(ak).add(agamma);
 
@@ -730,16 +789,30 @@ double  CLoad::S() { //A‚ÌŒvŽZ•”‚ÌŠÖŒW‚ÅS/L‚Æ‚È‚Á‚Ä‚¢‚éBŠª‚«‚Ì‰Á‘¬“x•ª‚ª’Ç‰Á‚³‚
 	Vector3 v_ = v.clone().sub(pCrane->v);
 	double v_abs2 = v_.lengthSq();
 	Vector3 vectmp;
-	Vector3 vecL = vectmp.subVectors(r, pCrane->r);
+	Vector3 vecL; //= vectmp.subVectors(r, pCrane->r);
 
-	return -m * (v_abs2 - pCrane->a.dot(vecL) - GA * vecL.z - (pCrane->a0[ID_HOIST] * pCrane->l_mh + pCrane->v0[ID_HOIST] * pCrane->v0[ID_HOIST])) / (pCrane->l_mh * pCrane->l_mh);
-
+	if (type == ID_AHOIST) {
+		vecL = vectmp.subVectors(r, pCrane->r2);
+		return -m * (v_abs2 - pCrane->a.dot(vecL) - GA * vecL.z - (pCrane->a0[ID_AHOIST] * pCrane->l_ah + pCrane->v0[ID_AHOIST] * pCrane->v0[ID_AHOIST])) / (pCrane->l_ah * pCrane->l_ah);
+	}
+	else {
+		vecL = vectmp.subVectors(r, pCrane->r);
+		return -m * (v_abs2 - pCrane->a.dot(vecL) - GA * vecL.z - (pCrane->a0[ID_HOIST] * pCrane->l_mh + pCrane->v0[ID_HOIST] * pCrane->v0[ID_HOIST])) / (pCrane->l_mh * pCrane->l_mh);
+	}
+	return 0.0;
 }
 
-void CLoad::update_relative_vec() {//ƒNƒŒ[ƒ“’Ý“_‚Æ‚Ì‘Š‘Î‘¬“x
+void CLoad::update_relative_vec() {//ƒNƒŒ[ƒ“’Ý“_‚Æ‚Ì‘Š‘ÎˆÊ’u‘¬“x
 	Vector3 vectmp;
-	L = vectmp.subVectors(r,pCrane->r);
-	vL = vectmp.subVectors(v,pCrane->v);
+
+	if (type == ID_AHOIST) {
+		L = vectmp.subVectors(r, pCrane->r2);
+		vL = vectmp.subVectors(v, pCrane->v2);
+	}
+	else {
+		L = vectmp.subVectors(r, pCrane->r);
+		vL = vectmp.subVectors(v, pCrane->v);
+	}
 	return;
 }
 

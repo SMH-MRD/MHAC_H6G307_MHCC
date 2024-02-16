@@ -35,6 +35,8 @@ wstring CSwayIF::ws_sensor_stat_msg[64];
 
 static bool be_skiped_once_const_msg = false;
 
+static ST_SWY_SENS_PRM CamPrm;
+
 CSwayIF::CSwayIF() {
     // 共有メモリオブジェクトのインスタンス化
     hInst = NULL;
@@ -101,23 +103,23 @@ int CSwayIF::init_proc() {
     swx.is_read_from_msg = false;//カメラ取付状態のパラメータをfalseで振れセンサの電文にセットされている値を採用する
     swy.is_read_from_msg = false;//カメラ取付状態のパラメータをfalseで振れセンサの電文にセットされている値を採用する
 
-    swx.L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
-    swy.L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+    swx.L0 = CamPrm.arr[0][0][0][SID_L0];
+    swy.L0 = CamPrm.arr[0][0][1][SID_L0];
 
-    swx.PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
-    swy.PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+    swx.PH0 =CamPrm.arr[0][0][0][SID_PH0];
+    swy.PH0 =CamPrm.arr[0][0][1][SID_PH0];
 
-    swx.l0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_l0];
-    swy.l0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_l0];
+    swx.l0 = CamPrm.arr[0][0][0][SID_l0];
+    swy.l0 = CamPrm.arr[0][0][1][SID_l0];
 
-    swx.ph0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_ph0];
-    swy.ph0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_ph0];
+    swx.ph0 = CamPrm.arr[0][0][0][SID_ph0];
+    swy.ph0 = CamPrm.arr[0][0][1][SID_ph0];
 
-    swx.phc = pCraneStat->spec.SwayCamParam[0][0][0][SID_phc];
-    swy.phc = pCraneStat->spec.SwayCamParam[0][0][1][SID_phc];
+    swx.phc = CamPrm.arr[0][0][0][SID_phc];
+    swy.phc = CamPrm.arr[0][0][1][SID_phc];
 
-    swx.C = 1.0 / pCraneStat->spec.SwayCamParam[0][0][0][SID_PIXlRAD];
-    swy.C = 1.0 / pCraneStat->spec.SwayCamParam[0][0][1][SID_PIXlRAD];
+    swx.C = 1.0 / CamPrm.rad2pix[0][0][0];
+    swy.C = 1.0 / CamPrm.rad2pix[0][0][0];
 
     cycle_min_ms = SW_SND_DEFAULT_SCAN;
     sens_mode = SW_SND_MODE_NORMAL;
@@ -191,11 +193,11 @@ int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
 // 振れ計算用センサパラメータを通信電文より読み込み
 //*********************************************************************************************
 int CSwayIF::get_sensor_param_from_msg(LPST_SWAY_RCV_MSG pmsg) {
-    swx.L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
-    swy.L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+    swx.L0 = CamPrm.arr[0][0][0][SID_L0];
+    swy.L0 = CamPrm.arr[0][0][1][SID_L0];
 
-    swx.PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
-    swy.PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+    swx.PH0 = CamPrm.arr[0][0][0][SID_PH0];
+    swy.PH0 = CamPrm.arr[0][0][1][SID_PH0];
 
     swx.l0 = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.l0_x / 1000.0;       //mm->m
     swy.l0 = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.l0_y / 1000.0;       //mm->m
@@ -434,14 +436,14 @@ void  CSwayIF::init_rcv_msg() {
             rcv_msg[i][k].head.id[2] = '\0';
             GetLocalTime(&rcv_msg[i][k].head.time);
             for (int l = 0; l < SWAY_SENSOR_N_CAM; l++) {
-                rcv_msg[i][k].body[l].cam_spec.l0_x = (INT32)pCraneStat->spec.SwayCamParam[0][0][0][SID_l0];
-                rcv_msg[i][k].body[l].cam_spec.l0_y = (INT32)pCraneStat->spec.SwayCamParam[0][0][1][SID_l0];
-                rcv_msg[i][k].body[l].cam_spec.ph0_x = (INT32)pCraneStat->spec.SwayCamParam[0][0][0][SID_ph0];
-                rcv_msg[i][k].body[l].cam_spec.ph0_y = (INT32)pCraneStat->spec.SwayCamParam[0][0][1][SID_ph0];
-                rcv_msg[i][k].body[l].cam_spec.phc_x = (INT32)pCraneStat->spec.SwayCamParam[0][0][0][SID_phc];
-                rcv_msg[i][k].body[l].cam_spec.phc_y = (INT32)pCraneStat->spec.SwayCamParam[0][0][1][SID_phc];
-                rcv_msg[i][k].body[l].cam_spec.pixlrad_x = (INT32)pCraneStat->spec.SwayCamParam[0][0][0][SID_PIXlRAD];
-                rcv_msg[i][k].body[l].cam_spec.pixlrad_y = (INT32)pCraneStat->spec.SwayCamParam[0][0][1][SID_PIXlRAD];
+                rcv_msg[i][k].body[l].cam_spec.l0_x = (INT32)(CamPrm.arr[0][0][0][SID_l0]*1000.0);
+                rcv_msg[i][k].body[l].cam_spec.l0_y = (INT32)(CamPrm.arr[0][0][1][SID_l0]*1000.0);
+                rcv_msg[i][k].body[l].cam_spec.ph0_x = (INT32)(CamPrm.arr[0][0][0][SID_ph0]*100000.0);
+                rcv_msg[i][k].body[l].cam_spec.ph0_y = (INT32)(CamPrm.arr[0][0][1][SID_ph0] * 100000.0);
+                rcv_msg[i][k].body[l].cam_spec.phc_x = (INT32)(CamPrm.arr[0][0][0][SID_phc] * 100000.0);
+                rcv_msg[i][k].body[l].cam_spec.phc_y = (INT32)(CamPrm.arr[0][0][1][SID_phc] * 100000.0);
+                rcv_msg[i][k].body[l].cam_spec.pixlrad_x = (INT32)(CamPrm.rad2pix[0][0][0] * 100000.0);
+                rcv_msg[i][k].body[l].cam_spec.pixlrad_y = (INT32)(CamPrm.rad2pix[0][0][1] * 100000.0);
                 rcv_msg[i][k].body[l].cam_spec.pix_x = 1000;
                 rcv_msg[i][k].body[l].cam_spec.pix_y = 1000;
 
@@ -634,7 +636,6 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         CreateWindowW(TEXT("STATIC"), L" Min \n cycle", WS_CHILD | WS_VISIBLE | SS_LEFT,
             10, 300, 50, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_MINCYCLE, hInst, NULL);
 
-
         st_swy_work_wnd.hwndCycleUpPB = CreateWindow(L"BUTTON", L"10m↑", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             15, 350, 45, 30, hwnd, (HMENU)ID_PB_SWAY_IF_MIN_CYCLE_10mUP, hInst, NULL);
 
@@ -643,49 +644,49 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
         //振れ計算時にカメラ設置位置オフセットを0にして計算（振れセンサ生値確認用）するモードへの切り替え設定用 
         st_swy_work_wnd.h_pb_no_pos_offset = CreateWindow(L"BUTTON", L"NO OFF", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
-            115, 85, 80, 25, hwnd, (HMENU)ID_CHECK_SWAY_CAL_NO_OFFSET, hInst, NULL);
+            15, 450, 80, 25, hwnd, (HMENU)ID_CHECK_SWAY_CAL_NO_OFFSET, hInst, NULL);
+    
         // 振れ計算時に傾斜計オフセットを0にして計算（振れセンサ生値確認用）するモードへの切り替え設定用
         st_swy_work_wnd.h_pb_no_til_offset = CreateWindow(L"BUTTON", L"NO TIL", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
-            200, 85, 80, 25, hwnd, (HMENU)ID_CHECK_SWAY_CAL_NO_TILT, hInst, NULL);
-
-        //### 振れセンサ調整用
-        st_swy_work_wnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"  SENSOR      0SET        RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 32, 260, 20, hwnd, (HMENU)IDC_STATIC_1, hInst, NULL);
+            100, 450, 80, 25, hwnd, (HMENU)ID_CHECK_SWAY_CAL_NO_TILT, hInst, NULL);
 
         //振れセンサPC再起動指令ボタン
         st_swy_work_wnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            260, 2, 90, 25, hwnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
+            360, 450, 90, 25, hwnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
+
+        //スナップショット保存指令メッセージ送信ボタン
+        st_swy_work_wnd.h_pb_img_save = CreateWindow(L"BUTTON", L"SSHOT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            200, 450, 55, 25, hwnd, (HMENU)IDC_PB_SCREEN_SHOT, hInst, NULL);
+
+        //### 振れセンサ調整用
+        st_swy_work_wnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"  SENSOR      0SET        RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 485, 260, 20, hwnd, (HMENU)IDC_STATIC_1, hInst, NULL);
+
 
         //メインウィンドウの操作ボタン有効カメラ1,2選択（当面常時1が有効：将来用）
         st_swy_work_wnd.h_pb_sel_sensor1 = CreateWindow(L"BUTTON", L"1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            30, 55, 20, 25, hwnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
+            30, 510, 20, 25, hwnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
         st_swy_work_wnd.h_pb_sel_sensor2 = CreateWindow(L"BUTTON", L"2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            50, 55, 20, 25, hwnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
+            50, 510, 20, 25, hwnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
         SendMessage(st_swy_work_wnd.h_pb_sel_sensor1, BM_SETCHECK, BST_CHECKED, 0L);//センサ１をチェック状態にしておく
 
         //カメラリセット指令メッセージ送信ボタン
         st_swy_work_wnd.h_pb_reset_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            90, 55, 40, 25, hwnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
+            90, 510, 40, 25, hwnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
 
         //傾斜計リセット指令メッセージ送信ボタン
         st_swy_work_wnd.h_pb_reset_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            135, 55, 30, 25, hwnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
+            135, 510, 30, 25, hwnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
 
         //カメラ0セット指令メッセージ送信ボタン
         st_swy_work_wnd.h_pb_0set_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            180, 55, 40, 25, hwnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
+            180, 510, 40, 25, hwnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
 
         //傾斜計0セット指令メッセージ送信ボタン
         st_swy_work_wnd.h_pb_0set_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            225, 55, 30, 25, hwnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
+            225, 510, 30, 25, hwnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
 
-        //スナップショット保存指令メッセージ送信ボタン
-        st_swy_work_wnd.h_pb_img_save = CreateWindow(L"BUTTON", L"SSHOT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            280, 38, 55, 40, hwnd, (HMENU)IDC_PB_SCREEN_SHOT, hInst, NULL);
-
-
-
-        //振れセンサ送信タイマ起動
+         //振れセンサ送信タイマ起動
         SetTimer(hwnd, ID_WORK_WND_TIMER, WORK_SCAN_TIME, NULL);
 
     }break;
@@ -848,6 +849,43 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
         case  ID_PB_SWAY_IF_MIN_CYCLE_10mDN:
             if (cycle_min_ms >= 20) cycle_min_ms -= 10;
+            break;
+
+        case  IDC_PB_SENSOR_1:
+            break;
+        case  IDC_PB_SENSOR_2:
+            break;
+        case  IDC_PB_0SET_CAMERA:
+            if (IsDlgButtonChecked(hwnd, IDC_PB_SENSOR_1) == BST_CHECKED) send_msg(SID_SENSOR1, SW_SND_COM_CAMERA1_0SET);
+            else send_msg(SID_SENSOR1, SW_SND_COM_CAMERA2_0SET);
+            break;
+        case  IDC_PB_0SET_TILT:
+            if (IsDlgButtonChecked(hwnd, IDC_PB_SENSOR_1) == BST_CHECKED) send_msg(SID_SENSOR1, SW_SND_COM_TILT1_0SET);
+            else send_msg(SID_SENSOR1, SW_SND_COM_TILT2_0SET);
+            break;
+        case  IDC_PB_RESET_CAMERA:
+            if (IsDlgButtonChecked(hwnd, IDC_PB_SENSOR_1) == BST_CHECKED) send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR1_RESET);
+            else send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR2_RESET);
+            break;
+        case  IDC_PB_RESET_TILT:
+            if (IsDlgButtonChecked(hwnd, IDC_PB_SENSOR_1) == BST_CHECKED) send_msg(SID_SENSOR1, SW_SND_COM_TILT1_RESET);
+            else send_msg(SID_SENSOR1, SW_SND_COM_TILT2_RESET);
+            break;
+        case  IDC_PB_PC_RESET:
+            send_msg(SID_SENSOR1, SW_SND_COM_PC_RESET);
+            break;
+        case  IDC_PB_SCREEN_SHOT:
+            send_msg(SID_SENSOR1, SW_SND_COM_SAVE_IMG);
+            break;
+
+        case  ID_CHECK_SWAY_CAL_NO_OFFSET:
+            if (IsDlgButtonChecked(hwnd, ID_CHECK_SWAY_CAL_NO_OFFSET) == BST_CHECKED) cal_mode |= ID_SWAY_CAL_NO_OFFSET;
+            else cal_mode &= ~ID_SWAY_CAL_NO_OFFSET;
+            break;
+
+        case  ID_CHECK_SWAY_CAL_NO_TILT:
+            if (IsDlgButtonChecked(hwnd, ID_CHECK_SWAY_CAL_NO_TILT) == BST_CHECKED) cal_mode |= ID_SWAY_CAL_NO_TILT;
+            else cal_mode &= ~ID_SWAY_CAL_NO_TILT;
             break;
 
         default: break;

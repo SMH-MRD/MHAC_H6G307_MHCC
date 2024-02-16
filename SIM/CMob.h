@@ -49,8 +49,8 @@ private:
 //r,vは、吊点の位置と座標
 
 #define SIM_INIT_R                  21.00       //デフォルト旋回半径主巻
-#define SIM_INIT_MHR                21.90       //デフォルト旋回半径主巻
-#define SIM_INIT_AHR                26.06       //デフォルト旋回半径補巻
+#define SIM_INIT_MHR                21.00       //デフォルト旋回半径主巻
+#define SIM_INIT_AHR                25.52       //デフォルト旋回半径補巻
 #define SIM_INIT_MH                 60.0        //デフォルト主巻高さ
 #define SIM_INIT_AH                 70.0        //デフォルト補巻高さ
 #define SIM_INIT_TH                 PI90        //旋回初期値 rad
@@ -81,6 +81,10 @@ public:
  
     Vector3 rc;                                     //クレーン中心点の位置ベクトル
     Vector3 vc;                                     //クレーン中心点の速度ベクトル
+
+    Vector3 r2;                                     //第2（補巻）吊点位置ベクトル
+    Vector3 v2;                                     //第2（補巻）吊点速度ベクトル
+    Vector3 a2;                                     //第2（補巻）吊点ベクトル
 
     int source_mode;
 
@@ -167,9 +171,11 @@ public:
 
     CJC * pCrane;
     double m;                   //吊荷質量　Kg
+    int type;                   //吊荷のタイプ
  
     int set_m(double _m) { m = _m; return(0); }
     int set_crane(CJC* _pCrane) { pCrane = _pCrane; return(0); }
+    int set_type(int _type) { type = _type; return(type); }
 
 private:
 
