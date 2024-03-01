@@ -8,7 +8,7 @@
 #include "CSharedMem.h"	    //# 共有メモリクラス
 
 
-#define WORK_WND_X							858		//MAP表示位置X
+#define WORK_WND_X							858			//MAP表示位置X
 #define WORK_WND_Y							600			//MAP表示位置Y
 #define WORK_WND_W							530		    //MAP WINDOW幅
 #define WORK_WND_H							420			//MAP WINDOW高さ

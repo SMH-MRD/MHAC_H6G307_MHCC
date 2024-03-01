@@ -124,7 +124,7 @@ void CSCADA::main_proc() {
 void CSCADA::output() {
 
 	wostrs << L" V: mh " << ((LPST_PLC_IO)pPLCioObj->get_pMap())->v_fb[ID_HOIST];
-	wostrs << L" ph: slew " << pSway_IO->ph[ID_SLEW]*180/3.14;
+	wostrs << L" ph: slew " << pSway_IO->ph[SID_LOAD_MH][SID_CAM_X]*180/3.14;
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
@@ -586,16 +586,16 @@ int CSCADA::set_chart_data(int iptn) {
 		//Graph2
 		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART1, MK_GRAPH2, false, &(pPLC_IO->v_fb[ID_BOOM_H]), pCraneStat->spec.notch_spd_f[ID_BOOM_H][NOTCH_5]);
 		//Graph3
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART1, MK_GRAPH3, false, &(pSway_IO->rad_amp2[ID_BOOM_H]), 25*PI1DEG* PI1DEG);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART1, MK_GRAPH3, false, &(pSway_IO->rad_amp2[SID_LOAD_MH][SID_CAM_Y]), 25*PI1DEG* PI1DEG);
 		//Graph4
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART1, MK_GRAPH4, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART1, MK_GRAPH4, false, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_Y]), PI15);
 
 	//Chart2
 		//Graph1
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->rad_amp2[ID_SLEW]), 25 * PI1DEG * PI1DEG);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->rad_amp2[SID_LOAD_MH][SID_CAM_X]), 25 * PI1DEG * PI1DEG);
 
 		//Graph3
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->th[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_X]), PI15);
 
 		//Graph3
 		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pAgentInf->v_ref[ID_SLEW]), pCraneStat->spec.notch_spd_f[ID_SLEW][NOTCH_5]);
@@ -608,27 +608,27 @@ int CSCADA::set_chart_data(int iptn) {
 	//Window2 Scatter
 	//Chart2
 		//Graph1
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, true, &(pSway_IO->th[ID_SLEW]), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, false, &(pSway_IO->dthw[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, true, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_X]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, false, &(pSway_IO->dthw[SID_LOAD_MH][SID_CAM_X]), PI15);
 		//Graph2
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, true, &(pSway_IO->th[ID_BOOM_H]), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->dthw[ID_BOOM_H]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, true, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_Y]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->dthw[SID_LOAD_MH][SID_CAM_Y]), PI15);
 
 	}
 	else if (iptn == SCAD_CHART_PTN2) {
 	//Window1 Time Chart	
 	//Chart2
 	//Graph1
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->th[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_X]), PI15);
 	//Graph2
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_Y]), PI15);
 	//Graph3
 	//Graph4
 	//Window2 Scatter
 	//Chart1
 		//Graph3
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, true, &(pSway_IO->th[ID_SLEW]), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, true, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_X]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, false, &(pSway_IO->th[SID_LOAD_MH][SID_CAM_Y]), PI15);
 	}
 	else if (iptn == SCAD_CHART_PTN3) {
 		;

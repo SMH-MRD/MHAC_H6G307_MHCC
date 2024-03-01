@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 
-#define _DVELOPMENT_MODE                //開発環境を有効にする
+//#define _DVELOPMENT_MODE                //開発環境を有効にする
 
 ///#  共通フラグ
 #define     L_ON                        0x01  // ON

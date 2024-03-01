@@ -5,14 +5,24 @@
 
 //振れセンサ
 
+#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.100"
+#define SWAY_SENSOR_IP_ADDR		"192.168.1.100"
+
+#define SWAY_IF_IP_SWAY_PORT_C			10080
+#define SWAY_IF_IP_SWAY_PORT_S			10081
+#define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
+#define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_TE		20081	//マルチキャスト端末受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_CR		20080	//マルチキャストクレーン受信ポート
+
 #define N_SWAY_SENSOR			3		//振れセンサの数
 #define SID_SENSOR1				0		//No.1振れセンサ
 #define SID_SENSOR2				1		//No.2振れセンサ
 #define SID_SIM					2		//シミュレータ
 
 #define SWAY_SENSOR_N_AXIS		2
-#define SID_AXIS_X				0		//X軸
-#define SID_AXIS_Y				1		//y軸
+#define SID_PRM_AXIS_X			0	    //X軸
+#define SID_PRM_AXIS_Y			1		//y軸
 
 #define N_SWAY_SENSOR_CAMERA    2		//振れセンサ１セットのカメラの数
 #define SID_CAMERA1				0		//No.1振れセンサ
@@ -22,48 +32,44 @@
 #define SID_TARGET1				0		//No.1振れセンサ
 #define SID_TARGET2				1		//No.2振れセンサ
 
-#define SWAY_CAMERA_N_PARAM		5
-#define SID_L0					0		//カメラ回転軸距離
-#define SID_PH0					1		//カメラ回転軸角度
+#define SWAY_CAMERA_N_PARAM		10
+
+
+#define	SID_D0  				0		//カメラハウジング軸-吊点距離（主巻）
+#define	SID_row				    1		//カメラのハウジング-吊点角度（主巻）
 #define SID_l0					2		//カメラ中心とハウジング回転軸間距離
-#define	SID_ph0					3		//カメラのハウジングへの取り付け角度
-#define	SID_phc					4		//カメラのハウジングへの取り付け角度
-#define	SID_PIXlRAD				5		//カメラのハウジングへの取り付け角度
+#define	SID_ph0				    3		//カメラのハウジングへの取り付け角度
+#define	SID_phc				    4		//カメラの取り付け角度
+#define	SID_D02  				5		//カメラのハウジング-吊点距離（補巻）
+#define	SID_row2				6		//カメラのハウジング-吊点角度（補巻）
+#define SID_l02					7		//カメラ中心とハウジング回転軸間距離
+#define	SID_ph02				8		//カメラのハウジングへの取り付け角度
+#define	SID_phc2				9		//カメラの取り付け角度
 
 
-#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.100"
-#define SWAY_SENSOR_IP_ADDR		"192.168.1.100"
-
-
-#define SWAY_IF_IP_SWAY_PORT_C			10080
-#define SWAY_IF_IP_SWAY_PORT_S			10081
-#define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
-#define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
-#define OTE_IF_IP_MULTICAST_PORT_TE		20081	//マルチキャスト端末受信ポート
-#define OTE_IF_IP_MULTICAST_PORT_CR		20080	//マルチキャストクレーン受信ポート
 
 typedef struct StSwySensParam{
     double arr[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] =
     {	//振れセンサ　パラメータ
         {//No.1 センサ
-        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0,0.0,0.00,0.00}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        {{2.683,0.4636,0.07,0.0,0.0,1.697,0.7854,0.07,0.0,0.0},{2.4,0.104,0.071,-0.143,0.0,3.9,1.8675,0.071,-0.143,0.0}},	//カメラ1 x,y方向 D0,row,l0,ph0,phc,D02,row2,l02,ph02,phc2
+        {{2.683,0.4636,0.07,0.0,0.0,1.697,0.7854,0.07,0.0,0.0},{2.4,0.104,0.071,-0.143,0.0,3.9,1.8675,0.071,-0.143,0.0}},	//カメラ2 x,y方向 D0,row,l0,ph0,phc,D02,row2,l02,ph02,phc
         },
         {//No.2 センサ
-        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        {{2.683,0.4636,0.07,0.0,0.1,1.697,0.7854,0.07,0.0,0.1},{2.4,0.104,0.071,-0.143,0.1,3.9,1.8675,0.071,-0.143,0.1}},	//カメラ1 x,y方向 D0,row,l0,ph0,phc,D02,row2,l02,ph02,phc
+        {{2.683,0.4636,0.07,0.0,0.1,1.697,0.7854,0.07,0.0,0.1},{2.4,0.104,0.071,-0.143,0.1,3.9,1.8675,0.071,-0.143,0.1}},	//カメラ2 x,y方向 D0,row,l0,ph0,phc,D02,row2,l02,ph02,phc
         },
         {//No.3 センサ
-        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
-        {{1.0,0.0174,0.2,0.01,0.01},{1.0,0.0174,0.2,0.01,0.01}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+        {{2.683,0.4636,0.07,0.0,0.1,1.697,0.7854,0.07,0.0,0.1},{2.4,0.104,0.071,-0.143,0.1,3.9,1.8675,0.071,-0.143,0.1}},	//カメラ1 x,y方向 D0,row,l0,ph0,phc,D02,row2,l02,ph02,phc
+        {{2.683,0.4636,0.07,0.0,0.1,1.697,0.7854,0.07,0.0,0.1},{2.4,0.104,0.071,-0.143,0.1,3.9,1.8675,0.071,-0.143,0.1}},	//カメラ2 x,y方向 D0,row,l0,ph0,phc,D02,row2,l02,ph02,phc
         }
     };
 
     double rad2pix[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS] =
     {
-        {{2800.0,2800.0}, {2800.0,2800.0}},
-        {{2800.0,2800.0}, {2800.0,2800.0}},
-        {{2800.0,2800.0}, {2800.0,2800.0}}
+        {{2672.62,2642.78}, {2672.62,2642.78}},
+        {{2672.62,2642.78}, {2672.62,2642.78}},
+        {{2672.62,2642.78}, {2672.62,2642.78}}
      };
 
 #if 0
@@ -111,23 +117,23 @@ typedef struct SwaySensStatus {
     INT32	error;		    //エラーステータス
     INT32	status;		    //検出ステータス
     //傾斜計情報  
-    INT32	tilt_x;         //傾斜X
-    INT32	tilt_y;         //傾斜Y
-    INT32	tilt_dx;        //傾斜角速度X
-    INT32	tilt_dy;        //傾斜角速度Y
+    double	tilt_x;         //傾斜X
+    double	tilt_y;         //傾斜Y
+    double	tilt_dx;        //傾斜角速度X
+    double	tilt_dy;        //傾斜角速度Y
 } ST_SWAY_SENS_STAT, * LPST_SWAY_SENS_STAT;
 
 typedef struct TargetStatus {
     //振れ検出情報  
-    INT32	th_x;		    //振角xPIX
-    INT32	th_y;		    //振角yPIX
-    INT32	dth_x;		    //振角速度x　PIX/s
-    INT32	dth_y;			//振角速度y　PIX/s
-    INT32	th_x0;			//振角0点xPIX
-    INT32	th_y0;			//振角0点yPIX
-    INT32	dpx_tgs;		//ターゲット間距離X方向
-    INT32	dpy_tgs;		//ターゲット間距離Y方向
-    INT32	tg_size;		//ターゲットサイズ
+    double	th_x;		    //振角xPIX
+    double	th_y;		    //振角yPIX
+    double	dth_x;		    //振角速度x　PIX/s
+    double	dth_y;			//振角速度y　PIX/s
+    double	th_x0;			//振角0点xPIX
+    double	th_y0;			//振角0点yPIX
+    double	dpx_tgs;		//ターゲット間距離X方向
+    double	dpy_tgs;		//ターゲット間距離Y方向
+    double	tg_size;		//ターゲットサイズ
 } ST_TARGET_STAT, * LPST_TARGET_STAT;
 
 typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部

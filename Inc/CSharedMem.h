@@ -119,6 +119,10 @@ typedef struct StPLC_IO {
 	double pos[MOTION_ID_MAX];						//位置FB
 	double weight;									//主巻荷重FB
 	double weight_ah;								//補巻荷重FB
+	double th_bh;									//起伏角 acos(R/Lm)
+	double lmh;										//主巻ロープ長
+	double lah;										//補巻ロープ長
+
 	INT16 brk[MOTION_ID_MAX];						//ブレーキ状態FB 0閉
 	INT32 endlim[MOTION_ID_MAX];					//極限センサ状態
 	INT16 notch_ref[MOTION_ID_MAX];					//ノッチ指令入力FB（OTE入力含む）
@@ -146,14 +150,12 @@ typedef struct StOTE_IO {
 /*   振れセンサ信号定義構造体                                  　         　*/
 /* 　SWAY_PC_IFがセットする共有メモリ上の情報　      　　　　　　           */
 #pragma region SWAY SENSOR
+#define SENSOR_CAM_MAX				 2//カメラ数
 #define SENSOR_TARGET_MAX            4//検出ターゲット最大数
 #define SID_TG1                      0//ターゲットID
 #define SID_TG2                      1
 #define SID_TG3                      2
 #define SID_TG4                      3
-
-#define DETECT_AXIS_MAX              4// 検出軸数
-
 
 #define TG_LAMP_NUM_MAX              3//ターゲット毎のランプ最大数
 
@@ -164,6 +166,14 @@ typedef struct StOTE_IO {
 #define SWAY_FAULT_ITEM_MAX			 4//異常検出項目数
 #define SID_COMMON_FLT               0
 
+#define SID_CAM_X              ID_SLEW
+#define SID_CAM_Y              ID_BOOM_H
+#define SID_CAM_XY             ID_TROLLY
+#define SID_LOAD_MH            0
+#define SID_LOAD_AH            1
+#define SID_N_LOAD             2
+#define SID_N_AXIS             4
+
 typedef struct StSwayIO {
 	DWORD proc_mode;
 	DWORD helthy_cnt;
@@ -173,14 +183,14 @@ typedef struct StSwayIO {
 	WORD status[SENSOR_TARGET_MAX];							//ターゲットサ検出状態
 	DWORD fault[SWAY_FAULT_ITEM_MAX];						//センサ異常状態
 	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
-	double tilt_rad[MOTION_ID_MAX];							//傾斜角
-
-	double th[MOTION_ID_MAX];								//振角			rad
-	double dth[MOTION_ID_MAX];								//振角速度		rad/s
-	double dthw[MOTION_ID_MAX];								//振角速度/ω　	rad
-	double ph[MOTION_ID_MAX];								//位相平面位相	rad
-	double rad_amp2[MOTION_ID_MAX];							//振幅の2乗		rad2
-
+	double tilt[SENSOR_CAM_MAX][SID_N_AXIS];				//傾斜角
+	double dtilt[SENSOR_CAM_MAX][SID_N_AXIS];				//傾斜角
+	double th[SID_N_LOAD][MOTION_ID_MAX];					//吊荷振角			rad
+	double dth[SID_N_LOAD][MOTION_ID_MAX];					//吊荷振角速度		rad/s
+	double dthw[SID_N_LOAD][MOTION_ID_MAX];					//吊荷振角速度/ω　	rad
+	double ph[SID_N_LOAD][MOTION_ID_MAX];					//吊荷位相平面位相	rad
+	double rad_amp2[SID_N_LOAD][MOTION_ID_MAX];				//吊荷振幅の2乗		rad2
+	double cam_pix[SID_N_LOAD][MOTION_ID_MAX];				//振れセンサカメラPIX位置
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
 #pragma endregion 振れセンサ信号定義構造体
@@ -220,7 +230,7 @@ typedef struct StSimulationStatus {
 	ST_MOVE_SET	d;									//ポスト‐起伏シーブ間状態（距離・速度・加速度）
 	ST_MOVE_SET	db;									//ジブポスト‐起伏シーブ間状態（距離・速度・加速度）
 	ST_MOVE_SET	ph;									//φ
-	ST_MOVE_SET	phb;									//φ
+	ST_MOVE_SET	phb;								//φ
 	ST_MOVE_SET	th;									//θ
 
 	UINT32 i_layer[MOTION_ID_MAX];					//ドラム現在層数
@@ -229,6 +239,13 @@ typedef struct StSimulationStatus {
 
 	ST_MOVE_SET	lrm;								//主巻ロープ長
 	ST_MOVE_SET	lra;								//補巻ロープ長
+
+	double T;										//主巻振れ周期
+	double Tah;										//補巻振れ周期
+	double w;										//主巻振れ角周波数
+	double wah;										//補巻振れ角周波数
+
+	double tht_swx_mh, tht_swy_mh, tht_swx_ah, tht_swy_ah;
 
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 #pragma endregion シミュレーション信号定義構造体
@@ -297,13 +314,19 @@ typedef struct StCraneStatus {
 	Vector3 rc_a;										//クレーン補巻吊点のクレーン基準点とのx,y,z相対座標
 	Vector3 rl_a;										//補巻吊荷のクレーン吊点とのx,y,z相対座標
 	Vector3 rcam_m_a;									//補巻振れセンサ検出x,y,z座標 m
-
 	
 	double notch_spd_ref[MOTION_ID_MAX];				//ノッチ速度指令
+
 	double mh_l;										//ロープ長
 	double T;											//振周期		s
 	double w;											//振角周波数	/s
 	double w2;											//振角周波数の2乗
+
+	double ah_l;										//ロープ長
+	double T_ah;										//振周期		s
+	double w_ah;										//振角周波数	/s
+	double w2_ah;										//振角周波数の2乗
+	
 	double R;											//旋回半径
 
 	WORD faultPC[N_PC_FAULT_WORDS];						//PLC検出異常

@@ -109,8 +109,6 @@ typedef struct StSpec {
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },				//[ID_MOTION1];
 	};
 
-
-
 #if 0
 	double notch_spd_remote_f[MOTION_ID_MAX][NOTCH_MAX] = {		//# ノッチ指令速度（遠隔）1倍速時
 	{ 0.0,	0.012,	0.35,	0.07,	0.117,	0.117  },			//[ID_HOIST]	m/s

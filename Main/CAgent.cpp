@@ -630,7 +630,8 @@ void CAgent::set_as_workbuf(int motion) {
 	st_as_work.as_ptn_type[motion] = AGENT_AS_PTN_PAUSE;
 
 	double r0 = st_as_work.a_hp_abs[motion] / GA;
-	double rs = sqrt(pSway_IO->rad_amp2[motion]);
+
+	double rs = sqrt(pSway_IO->rad_amp2[SID_LOAD_MH][motion]);
 
 
 	if (st_as_work.dist_for_target_abs[motion] > pCraneStat->spec.as_pos_level[motion][ID_LV_TRIGGER]) {			//目標までの距離大→位置合わせ
@@ -884,7 +885,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		bool is_step_end = false;
 		double chk_ph = PI360;
 		double trig_point_ph = pStep->opt_d[STEP_OPT_PHASE_SINGLE];
-		double ph_io = pSway_IO->ph[motion];
+		double ph_io = pSway_IO->ph[SID_LOAD_MH][motion];
 
 		//異常完了判定
 		if ((trig_point_ph > PI180) || (trig_point_ph < -PI180)) {//指定範囲外　-π～π
@@ -893,7 +894,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		if (pStep->act_count > pStep->time_count) {
 //			pStep->status = STAT_TIME_OVER;is_step_end = true;
 		}
-		if (pSway_IO->rad_amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {//振れ振幅完了レベル
+		if (pSway_IO->rad_amp2[SID_LOAD_MH][motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {//振れ振幅完了レベル
 			pStep->status = STAT_END;is_step_end = true;
 		}
 		if (is_step_end) {
@@ -903,7 +904,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 		//メイン判定
 		if ((trig_point_ph <= 0.0) && (ph_io >= 0)) {			//目標が負　現在位相が正
-			chk_ph = pSway_IO->ph[motion] - trig_point_ph;
+			chk_ph = pSway_IO->ph[SID_LOAD_MH][motion] - trig_point_ph;
 			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
 		}
 		else if ((trig_point_ph >= 0) && (ph_io <= 0)) {			//目標が正　現在値が負
@@ -929,7 +930,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	case CTR_TYPE_WAIT_PH_DOUBLE: {
 		precipe->direction = ID_STOP;	//完了まで移動方向未定
 		bool is_step_end = false;
-		double ph_io = pSway_IO->ph[motion];
+		double ph_io = pSway_IO->ph[SID_LOAD_MH][motion];
 
 		//異常完了判定
 		if ((pStep->opt_d[STEP_OPT_PHASE_FWD] > PI180) || (pStep->opt_d[STEP_OPT_PHASE_FWD] < -PI180)) {//指定範囲外　-π～π
@@ -941,7 +942,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		if (pStep->act_count > pStep->time_count) {
 	//		pStep->status = STAT_TIME_OVER;is_step_end = true;
 		}
-		if (pSway_IO->rad_amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {//振れ振幅完了レベル
+		if (pSway_IO->rad_amp2[SID_LOAD_MH][motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {//振れ振幅完了レベル
 			pStep->status = STAT_END;is_step_end = true;
 		}
 

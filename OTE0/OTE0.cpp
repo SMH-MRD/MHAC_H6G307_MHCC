@@ -353,8 +353,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		pCOte0->parse();//受信データ展開
 
 		if (wParam == ID_OTE_UNICAST_TIMER) {
-			set_lamp();
-
 			//ON PAINT　呼び出し　表示更新
 			RECT rc = { 0,245,840,800 };
 			InvalidateRect(hWnd, &rc, FALSE);
@@ -558,7 +556,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//故障リセットPB
 		if (pad_data.rgbButtons[6]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
 
-		if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
+		//if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
+		if(1){
 			if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = (INT16)((pad_data.lRz - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
@@ -572,7 +571,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
 			}
 		}
-		if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+	//	if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+		if(1){
 			if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
@@ -580,7 +580,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = ID_OTE_0NOTCH_POS;
 			}
 			if ((pad_data.lX < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lX > OTE0_GMPAD_NOTCH0_MAX)) {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = (INT16)((pad_data.lX - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = (INT16)(-(pad_data.lX - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
 			else {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
@@ -773,7 +773,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_HOOK)open_camera_Wnd(hWnd, OTE_CAMERA_ID_HOOK0);
 				else open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
 
-				open_camera_Wnd2(hWnd, OTE_CAMERA_ID_HOOK0);
+				open_camera_Wnd2(hWnd, OTE_CAMERA_ID_PTZ0);
 			}
 
 		}
@@ -1334,6 +1334,9 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 		if (1) {
 		//if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd == NULL) {
+	
+			PatBlt(st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM0], 0, 0, OTE0_SWY_WND_W, OTE0_SWY_WND_H, WHITENESS);
+	
 			draw_bk_swy();
 			draw_graphic_swy();
 
@@ -1528,7 +1531,7 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		case ID_OTE_RADIO_OPE1: 
 		case ID_OTE_RADIO_OPE2:
 		{
-			pPSA->SwitchCamera(hWnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_JPEG);
+			pPSA->SwitchCamera(hWnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_H265);
 		}break;
 
 		case ID_OTE_RADIO_WIDE:
@@ -1991,7 +1994,7 @@ HWND open_camera_Wnd(HWND hwnd, int id_cam) {
 			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_JPEG);
 		}
 		else if (id_cam == OTE_CAMERA_ID_HOOK0) {
-			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
+			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H265);
 		}
 		else {
 			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
@@ -2032,7 +2035,7 @@ HWND open_camera_Wnd2(HWND hwnd, int id_cam) {
 		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
 	}
 	else if (id_cam == OTE_CAMERA_ID_FISH0) {
-		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_JPEG);
+		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H265);
 	}
 	else if (id_cam == OTE_CAMERA_ID_HOOK0) {
 		st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
@@ -2054,7 +2057,7 @@ HWND open_camera_Wnd2(HWND hwnd, int id_cam) {
 	ShowWindow(hcamwnd, SW_SHOW);
 	UpdateWindow(hcamwnd);
 
-	MoveWindow(hcamwnd, OTE0_CAM2_WND_X - 1280, OTE0_CAM2_WND_Y-3, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
+//	MoveWindow(hcamwnd, OTE0_CAM2_WND_X - 1280, OTE0_CAM2_WND_Y-3, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
 
 	return hcamwnd;
 }
@@ -2067,15 +2070,6 @@ void set_OTE_panel_objects(HWND hWnd) {
 
 	HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
 
-#if 0 グラフィック描画に変更
-	//ランプ
-	for (int i = ID_OTE_LAMP_HIJYOU; i <= ID_OTE_LAMP_N3; i++) {
-		st_work_wnd.hctrl[ID_OTE_CTRL_STATIC][i] = CreateWindowW(TEXT("STATIC"), st_work_wnd.ctrl_text[ID_OTE_CTRL_STATIC][i], WS_CHILD | WS_VISIBLE | SS_LEFT,
-			st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_STATIC][i].y,
-			st_work_wnd.size_ctrl[ID_OTE_CTRL_STATIC][i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_STATIC][i].cy,
-			hWnd, (HMENU)(BASE_ID_OTE_STATIC + i), hInst, NULL);
-	}
-#endif
 	//ラベル
 	//for (int i = ID_OTE_LABEL_MH; i <= ID_OTE_INF_GT0; i++) { INF部はグラフィック表示
 	for (int i = ID_OTE_LABEL_MH; i <= ID_OTE_LABEL_GT; i++) {
@@ -2431,11 +2425,48 @@ void draw_info() {
 	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 230, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 }
+
+#define OTE_SWY_WND_PIX_X	5	//OTEの1PIXに対応するカメラの画素数
+#define OTE_SWY_WND_PIX_Y	5	//OTEの1PIXに対応するカメラの画素数 
+#define OTE_SWY_WND_PIX_X0	140	//OTE WINDOWのセンター位置
+#define OTE_SWY_WND_PIX_Y0	120	//OTE WINDOWのセンター位置 
+#define OTE_SWY_WND_TG_D	10	//OTEでのターゲット直径
+#define OTE_SWY_WND_TG_R	5	//OTEでのターゲット半径
+#define OTE_SWY_WND_TG1_X0  130
+#define OTE_SWY_WND_TG2_X0  140
+#define OTE_SWY_WND_TG1_Y0  115
+#define OTE_SWY_WND_TG2_Y0  115
+
 void draw_graphic_swy() {
 	HDC hdc = st_work_wnd.hdc[ID_OTE_HDC_SWY_MEM_GR];
 	
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_SWY_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_RED], OTE0_SWY_WND_W / 2-10, OTE0_SWY_WND_H / 2-5, 10, 10);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_SWY_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_GREEN], OTE0_SWY_WND_W / 2, OTE0_SWY_WND_H / 2-5, 10, 10);
+
+	//主巻
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_SWY_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_RED],
+		OTE_SWY_WND_TG1_X0 + pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_MH][OTE_ID_SWY_AXIS_X]/ OTE_SWY_WND_PIX_X,
+		OTE_SWY_WND_TG1_Y0 - pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_MH][OTE_ID_SWY_AXIS_Y]/ OTE_SWY_WND_PIX_Y,
+		OTE_SWY_WND_TG_D, 
+		OTE_SWY_WND_TG_D);
+
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_SWY_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_GREEN], 
+		OTE_SWY_WND_TG2_X0 + pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_MH][OTE_ID_SWY_AXIS_X]/ OTE_SWY_WND_PIX_X,
+		OTE_SWY_WND_TG2_Y0 - pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_MH][OTE_ID_SWY_AXIS_Y]/ OTE_SWY_WND_PIX_Y,
+		OTE_SWY_WND_TG_D, 
+		OTE_SWY_WND_TG_D);
+
+	//補巻
+
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_SWY_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_BLUE],
+		OTE_SWY_WND_TG1_X0 + pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_AH][OTE_ID_SWY_AXIS_X] / OTE_SWY_WND_PIX_X,
+		OTE_SWY_WND_TG1_Y0 - pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_AH][OTE_ID_SWY_AXIS_Y] / OTE_SWY_WND_PIX_Y,
+		OTE_SWY_WND_TG_D,
+		OTE_SWY_WND_TG_D);
+
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_SWY_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_YELLOW],
+		OTE_SWY_WND_TG2_X0 + pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_AH][OTE_ID_SWY_AXIS_X] / OTE_SWY_WND_PIX_X,
+		OTE_SWY_WND_TG2_Y0 - pCOte0->st_msg_pc_u_rcv.body.swy_cam_pix[OTE_ID_LOAD_AH][OTE_ID_SWY_AXIS_Y] / OTE_SWY_WND_PIX_Y,
+		OTE_SWY_WND_TG_D,
+		OTE_SWY_WND_TG_D);
 }
 void draw_bk_swy() {
 	
@@ -2448,13 +2479,6 @@ void draw_bk_swy() {
 	ws = L"SWAY";
 	TextOutW(hdc, 0, 0, ws.c_str(), (int)ws.length());
 
-}
-
-/// <summary>
-/// ランプセット
-/// </summary>
-void set_lamp() {
-	return;
 }
 /// <summary>
 /// ランプの描画

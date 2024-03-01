@@ -142,6 +142,10 @@ int COteIF::init_proc() {
 			mode |= OTE_IF_PLC_MEM_NG;
 		}
 
+		if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME, sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) {
+			mode |= OTE_IF_PLC_MEM_NG;
+		}
+
 		pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 		pPLCio = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 		pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
@@ -248,7 +252,15 @@ LPST_PC_U_MSG COteIF:: set_msg_pc_u() {
 	for (int i = 0; i < MOTION_ID_MAX; i++) {
 		st_msg_pc_u_snd.body.pos[i] = pPLCio->pos[i];
 	}
-    return &st_msg_pc_u_snd;
+
+	//U‚êƒZƒ“ƒTƒJƒƒ‰
+	st_msg_pc_u_snd.body.swy_cam_pix[OTE_ID_LOAD_MH][OTE_ID_SWY_AXIS_X] = pSway_IO->cam_pix[SID_LOAD_MH][SID_CAM_X];
+	st_msg_pc_u_snd.body.swy_cam_pix[OTE_ID_LOAD_MH][OTE_ID_SWY_AXIS_Y] = pSway_IO->cam_pix[SID_LOAD_MH][SID_CAM_Y];
+	st_msg_pc_u_snd.body.swy_cam_pix[OTE_ID_LOAD_AH][OTE_ID_SWY_AXIS_X] = pSway_IO->cam_pix[SID_LOAD_AH][SID_CAM_X];
+	st_msg_pc_u_snd.body.swy_cam_pix[OTE_ID_LOAD_AH][OTE_ID_SWY_AXIS_Y] = pSway_IO->cam_pix[SID_LOAD_AH][SID_CAM_Y];
+	
+	
+	return &st_msg_pc_u_snd;
 } 
 //*********************************************************************************************
 /// <summary>

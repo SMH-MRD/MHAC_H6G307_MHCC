@@ -6,7 +6,7 @@
 
 //-タスク設定
 #define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
-#define SYSTEM_TICK_ms				25		//メインスレッド周期 msec
+#define SYSTEM_TICK_ms				50		//メインスレッド周期 msec
 
 //タイマーID
 #define ID_MAIN_WINDOW_UPDATE_TIMER				10701

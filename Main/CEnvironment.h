@@ -43,12 +43,12 @@ public:
 
     bool is_speed_0(int motion);                            // 0速チェック
 
-    double cal_T(double pos_hst);                            //振れ周期計算　巻き位置指定
-    double cal_w(double pos_hst);                            //振れ角周波数計算　巻き位置指定
-    double cal_w2(double pos_hst);                           //振れ角周波数の2乗計算　巻き位置指定
-    double cal_l(double pos_hst);                            //ロープ長計算　巻き位置指定
+    double cal_T(double pos_hst);                            //振れ周期計算　ロープ長　指定
+    double cal_w(double pos_hst);                            //振れ角周波数計算　ロープ長指定
+    double cal_w2(double l);                                //振れ角周波数の2乗計算　ロープ長指定
+    double cal_l(double pos_hst, double r, double l);                            //ロープ長計算　巻き位置指定
      
-    bool is_sway_larger_than_accsway(int motion);           //振れ角が加速振れよりも大きいか判定
+    bool is_sway_larger_than_accsway(int axisn);           //振れ角が加速振れよりも大きいか判定
 
     double get_vmax(int motion);                            //最大速度
  

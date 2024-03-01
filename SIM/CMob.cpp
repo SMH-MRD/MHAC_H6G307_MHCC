@@ -456,7 +456,6 @@ void CJC::timeEvolution() {
 	a.z = pspec->Lm * (pSimStat->th.a * cos_th - pSimStat->th.v * pSimStat->th.v * sin_th);
 #endif
 
-
 	double ar0 = def_spec.La * cos(pSimStat->th.p - def_spec.rad_Lm_La);
 	r2.x = ar0 * cos_sl + r0[ID_GANTRY];
 	r2.y = ar0 * sin_sl;
@@ -468,6 +467,14 @@ void CJC::timeEvolution() {
 	//ロープ長セット　LOADオブジェクトから参照
 	l_mh = pSimStat->lrm.p;
 	l_ah = pSimStat->lra.p;
+
+	//振れ周期セット
+	pSimStat->w = sqrt(GA / l_mh);
+	pSimStat->T = PI360/ pSimStat->w;
+	pSimStat->wah = sqrt(GA / l_ah);
+	pSimStat->Tah = PI360 / pSimStat->wah;
+
+
 
 	return;
 }

@@ -183,9 +183,13 @@ int CPLC_IF::parse_data_in() {
 
     //共有メモリ出力内容取り込みセット
     //単位m
-    plc_if_workbuf.pos[ID_HOIST]    = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;//アブソコーダのPLC計算結果mmをm単位で
-    plc_if_workbuf.pos[ID_AHOIST]   = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;//アブソコーダのPLC計算結果mmをm単位で
-    plc_if_workbuf.pos[ID_BOOM_H]   = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 100.0;//モーメントリミッタの半径出力をm単位で
+    plc_if_workbuf.pos[ID_HOIST]    = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;  //アブソコーダのPLC計算結果mmをm単位で
+    plc_if_workbuf.pos[ID_AHOIST]   = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;  //アブソコーダのPLC計算結果mmをm単位で
+    plc_if_workbuf.pos[ID_BOOM_H]   = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 100.0;   //モーメントリミッタの半径出力をm単位で
+    plc_if_workbuf.th_bh = acos(plc_if_workbuf.pos[ID_BOOM_H] / def_spec.Lm);               //起伏角acos(R/Lm)
+    plc_if_workbuf.lmh = def_spec.Hp + def_spec.Lm * sin(plc_if_workbuf.th_bh) - plc_if_workbuf.pos[ID_HOIST];
+    plc_if_workbuf.lah = def_spec.Hp + def_spec.La * sin(plc_if_workbuf.th_bh) - plc_if_workbuf.pos[ID_AHOIST];
+
     //旋回、起伏は高速カウンタとモーメントリミッタより
     //高速カウンタユニットのカウント値を変換　カウント値15000000の時旋回角0 20201510の時旋回角π
     //θ=count×π/(20201510-15000000)モータ1回転で　ピニオン減速比428.4　旋回角＝ピニオン回転数*2π*14/166 0.00000716144;//ピニオン回転位置
@@ -719,16 +723,13 @@ int CPLC_IF::parse_data_out() {
             }
  
         }
-
-  
-
     }
  
 #pragma endregion PLC_CC_LINK
 
 #pragma region PLC_HCOUNTER_ABS
     //高速カウンタ
-    plc_if_workbuf.output.wbuf.hcounter[0] = (UINT32)(100000000.0 - (80.86 - pSim->nd[ID_HOIST].p)*261802.07);
+    plc_if_workbuf.output.wbuf.hcounter[0] = (UINT32)(100000000.0 - (80.86 - pSim->nd[ID_HOIST].p) * 261802.07);
     plc_if_workbuf.output.wbuf.hcounter[1] = (UINT32)(100000000.0 - (65.526- pSim->nd[ID_AHOIST].p) * 243302.4);
     plc_if_workbuf.output.wbuf.hcounter[2] = (UINT32)(72354000.0 - (64.0 - pSim->nd[ID_BOOM_H].p) * 465539.66);
     plc_if_workbuf.output.wbuf.hcounter[3] = (UINT32)(15000000.0 + pSim->nd[ID_SLEW].p * 877363.2);                 //ピニオン回転位置
@@ -743,6 +744,7 @@ int CPLC_IF::parse_data_out() {
      return 0;
 }
 
+//操作端末入力受付
 int CPLC_IF::parse_ote_com() {
     //運転室PB
     //ノッチ

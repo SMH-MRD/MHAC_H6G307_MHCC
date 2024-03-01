@@ -14,6 +14,7 @@
 #define SWAY_IF_SWAY_IO_MEM_NG              0x8000
 #define SWAY_IF_CRANE_MEM_NG                0x4000
 #define SWAY_IF_SIM_MEM_NG                  0x2000
+#define SWAY_IF_PLC_IO_MEM_NG               0x1000
 #define SWAY_IF_SIM_DBG_MODE                0x00000010	//振れデータをSIM出力から生成
 
 
@@ -66,16 +67,22 @@
 
 typedef struct SyayCamWork {
     bool    is_read_from_msg;   //電文から読み込み済フラグ
-    double	th_cam;			    //カメラ検出角＋カメラ据え付け角(rad)
-    double	til_cam;		    //傾斜計検出角＋カメラ設置位置角度(rad)
-    double	dth_cam;		    //カメラ検出角速度(rad/s)
-    double	dtil_cam;		    //傾斜計検出角速度(rad/s)
-    double	L0;	                //カメラ軸設置角度
-    double	PH0;	            //カメラ軸設置角度
+    double	tht;			    //カメラ検出角(rad)
+    double	til;		        //傾斜計検出角(rad)
+    double	dtht;		        //カメラ検出角速度(rad/s)
+    double	dtil;		        //傾斜計検出角速度(rad/s)
+    double	D0;	                //カメラ軸設置角度
+    double	row;	            //カメラ軸設置角度
     double  l0;                 //カメラ取付距離
     double	ph0;	            //カメラ取付角度
     double	phc;	            //カメラ据え付け角度
     double	C;	                //カメラ分解能　rad/PIX 振れセンサからの係数（PIX/rad）の逆数
+    double  thc;                //til+phc
+    double  th0;                //til+ph0
+    double  d0;
+    double  h0;
+    double  dc;
+    double  hc;
 }ST_SWAY_CAM_WORK, * LPST_SWAY_CAM_WORK;
 
 //メインウィンドウ管理構造体
@@ -121,6 +128,7 @@ private:
     //# 入力用共有メモリオブジェクトポインタ:
     CSharedMem* pCraneStatusObj;
     CSharedMem* pSimulationStatusObj;
+    CSharedMem* pPLCioObj;
 
     void init_rcv_msg();
 
@@ -131,6 +139,7 @@ private:
 
     static LPST_CRANE_STATUS pCraneStat;
     static LPST_SIMULATION_STATUS pSimStat;
+    static LPST_PLC_IO pPLCio;
 
     static ST_SWAY_WORK_WND st_swy_work_wnd;
 
@@ -158,8 +167,10 @@ private:
     static INT32 cycle_min_ms;
     static INT32 sens_mode;
 
-    static ST_SWAY_CAM_WORK swx;
-    static ST_SWAY_CAM_WORK swy;
+    static ST_SWAY_CAM_WORK swx;    //主巻x方向
+    static ST_SWAY_CAM_WORK swy;    //主巻y方向
+    static ST_SWAY_CAM_WORK swx2;   //補巻x方向
+    static ST_SWAY_CAM_WORK swy2;   //補巻y方向
 
     static wstring ws_sensor_err_msg[64];
     static wstring ws_sensor_stat_msg[64];
@@ -187,13 +198,8 @@ public:
         if (id) mode |= SWAY_IF_SIM_DBG_MODE;
         else    mode &= ~SWAY_IF_SIM_DBG_MODE;
     }
-
-
     int is_debug_mode() { return(mode & SWAY_IF_SIM_DBG_MODE); }
-
-    //追加メソッド
-    int set_sim_status(LPST_SWAY_IO pworkbuf);   //デバッグモード時にSimulatorからの入力で出力内容を上書き
-
+ 
     virtual HWND open_WorkWnd(HWND hwnd_parent);
     static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);
     static int close_WorkWnd();

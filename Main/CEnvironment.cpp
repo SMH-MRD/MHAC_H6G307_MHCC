@@ -274,17 +274,15 @@ double CEnvironment::cal_w(double pos_hst){  //U‚êŠpü”g”ŒvZ@Šª‚«ˆÊ’uw’è
 	return ans;
 }; 
 
-double CEnvironment::cal_w2(double pos_hst) {  //U‚êŠpü”g”‚Ì2æŒvZ@Šª‚«ˆÊ’uw’è
-	double ans = spec.boom_high - pos_hst;
-	if (ans > 1.0) ans = GA / ans; 	//ƒ[ƒv’·‰ºŒÀ‚æ‚è‘å
-	else ans = GA;
-
+double CEnvironment::cal_w2(double l) {  //U‚êŠpü”g”‚Ì2æŒvZ ƒ[ƒv’·w’è
+	double ans = GA;
+	if (l > 1.0) ans = GA / l; 	//ƒ[ƒv’·‰ºŒÀ‚æ‚è‘å
+	
 	return ans;
 };
 
-double CEnvironment::cal_l(double pos_hst){  //ƒ[ƒv’·ŒvZ@Šª‚«ˆÊ’uw’è
-	double ans = spec.boom_high - pos_hst;
-	return ans;
+double CEnvironment::cal_l(double pos_hst, double r,double l){  //ƒ[ƒv’·ŒvZ@Šª‚«ˆÊ’uw’è
+	return spec.Hp + sqrt(l * l + r * r) - pos_hst;
 };
 
 /****************************************************************************/
@@ -434,17 +432,19 @@ double CEnvironment::cal_arad2(int motion, int dir, double R) {     //‰ÁŒ¸‘¬U‚ê
 
 bool CEnvironment::is_sway_larger_than_accsway(int motion){
 	//UŠpU•‚ª‰Á‘¬UŠp‚æ‚è‚à‘å‚«‚¢‚©”»’è
+
 	double rad_acc2 = cal_arad2(motion, FWD);	//‰Á‘¬U‚êŠp2æ
-	if (pSway_IO->rad_amp2[motion] > rad_acc2) return true;
+
+	if (pSway_IO->rad_amp2[SID_LOAD_MH][motion] > rad_acc2) return true;
 	else return false;
 }
 
 double CEnvironment::cal_sway_r_amp2_m() { //U‚êU•2æ”¼Œa•ûŒü m
-	double ans = pCraneStat->mh_l* pCraneStat->mh_l* pSway_IO->rad_amp2[ID_BOOM_H];
+	double ans = pCraneStat->mh_l* pCraneStat->mh_l* pSway_IO->rad_amp2[SID_LOAD_MH][SID_CAM_Y];
 	return ans;
 }			
 double CEnvironment::cal_sway_th_amp2_m() { 
-	return pCraneStat->mh_l * pCraneStat->mh_l * pSway_IO->rad_amp2[ID_SLEW]; 
+	return pCraneStat->mh_l * pCraneStat->mh_l * pSway_IO->rad_amp2[SID_LOAD_MH][SID_CAM_X];
 }																																		//U‚êU•2æ‰~ü•ûŒü m
 double CEnvironment::cal_sway_x_amp2_m() { return 0.0; }																				//U‚êU•2æx•ûŒü m
 double CEnvironment::cal_sway_y_amp2_m() { return 0.0; }																				//U‚êU•2æy•ûŒü m
@@ -525,8 +525,8 @@ int CEnvironment::pos_set() {
 	stWorkCraneStat.R = pPLC_IO->pos[ID_BOOM_H];
 	
 	//’İ‰×‚ÌƒJƒƒ‰À•W‚Å‚Ì’İ‰×xyz‘Š‘ÎÀ•W@m
-	stWorkCraneStat.rcam_m.x = stWorkCraneStat.mh_l * sin(pSway_IO->th[ID_SLEW]) ;
-	stWorkCraneStat.rcam_m.y = stWorkCraneStat.mh_l * sin(pSway_IO->th[ID_BOOM_H]);
+	stWorkCraneStat.rcam_m.x = stWorkCraneStat.mh_l * sin(pSway_IO->th[SID_LOAD_MH][ID_SLEW]) ;
+	stWorkCraneStat.rcam_m.y = stWorkCraneStat.mh_l * sin(pSway_IO->th[SID_LOAD_MH][ID_BOOM_H]);
 	stWorkCraneStat.rcam_m.z = -stWorkCraneStat.mh_l;
 
 	//’İ‰×‚Ìx, y, zÀ•W
@@ -558,12 +558,23 @@ int CEnvironment::pos_set() {
 /****************************************************************************/
 int CEnvironment::parse_for_auto_ctrl() {
 	//ƒ[ƒv’·
-	stWorkCraneStat.mh_l = cal_l(pPLC_IO->pos[ID_HOIST]);
-	//ŠpüŠú
-	stWorkCraneStat.w2 = cal_w2(pPLC_IO->pos[ID_HOIST]);
+	stWorkCraneStat.mh_l = cal_l(pPLC_IO->pos[ID_HOIST], pPLC_IO->pos[ID_BOOM_H],spec.Lm);
+	stWorkCraneStat.ah_l = cal_l(pPLC_IO->pos[ID_AHOIST], pPLC_IO->pos[ID_BOOM_H], spec.La);
+
+	//åŠª
+	//Špü”g”
+	stWorkCraneStat.w2 = cal_w2(stWorkCraneStat.mh_l);
 	stWorkCraneStat.w = sqrt(stWorkCraneStat.w2);
 	//üŠú
 	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
+
+	//•âŠª	
+	//Špü”g”
+	stWorkCraneStat.w2_ah = cal_w2(stWorkCraneStat.ah_l);
+	stWorkCraneStat.w_ah = sqrt(stWorkCraneStat.w2_ah);
+	//üŠú
+	stWorkCraneStat.T_ah = PI360 / stWorkCraneStat.w_ah;
+
 	return 0;
 }
 

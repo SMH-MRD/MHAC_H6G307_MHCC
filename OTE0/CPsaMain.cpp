@@ -62,18 +62,19 @@ HRESULT CPsaMain::init_psa(HWND hWnd, const char* _ip, const char* _user, const 
 
 	//Set properties for display area
 	m_psapi->SetVideoWindow(hWnd);  //Set the window handle to display
-	m_psapi->SetImageWidth(640);            //Image width
-	m_psapi->SetImageHeight(480);           //Imgae Height
+	//m_psapi->SetImageWidth(640);            //Image width
+	//m_psapi->SetImageHeight(480);           //Imgae Height
+	m_psapi->SetImageWidth(1280);            //Image width
+	m_psapi->SetImageHeight(960);           //Imgae Height
 
 	//Set properties for image format
-//	m_psapi->SetStreamFormat(3);        //Image format - JPEG:0,MPEG4:1
+//	m_psapi->SetStreamFormat(6);        //Image format - JPEG:0,MPEG4:1
 	m_psapi->SetStreamFormat(_format);  //Image format - JPEG:0,MPEG4:1
 	m_psapi->SetJPEGResolution(640);    //JPEG Resolution(It works in case of StreamFormat=0)
 	m_psapi->SetMPEG4Resolution(640);   //MPEG-4 Resolution(It works in case of StreamFormat=1)
 //	m_psapi->SetH264Resolution(640);    //H.264 Resolution(It works in case of StreamFormat=3)
 	m_psapi->SetH264Resolution(1280);    //H.264 Resolution(It works in case of StreamFormat=3)
-
-	//-----------------------------------------------------
+		//-----------------------------------------------------
 	//Set Listener
 	//-----------------------------------------------------
 	m_psapi->SetErrListener((IAppListener*)&m_pcallback);

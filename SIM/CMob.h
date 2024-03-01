@@ -48,10 +48,12 @@ private:
 //クレーンクラス
 //r,vは、吊点の位置と座標
 
-#define SIM_INIT_R                  21.00       //デフォルト旋回半径主巻
-#define SIM_INIT_MHR                21.00       //デフォルト旋回半径主巻
-#define SIM_INIT_AHR                25.52       //デフォルト旋回半径補巻
-#define SIM_INIT_MH                 60.0        //デフォルト主巻高さ
+//#define SIM_INIT_R                  21.00       //デフォルト旋回半径主巻
+//#define SIM_INIT_MHR                21.00       //デフォルト旋回半径主巻
+#define SIM_INIT_R                  40.00       //デフォルト旋回半径主巻
+#define SIM_INIT_MHR                40.00       //デフォルト旋回半径主巻
+//#define SIM_INIT_AHR                25.52       //デフォルト旋回半径補巻
+#define SIM_INIT_MH                 30.0        //デフォルト主巻高さ
 #define SIM_INIT_AH                 70.0        //デフォルト補巻高さ
 #define SIM_INIT_TH                 PI90        //旋回初期値 rad
 #define SIM_INIT_L                  9.8         //ロープ長初期値 m
