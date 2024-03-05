@@ -120,6 +120,7 @@ typedef struct StPLC_IO {
 	double weight;									//主巻荷重FB
 	double weight_ah;								//補巻荷重FB
 	double th_bh;									//起伏角 acos(R/Lm)
+	double dth_bh;									//起伏角速度
 	double lmh;										//主巻ロープ長
 	double lah;										//補巻ロープ長
 

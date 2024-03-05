@@ -19,6 +19,8 @@
 #define PLC_IF_SIM_HCNT_PLS1N       2048        //高速カウンタモータ1回転パルス
 #define PLC_IF_SIM_HCNT_DEF         100000000   //デフォルトカウント値
 
+#define PLC_IF_TH_BH_CHK_COUNT            8          //25msec tick 200msec毎にカウント
+
 
 class CPLC_IF :    public CBasicControl
 {

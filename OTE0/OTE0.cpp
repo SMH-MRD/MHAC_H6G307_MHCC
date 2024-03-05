@@ -552,12 +552,56 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		//Game pad入力
 		//主幹PB
-		if (pad_data.rgbButtons[0]) st_work_wnd.pb_stat[ID_OTE_PB_SYUKAN] = OTE0_PB_OFF_DELAY_COUNT;
+		if (pad_data.rgbButtons[4]) st_work_wnd.pb_stat[ID_OTE_PB_SYUKAN] = OTE0_PB_OFF_DELAY_COUNT;
 		//故障リセットPB
-		if (pad_data.rgbButtons[6]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
+		if (pad_data.rgbButtons[5]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
 
-		//if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
-		if(1){
+		if (pad_data.rgbButtons[3] && !gmpad_PB_last[3]) {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_GETCHECK, 0, 0)) {
+
+				if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
+					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStop();
+					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->OnClose();
+					delete st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
+					DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd);
+				}
+
+				if (st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd != NULL) {
+					st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->LiveStop();
+					st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->OnClose();
+					delete st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA;
+					DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd);
+				}
+
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
+			else {
+				if (st_work_wnd.camera_sel == ID_OTE_RADIO_WIDE)open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
+				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_OPE1)open_camera_Wnd(hWnd, OTE_CAMERA_ID_FISH0);
+				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_HOOK)open_camera_Wnd(hWnd, OTE_CAMERA_ID_HOOK0);
+				else open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
+
+				open_camera_Wnd2(hWnd, OTE_CAMERA_ID_PTZ0);
+
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_SETCHECK, BST_CHECKED, 0);
+			}
+		}
+
+		//カメラ切替PB
+
+		if (pad_data.rgbButtons[0]  && !gmpad_PB_last[0]) {
+			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_WIDE);
+			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_WIDE);
+		}
+		if (pad_data.rgbButtons[1] && !gmpad_PB_last[1]) {
+			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
+			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
+		}
+
+
+	
+		if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
+		//if(1){
 			if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = (INT16)((pad_data.lRz - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
@@ -571,8 +615,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
 			}
 		}
-	//	if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
-		if(1){
+		if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+		//if(1){
 			if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
@@ -599,10 +643,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			CPsaMain* pPSA = st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
 
 			//カメラズーム,チルト、パン
-			if (pad_data.rgbButtons[7]) {
+			if (pad_data.rgbButtons[6]) {
 				pPSA->lzoom = DEF_SPD_CAM_ZOOM;//ZOOM N
 			}
-			else if (pad_data.rgbButtons[9]) {
+			else if (pad_data.rgbButtons[8]) {
 				pPSA->lzoom = -DEF_SPD_CAM_ZOOM;//ZOOM W
 			}
 			else;
@@ -724,6 +768,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_WIDE) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_OPE2)) {
 			if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
 				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA,0, wmId - BASE_ID_OTE_PB);
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, wmId - BASE_ID_OTE_PB);
 			}
 			st_work_wnd.camera_sel = wmId - BASE_ID_OTE_PB;
 			break;
@@ -1693,6 +1738,24 @@ LRESULT CALLBACK WndCam2Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 	case OTE0_MSG_SWICH_CAMERA:
 	{
 
+		pPSA->LiveStop();
+		switch (lParam) {
+		case ID_OTE_RADIO_HOOK: {
+			pPSA->SwitchCamera(hWnd, OTE_CAMERA_HOOK0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_H264);
+		}break;
+		case ID_OTE_RADIO_OPE1:
+		case ID_OTE_RADIO_OPE2:
+		{
+			pPSA->SwitchCamera(hWnd, OTE_CAMERA_FISH0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_H265);
+		}break;
+
+		case ID_OTE_RADIO_WIDE:
+		case ID_OTE_RADIO_ZOOM:
+		default:
+		{
+			pPSA->SwitchCamera(hWnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, OTE_CAMERA_FORMAT_H264);
+		}break;
+		}
 	}break;
 	case WM_PAINT: {
 		PAINTSTRUCT ps;

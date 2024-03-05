@@ -77,7 +77,6 @@ BOOL CPLC_IF::hide_if_wnd() {
 /// <returns></returns>
  
 static double knv_inv[MOTION_ID_MAX];//インバータの速度指令をドラムrpsへ変換する係数
-
 int CPLC_IF::init_proc() {
 
     // 共有メモリ取得
@@ -176,7 +175,13 @@ int CPLC_IF::clear_plc_write() {
 //*********************************************************************************************
 // parse_data_in() PLCからの入力信号を展開
 //*********************************************************************************************
+
+
+
+static double th_bh_hold;//起伏角速度計算用バッファ
+
 int CPLC_IF::parse_data_in() {
+
 
     //受信バッファの内容をワークバッファにコピー
     memcpy_s(&(plc_if_workbuf.input), sizeof(PLC_READ_BUF),lp_PLCread, sizeof(PLC_READ_BUF));
@@ -186,7 +191,16 @@ int CPLC_IF::parse_data_in() {
     plc_if_workbuf.pos[ID_HOIST]    = (double)(plc_if_workbuf.input.rbuf.pos[0]) / 1000.0;  //アブソコーダのPLC計算結果mmをm単位で
     plc_if_workbuf.pos[ID_AHOIST]   = (double)(plc_if_workbuf.input.rbuf.pos[1]) / 1000.0;  //アブソコーダのPLC計算結果mmをm単位で
     plc_if_workbuf.pos[ID_BOOM_H]   = (double)(plc_if_workbuf.input.rbuf.pos[2]) / 100.0;   //モーメントリミッタの半径出力をm単位で
+
+    //起伏角
     plc_if_workbuf.th_bh = acos(plc_if_workbuf.pos[ID_BOOM_H] / def_spec.Lm);               //起伏角acos(R/Lm)
+
+   if ((plc_if_workbuf.healthy_cnt % PLC_IF_TH_BH_CHK_COUNT) == 0) { //200msec毎に計算
+       plc_if_workbuf.dth_bh = (th_bh_hold) / (double)(PLC_IF_TH_BH_CHK_COUNT * SYSTEM_TICK_ms / 1000);
+       th_bh_hold = plc_if_workbuf.th_bh;
+   }
+  
+    //ロープ長
     plc_if_workbuf.lmh = def_spec.Hp + def_spec.Lm * sin(plc_if_workbuf.th_bh) - plc_if_workbuf.pos[ID_HOIST];
     plc_if_workbuf.lah = def_spec.Hp + def_spec.La * sin(plc_if_workbuf.th_bh) - plc_if_workbuf.pos[ID_AHOIST];
 
