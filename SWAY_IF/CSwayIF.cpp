@@ -247,7 +247,7 @@ int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
     //カメラハウジング傾斜角
     sway_io_workbuf.tilt[0][ID_SLEW] = swx.til = swx2.til = pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_x;
     sway_io_workbuf.tilt[0][ID_BOOM_H] = swy.til = swy2.til = pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_y;
-    sway_io_workbuf.dtilt[0][ID_SLEW] = swx2.dtil = pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_dx;
+    sway_io_workbuf.dtilt[0][ID_SLEW] = swx.dtil = swx2.dtil = pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_dx;
     sway_io_workbuf.dtilt[0][ID_BOOM_H] = swy.dtil = swy2.dtil = pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_dy;
 
   
@@ -266,52 +266,74 @@ int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
     double dthcy = swy.dtil;
     double dthcx2 = swx2.dtil;
     double dthcy2 = swy2.dtil;
+    double dth0x = swx.dtil;
+    double dth0y = swy.dtil;
+    double dth0x2 = swx2.dtil;
+    double dth0y2 = swy2.dtil;
+    
+    double th_bh = pPLCio->th_bh;
+    double dth_bh = pPLCio->dth_bh;
         
+    double cos_row = cos(swx.row);
+    double sin_row = sin(swx.row);
+    double cos_row2 = cos(swx2.row);
+    double sin_row2 = sin(swx2.row);
+    double cos_row_bh = cos(swy.row + th_bh);
+    double sin_row_bh = sin(swy.row + th_bh);
+    double cos_row_bh2 = cos(swy2.row + th_bh);
+    double sin_row_bh2 = sin(swy2.row + th_bh);
+    
+    double cos_th0x = cos(swx.th0);
+    double sin_th0x = sin(swx.th0);
+    double cos_th0y = cos(swy.th0);
+    double sin_th0y = sin(swy.th0);
+    double cos_th0x2 = cos(swx.th0);
+    double sin_th0x2 = sin(swx.th0);
+    double cos_th0y2 = cos(swy.th0);
+    double sin_th0y2 = sin(swy.th0);
 
-    swx.d0 = swx.D0 * cos(swx.row);
-    swy.d0 = swy.D0 * cos(swy.row + pPLCio->th_bh);
-    swx.h0 = swy.h0 = swy.D0 * sin(swy.row + pPLCio->th_bh);
+    double cos_tcx = cos(swx.tht + swx.thc);
+    double cos_tcy = cos(swy.tht + swy.thc);
+    double sin_tcx = sin(swx.tht + swx.thc);
+    double sin_tcy = sin(swy.tht + swy.thc);
+    
+    double cos_tcx2 = cos(swx2.tht + swx2.thc);
+    double cos_tcy2 = cos(swy2.tht + swy2.thc);
+    double sin_tcx2 = sin(swx2.tht + swx2.thc);
+    double sin_tcy2 = sin(swy2.tht + swy2.thc);
 
-    swx2.d0 = swx2.D0 * cos(swx2.row);
-    swy2.d0 = swy2.D0 * cos(swy2.row + pPLCio->th_bh);
-    swx2.h0 = swy2.h0 = swy2.D0 * sin(swy2.row + pPLCio->th_bh);
+    swx.d0  = swx.D0  * cos_row;
+    swy.d0  = swy.D0  * cos_row_bh;
+    swx2.d0 = swx2.D0 * cos_row2;
+    swy2.d0 = swy2.D0 * cos_row_bh2;
+
+    swy.h0  = swy.D0  * sin_row_bh;
+    swx.h0  = swy.h0;
+    swy2.h0 = swy2.D0 * sin_row_bh2;
+    swx2.h0 = swy2.h0;
    
-    swx.dc = swx.d0 + swx.l0 * sin(swx.th0);
-    swy.dc = swy.d0 + swy.l0 * sin(swy.th0);
-    //swx.hc = swx.h0 + swx.l0 * cos(swx.th0);
-    swy.hc = swx.hc = swy.h0 + swy.l0 * cos(swy.th0);
+    swx.dc  = swx.d0  + swx.l0  * sin_th0x;
+    swy.dc  = swy.d0  + swy.l0  * sin_th0y;
+    swx2.dc = swx2.d0 + swx2.l0 * sin_th0x2;
+    swy2.dc = swy2.d0 + swy2.l0 * sin_th0y2;
 
-    swx2.dc = swx2.d0 + swx2.l0 * sin(swx2.th0);
-    swy2.dc = swy2.d0 + swy2.l0 * sin(swy2.th0);
-    swy2.hc = swx2.hc = swy2.h0 + swy2.l0 * cos(swy2.th0);
+    double ddcx  =                                   swx.l0  * dth0x  * cos_th0x;
+    double ddcy  = -swy.D0  * dth_bh * sin_row_bh  + swy.l0  * dth0y  * cos_th0y;
+    double ddcx2 =                                   swx2.l0 * dth0x2 * cos_th0x2;
+    double ddcy2 = -swy2.D0 * dth_bh * sin_row_bh2 + swy2.l0 * dth0y2 * cos_th0y2;
 
-    swx.dc = swx.d0 + swx.l0 * sin(swx.th0);
-    swy.dc = swy.d0 + swy.l0 * sin(swy.th0);
-    //swx.hc = swx.h0 + swx.l0 * cos(swx.th0);
-    swy.hc = swx.hc = swy.h0 + swy.l0 * cos(swy.th0);
+    swy.hc  = swy.h0  + swy.l0  * cos(swy.th0);
+    swx.hc  = swy.hc;
+    swy2.hc = swy2.h0 + swy2.l0 * cos(swy2.th0);
+    swx2.hc = swy2.hc;
 
-    swx2.dc = swx2.d0 + swx2.l0 * sin(swx2.th0);
-    swy2.dc = swy2.d0 + swy2.l0 * sin(swy2.th0);
-    swy2.hc = swx2.hc = swy2.h0 + swy2.l0 * cos(swy2.th0);
+    double dhcy  =  swy.D0  * dth_bh * cos_row_bh   + swy.l0  * dth0y  * sin_th0y;
+    double dhcx  =  dhcy; 
+    double dhcy2 =  swy2.D0 * dth_bh * cos_row_bh2  + swy2.l0 * dth0y2 * sin_th0y2;
+    double dhcx2 =  dhcy2;
 
-    double ddcx = -swx.D0 * swx.d0 + swx.l0 * sin(swx.th0);
-    double ddcy = swy.d0 + swy.l0 * sin(swy.th0);
-    //swx.hc = swx.h0 + swx.l0 * cos(swx.th0);
-    double dhcy = swx.hc = swy.h0 + swy.l0 * cos(swy.th0);
-    double dhcx = dhcy; 
-
-    double ddcx2 = swx2.d0 + swx2.l0 * sin(swx2.th0);
-    double ddcy2 = swy2.d0 + swy2.l0 * sin(swy2.th0);
-    double dhcy2 = swy2.h0 + swy2.l0 * cos(swy2.th0);
-    double dhcx2 = dhcy2;
-
-    double cos_tcx = cos(swx.tht + swx.thc), cos_tcy = cos(swy.tht + swy.thc);
-    double sin_tcx = sin(swx.tht + swx.thc), sin_tcy = sin(swy.tht + swy.thc);
-    double cos_tcx2 = cos(swx2.tht + swx2.thc), cos_tcy2 = cos(swy2.tht + swy2.thc);
-    double sin_tcx2 = sin(swx2.tht + swx2.thc), sin_tcy2 = sin(swy2.tht + swy2.thc);
-
-    // double lmh = pPLCio->lmh, lah = pPLCio->lah;
-    double lmh = pSimStat->lrm.p, lah = pSimStat->lra.p;   //デバッグ用仮処置
+    // double lmh = pPLCio->lmh, lah = pPLCio->lah;         //##########  デバッグ用仮処置
+    double lmh = pSimStat->lrm.p, lah = pSimStat->lra.p;    //##########  デバッグ用仮処置
 
     //吊荷振れ角 
     double sin_phtc_x = (swx.dc * cos_tcx + swx.hc * sin_tcx)/lmh;
@@ -325,37 +347,44 @@ int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
  
     //吊荷振れ角速度 
 
-    double lmh2 = lmh * lmh, lah2 = lah * lah;
-    double X = swx.dc * cos_tcx + swx.hc * sin_tcx;
+    double lmh2 = lmh * lmh;
+    double lah2 = lah * lah;
+   
+    double X   = swx.dc * cos_tcx + swx.hc * sin_tcx;
     double dph = ddcx * cos_tcx + dhcx * sin_tcx + (swx.dtht + dthcx) * (swx.hc * cos_tcx - swx.dc * sin_tcx);
     dph /= sqrt(lmh2 - X * X);
+    dph += (swx.dtht + dthcx);
     sway_io_workbuf.dth[SID_LOAD_MH][ID_SLEW] = dph;
 
-    X = swy.dc * cos_tcy + swy.hc * sin_tcy;
-    dph = ddcy*cos_tcy+dhcy*sin_tcy+ (swy.dtht + dthcy)*(swy.hc*cos_tcy-swy.dc*sin_tcy);
+    X   = swy.dc  * cos_tcy + swy.hc  * sin_tcy;
+    dph = ddcy  * cos_tcy  + dhcy  * sin_tcy  + (swy.dtht + dthcy)   * (swy.hc * cos_tcy - swy.dc * sin_tcy);
     dph /= sqrt(lmh2 - X * X);
+    dph += (swy.dtht + dthcy);
     sway_io_workbuf.dth[SID_LOAD_MH][ID_BOOM_H] = dph;
 
-
-    X = swx2.dc * cos_tcx2 + swx2.hc * sin_tcx2;
+    X   = swx2.dc * cos_tcx2 + swx2.hc * sin_tcx2;
     dph = ddcx2 * cos_tcx2 + dhcx2 * sin_tcx2 + (swx2.dtht + dthcx2) * (swx2.hc * cos_tcx2 - swy.dc * sin_tcx2);
     dph /= sqrt(lah2 - X * X);
+    dph += (swx2.dtht + dthcx2);
     sway_io_workbuf.dth[SID_LOAD_AH][ID_SLEW] = dph;
 
-    X = swy2.dc * cos_tcy2 + swy2.hc * sin_tcy2;
+    X  = swy2.dc * cos_tcy2  + swy2.hc * sin_tcy2;
     dph = ddcy2 * cos_tcy2 + dhcy2 * sin_tcy2 + (swy2.dtht + dthcy2) * (swy2.hc * cos_tcy2 - swy2.dc * sin_tcy2);
     dph /= sqrt(lah2 - X * X);
+    dph += (swy2.dtht + dthcy2);
     sway_io_workbuf.dth[SID_LOAD_AH][ID_BOOM_H] = dph;
 
- 
     sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_X] = sway_io_workbuf.dth[SID_LOAD_MH][SID_CAM_X]/ pCraneStat->w;
     sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_Y] = sway_io_workbuf.dth[SID_LOAD_MH][SID_CAM_Y]/ pCraneStat->w;
+    sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_X] = sway_io_workbuf.dth[SID_LOAD_AH][SID_CAM_X] / pCraneStat->w2;
+    sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_Y] = sway_io_workbuf.dth[SID_LOAD_AH][SID_CAM_Y] / pCraneStat->w2;
 
     sway_io_workbuf.rad_amp2[SID_LOAD_MH][SID_CAM_X] = sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_X] * sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_X]+ sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_X] * sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_X];
     sway_io_workbuf.rad_amp2[SID_LOAD_MH][SID_CAM_Y] = sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_Y] * sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_Y]+ sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_Y] * sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_Y];
 
     //合成振幅  
     sway_io_workbuf.rad_amp2[SID_LOAD_MH][SID_CAM_XY] = sway_io_workbuf.rad_amp2[SID_LOAD_MH][SID_CAM_X] + sway_io_workbuf.rad_amp2[SID_LOAD_MH][SID_CAM_Y];
+    sway_io_workbuf.rad_amp2[SID_LOAD_AH][SID_CAM_XY] = sway_io_workbuf.rad_amp2[SID_LOAD_AH][SID_CAM_X] + sway_io_workbuf.rad_amp2[SID_LOAD_AH][SID_CAM_Y];
 
     //位相(X軸）
     if (sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_X] > 0.00001) {
@@ -364,6 +393,18 @@ int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
     else if (sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_X] < -0.00001) { // atan()引数の0割回避
         if (sway_io_workbuf.dth[SID_LOAD_MH][SID_CAM_X] >= 0.0) sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_X] = atan(sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_X] / sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_X]) + PI180;
         else                                                    sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_X] = atan(sway_io_workbuf.dthw[SID_LOAD_MH][SID_CAM_X] / sway_io_workbuf.th[SID_LOAD_MH][SID_CAM_X]) - PI180;
+    }
+    else { //位相は-π～πの範囲で表現
+        if (sway_io_workbuf.dth[SID_LOAD_MH][SID_CAM_X] >= 0.0) sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_X] = PI90;
+        else                                                    sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_X] = -PI90;
+    }
+
+    if (sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_X] > 0.00001) {
+        sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_X] = atan(sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_X] / sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_X]);
+    }
+    else if (sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_X] < -0.00001) { // atan()引数の0割回避
+        if (sway_io_workbuf.dth[SID_LOAD_AH][SID_CAM_X] >= 0.0) sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_X] = atan(sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_X] / sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_X]) + PI180;
+        else                                                    sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_X] = atan(sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_X] / sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_X]) - PI180;
     }
     else { //位相は-π～πの範囲で表現
         if (sway_io_workbuf.dth[SID_LOAD_MH][SID_CAM_X] >= 0.0) sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_X] = PI90;
@@ -381,6 +422,18 @@ int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
     else { //位相は-π～πの範囲で表現
         if (sway_io_workbuf.dth[SID_LOAD_MH][SID_CAM_Y] >= 0.0) sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_Y] = PI90;
         else                                                    sway_io_workbuf.ph[SID_LOAD_MH][SID_CAM_Y] = -PI90;
+    }
+
+    if (sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_Y] > 0.00001) {
+        sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_Y] = atan(sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_Y] / sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_Y]);
+    }
+    else if (sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_Y] < -0.00001) { // atan()引数の0割回避
+        if (sway_io_workbuf.dth[SID_LOAD_AH][SID_CAM_Y] >= 0.0) sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_Y] = atan(sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_Y] / sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_Y]) + PI180;
+        else                                                    sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_Y] = atan(sway_io_workbuf.dthw[SID_LOAD_AH][SID_CAM_Y] / sway_io_workbuf.th[SID_LOAD_AH][SID_CAM_Y]) - PI180;
+    }
+    else { //位相は-π～πの範囲で表現
+        if (sway_io_workbuf.dth[SID_LOAD_AH][SID_CAM_Y] >= 0.0) sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_Y] = PI90;
+        else                                                    sway_io_workbuf.ph[SID_LOAD_AH][SID_CAM_Y] = -PI90;
     }
 
     return 0;

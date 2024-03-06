@@ -227,14 +227,21 @@ int CSIM::set_sway_io() {
       
     // ŒXÎŒvŒŸoŠp“x–Í‹[@‚Æ‚è‚ ‚¦‚¸³Œ·”g‚Å
     sim_counter++;
-    double th_tilx = (double)(sim_counter % 1000) * 0.0063;//0.0063 = 2ƒÎ/1000 10msec scan 10•büŠú
-    double a_til = 0.001745;//ŒXÎŠpU• 0.1deg@1deg 0.01745rad
-    double tilt_x = -0.0;
-    //double tilt_y = a_til * sin(th_tilx);
-    double tilt_y = 0.0;
+  
+    double tilt_x = 0.0;
     double tilt_dx = 0.0;
-    double tilt_dy = 0.0;//ƒÖ2ƒÎ/10=0.63
-    //double tilt_dy = a_til * 0.63 * cos(th_tilx);//ƒÖ2ƒÎ/10=0.63
+
+    double th_tily = (double)(sim_counter % 1000) * 0.0063;//0.0063 = 2ƒÎ/1000 10msec scan 10•büŠú
+    double a_til = 0.001745;//ŒXÎŠpU• 0.1deg@1deg 0.01745rad
+    double tilt_y = a_til * sin(th_tily);
+    double tilt_dy = a_til * 0.63 * cos(th_tily);//ƒÖ2ƒÎ/10=0.63
+ 
+#if 0
+   double tilt_x = 0.02;
+   double tilt_y = 0.03;
+   double tilt_dx = 0.01;
+   double tilt_dy = 0.02;//ƒÖ2ƒÎ/10=0.63
+#endif
 
     // ƒNƒŒ[ƒ“xyÀ•W‚ğƒJƒƒ‰xyÀ•W‚É‰ñ“]•ÏŠ·@¨@Šp“xrad‚É•ÏŠ·@
  
@@ -289,16 +296,16 @@ int CSIM::set_sway_io() {
     double swy_hc = swy_D0 * sin_row_bh + swy_l0 * cos_th0y;
     double swx_hc = swy_hc;
 
-    double swx_ddc = -swx_D0 * dth_bh * sin_row   + swx_l0 * swx_dth0 * cos_th0x; //x0+l0sin(th0)
-    double swy_ddc = swy_D0 * dth_bh * sin_row_bh + swy_l0 * swy_dth0 * cos_th0y; //y0+l0sin(th0)
-    double swy_dhc = swy_D0 * dth_bh * cos_row_bh + swy_l0 * swy_dth0 * sin_th0y;
-    double swx_dhc = swy_dhc;
+    double swx_ddc =                                 swx_l0 * swx_dth0 * cos_th0x; //x0+l0sin(th0)
+    double swy_ddc = -swy_D0 * dth_bh * sin_row_bh + swy_l0 * swy_dth0 * cos_th0y; //y0+l0sin(th0)
+    double swy_dhc =  swy_D0 * dth_bh * cos_row_bh + swy_l0 * swy_dth0 * sin_th0y;
+    double swx_dhc =  swy_dhc;
 
-#if 1
-    phx = 0.0;
-    phy = 0.0;
-    dphx = 0.0;
-    dphy = 0.0;
+#if 0
+    phx = -0.1;
+    phy = 0.1;
+    dphx = 0.1;
+    dphy = 0.2;
 #endif
 
     double sin_phx = sin(phx), cos_phx = cos(phx);
@@ -354,11 +361,11 @@ int CSIM::set_sway_io() {
     double swx_dhc2 = swy_dhc2;
 
 
-#if 1
-    phx2 = -0.0;
-    phy2 = 0.0;
-    dphx2 = 0.0;
-    dphy2 = 0.0;
+#if 0
+    phx2 = 0.2;
+    phy2 = -0.1;
+    dphx2 = 0.05;
+    dphy2 = 0.03;
 #endif  
     double sin_phx2 = sin(phx2), cos_phx2 = cos(phx2);
     double tan_thtx2 = (Lah * sin_phx2 - swx_dc2) / (Lah * cos_phx2 + swx_hc2);

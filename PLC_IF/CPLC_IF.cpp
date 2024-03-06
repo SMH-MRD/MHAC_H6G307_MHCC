@@ -179,6 +179,7 @@ int CPLC_IF::clear_plc_write() {
 
 
 static double th_bh_hold;//起伏角速度計算用バッファ
+static double th_bh_dt = (double)(PLC_IF_TH_BH_CHK_COUNT * SYSTEM_TICK_ms) / 1000.0;//起伏角速度計算用バッファ
 
 int CPLC_IF::parse_data_in() {
 
@@ -196,7 +197,7 @@ int CPLC_IF::parse_data_in() {
     plc_if_workbuf.th_bh = acos(plc_if_workbuf.pos[ID_BOOM_H] / def_spec.Lm);               //起伏角acos(R/Lm)
 
    if ((plc_if_workbuf.healthy_cnt % PLC_IF_TH_BH_CHK_COUNT) == 0) { //200msec毎に計算
-       plc_if_workbuf.dth_bh = (th_bh_hold) / (double)(PLC_IF_TH_BH_CHK_COUNT * SYSTEM_TICK_ms / 1000);
+       plc_if_workbuf.dth_bh = (plc_if_workbuf.th_bh - th_bh_hold) / th_bh_dt;
        th_bh_hold = plc_if_workbuf.th_bh;
    }
   
