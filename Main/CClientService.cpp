@@ -64,28 +64,6 @@ void CClientService::init_task(void* pobj) {
 
 	CS_workbuf.ote_remote_status &= ~CS_CODE_OTE_REMOTE_ENABLE; //リモート操作可をクリア
 
-#if 0
-	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
-
-	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
-	pEnvironment = (CEnvironment*)VectpCTaskObj[g_itask.environment];
-
-
-	set_panel_tip_txt();
-
-
-	CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
-	CS_workbuf.command_type = COM_TYPE_NON;							//PICK, GRND, PARK
-
-	for (int i = 0;i < N_JOB_LIST;i++) {
-		pJob_IO->job_list[i].i_job_hot = 0;
-		pJob_IO->job_list[i].n_hold_job = 0;
-	}
-
-	inf.is_init_complete = true;
-	CS_workbuf.job_set_event = CS_JOBSET_EVENT_CLEAR;
-	CS_workbuf.ote_camera_height_m = 30.0;
-#endif
 	return;
 };
 

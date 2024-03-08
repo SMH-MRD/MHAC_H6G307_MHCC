@@ -13,7 +13,7 @@
 //-IF Windowの配置設定
 #define IF_WND_INIT_SIZE_W			530		//-IF Windowの初期サイズ　W
 #define IF_WND_INIT_SIZE_H			600		//-IF Windowの初期サイズ　H
-#define IF_WND_INIT_POS_X			858	//-IF Windowの初期位置設定　X
+#define IF_WND_INIT_POS_X			960	//-IF Windowの初期位置設定　X
 #define IF_WND_INIT_POS_Y			0		//-IF Windowの初期位置設定　Y
 
 #define PLC_IF_SIM_HCNT_PLS1N       2048        //高速カウンタモータ1回転パルス

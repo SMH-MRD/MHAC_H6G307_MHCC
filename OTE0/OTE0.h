@@ -62,34 +62,29 @@
 
 #define OTE0_WND_X				0			//OTEメインパネル表示位置X
 #define OTE0_WND_Y				560			//OTEメインパネル表示位置Y0
-#define OTE0_WND_W				850		//OTEメインパネルWINDOW幅0
+#define OTE0_WND_W				960			//OTEメインパネルWINDOW幅0
 #define OTE0_WND_H				600			//OTEメインパネルWINDOW高さ0
 
 #define OTE0_SUB_WND_X			5			//SUBパネル表示位置X
 #define OTE0_SUB_WND_Y			5			//SUBパネル表示位置Y
-#define OTE0_SUB_WND_W			260			//SUBパネルWINDOW幅
-#define OTE0_SUB_WND_H			240			//SUBパネルWINDOW高さ
+#define OTE0_SUB_WND_W			280			//SUBパネルWINDOW幅
+#define OTE0_SUB_WND_H			260			//SUBパネルWINDOW高さ
 
-#define OTE0_SWY_WND_X			270			//振れパネル表示位置X
+#define OTE0_SWY_WND_X			5			//振れパネル表示位置X
 #define OTE0_SWY_WND_Y			5			//振れパネル表示位置Y
 #define OTE0_SWY_WND_W			280			//振れパネルWINDOW幅
-#define OTE0_SWY_WND_H			240			//振れパネルWINDOW高さ
+#define OTE0_SWY_WND_H			260			//振れパネルWINDOW高さ
 
-#define OTE0_CAM_WND_X2			860			//IP CAMERA 表示位置X
-#define OTE0_CAM_WND_Y2			600		//IP CAMERA 表示位置Y
+
 #define OTE0_CAM_WND_X			0			//IP CAMERA 表示位置X
 #define OTE0_CAM_WND_Y			-860		//IP CAMERA 表示位置Y
-#define OTE0_CAM_WND_W			1300			//IP CAMERA WINDOW幅
+#define OTE0_CAM_WND_W			1300		//IP CAMERA WINDOW幅
 #define OTE0_CAM_WND_H			750			//IP CAMERA WINDOW高さ
-#define OTE0_CAM_WND_W2			700			//IP CAMERA WINDOW幅
-#define OTE0_CAM_WND_H2			500			//IP CAMERA WINDOW高さ
-//#define OTE0_CAM_WND_W			700			//IP CAMERA WINDOW幅
-//#define OTE0_CAM_WND_H			500			//IP CAMERA WINDOW高さ
 
-#define OTE0_CAM2_WND_X			OTE0_WND_X + OTE0_SUB_WND_W + 19	//IP CAMERA2 表示位置X
-#define OTE0_CAM2_WND_Y			OTE0_WND_Y +35								//IP CAMERA 表示位置Y
-#define OTE0_CAM2_WND_W			OTE0_SWY_WND_W							//IP CAMERA WINDOW幅
-#define OTE0_CAM2_WND_H			OTE0_SWY_WND_H							//IP CAMERA WINDOW高さ
+#define OTE0_CAM2_WND_X			OTE0_WND_X + OTE0_SUB_WND_W + 63	//IP CAMERA2 表示位置X
+#define OTE0_CAM2_WND_Y			5 									//IP CAMERA 表示位置Y
+#define OTE0_CAM2_WND_W			360									//IP CAMERA WINDOW幅
+#define OTE0_CAM2_WND_H			270									//IP CAMERA WINDOW高さ
 
 #define OTE0_CAM_WND_TG_X		300			//画面切り取りX位置
 #define OTE0_CAM_WND_TG_Y		300			//画面切り取りY位置

@@ -92,7 +92,7 @@ typedef struct _stXEMsgRes {
 
 #define WORK_WND_INIT_SIZE_W		530		//-Main Windowの初期サイズ　W
 #define WORK_WND_INIT_SIZE_H		600		//-Main Windowの初期サイズ　H
-#define WORK_WND_INIT_POS_X			860		//-Main Windowの初期位置設定　X
+#define WORK_WND_INIT_POS_X			970		//-Main Windowの初期位置設定　X
 #define WORK_WND_INIT_POS_Y			0		//-Main Windowの初期位置設定　Y
 
 #define N_CREATE_PEN                8

@@ -219,10 +219,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    //ノッチランプ領域セット
    for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 	   RECT rc_add;
-	   if (i == ID_SLEW) {
-		   rc_add.left = 0; rc_add.top = PRM_OTE_DEF_PB_H; rc_add.right = PRM_OTE_DEF_PB_W2; rc_add.bottom = PRM_OTE_DEF_PB_H/2;
-	   }
-	   else if (i == ID_GANTRY) {
+		if ((i == ID_SLEW)||(i == ID_GANTRY)) {
 		   rc_add.left = 0; rc_add.top = -PRM_OTE_DEF_PB_H/2; rc_add.right = PRM_OTE_DEF_PB_W2; rc_add.bottom = PRM_OTE_DEF_PB_H/2;
 	   }
 	   else if (i == ID_OTE_GRIP_SWITCH) {
@@ -233,7 +230,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		   rc_add.left = -PRM_OTE_DEF_PB_W2/3; rc_add.top = 0; rc_add.right = PRM_OTE_DEF_PB_W2 / 3; rc_add.bottom = PRM_OTE_DEF_PB_H;
 	   }
 	   for (int j = 0; j < N_OTE_NOTCH_ARRAY; j++) {
-		   if ((i == ID_OTE_GRIP_SWITCH) && (j > 2))continue;
+		   if ((i == ID_OTE_GRIP_SWITCH) && (j > 3))continue;
 		   st_work_wnd.notch_rect[i][j].left = st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][i * N_OTE_NOTCH_ARRAY + j].x + rc_add.left;
 		   st_work_wnd.notch_rect[i][j].top = st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][i * N_OTE_NOTCH_ARRAY + j].y + rc_add.top;
 		   st_work_wnd.notch_rect[i][j].right = st_work_wnd.notch_rect[i][j].left + rc_add.right;
@@ -340,7 +337,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//サブウィンドウ追加
 		hwnd_current_subwnd = open_fault_Wnd(hWnd);			//故障表示子ウィンドウ
 
-		open_swy_Wnd(hWnd);									//振れウィンドウ追加
+	//	open_swy_Wnd(hWnd);									//振れウィンドウ追加
 
 		//マルチキャストタイマ起動 
 		SetTimer(hWnd, ID_OTE_MULTICAST_TIMER, OTE_MULTICAST_SCAN_MS, NULL);
@@ -354,11 +351,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		if (wParam == ID_OTE_UNICAST_TIMER) {
 			//ON PAINT　呼び出し　表示更新
-			RECT rc = { 0,245,840,800 };
+
+			//グラフィック表示エリア
+			RECT rc = { OTE0_WND_X,OTE0_GR_AREA_Y,OTE0_GR_AREA_X + OTE0_GR_AREA_W+20 ,OTE0_GR_AREA_Y + OTE0_GR_AREA_H };
 			InvalidateRect(hWnd, &rc, FALSE);
-			rc.left = 600; rc.top = 0; rc.bottom = 450;
+			rc.top -= 35; rc.bottom = OTE0_GR_AREA_Y;
 			InvalidateRect(hWnd, &rc, FALSE);
-//			InvalidateRect(hWnd, NULL, FALSE);
+
+			rc = { OTE0_GR_AREA2_X,OTE0_GR_AREA_Y,OTE0_WND_X + OTE0_WND_W ,OTE0_GR_AREA_Y + OTE0_GR_AREA_H };
+			InvalidateRect(hWnd, &rc, FALSE);
+
+
+			//情報表示エリア+カメラエリア
+			rc.left = OTE0_CAM2_WND_X; rc.right= 810; rc.top = 0; rc.bottom = 270;
+			InvalidateRect(hWnd, &rc, FALSE);
+
+			//ボタンエリア
+			rc.left = 800; rc.right = 960; rc.top = 0; rc.bottom = 70;
+			InvalidateRect(hWnd, &rc, FALSE);
 				//######
 		}
 
@@ -754,13 +764,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 		}
 		//SUB WINDOW選択　RADIO PB
-		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_COM) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_STAT)) {
+		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_COM) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_SWAY)) {
 			DestroyWindow(hwnd_current_subwnd);
 			switch (st_work_wnd.subpanel_sel = wmId - BASE_ID_OTE_PB) {
 			case ID_OTE_RADIO_COM:hwnd_current_subwnd = open_connect_Wnd(hWnd); break;
 			case ID_OTE_RADIO_MODE:hwnd_current_subwnd = open_mode_Wnd(hWnd); break;
 			case ID_OTE_RADIO_FAULT:hwnd_current_subwnd = open_fault_Wnd(hWnd); break;
 			case ID_OTE_RADIO_STAT:hwnd_current_subwnd = open_status_Wnd(hWnd); break;
+			case ID_OTE_RADIO_SWAY:hwnd_current_subwnd = open_swy_Wnd(hWnd); break;
 			default:break;
 			}
 		}
@@ -878,6 +889,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		case FD_CLOSE: break;
 		}
 	}break;
+
+	case WM_MOVE: {
+		//int x = LOWORD(lParam);
+		//int y = HIWORD(lParam);
+		RECT rc;
+		GetWindowRect(hWnd_work, &rc);
+		SetWindowPos(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, HWND_TOPMOST, rc.left + 350, rc.top + 35, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
+	}break;
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
@@ -887,15 +906,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		draw_graphic();
 		draw_info();
 	
-		if(disp_cnt== 1)init_graphic();
-		draw_lamp(hdc, is_init_disp);
-		
 		//Windowに合成画像を書き込み
 		LONG cpyw = OTE0_GR_AREA2_X + OTE0_GR_AREA2_W - OTE0_GR_AREA_X;//MEM DCからのコピー幅
+
+		//カメラエリア
+		if (disp_cnt == 1) {
+			init_graphic();
+			BitBlt(hdc, OTE0_CAM2_WND_X , OTE0_CAM2_WND_Y, OTE0_CAM2_WND_W + OTE0_CAM2_WND_X, OTE0_CAM2_WND_H, st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, SRCCOPY);
+		}
+		//グラフィックエリア	
 		BitBlt(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, cpyw, OTE0_GR_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, SRCCOPY);
 		TransparentBlt(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, cpyw, OTE0_GR_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, cpyw, OTE0_GR_AREA_H, RGB(255, 255, 255));
-		BitBlt(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_W, OTE0_IF_AREA_H,
-			st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_IF_AREA_X, OTE0_IF_AREA_Y,SRCCOPY);
+		
+		//情報エリア
+		BitBlt(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_W, OTE0_IF_AREA_H,	st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_IF_AREA_X, OTE0_IF_AREA_Y,SRCCOPY);
+
+		//ランプ描画
+		draw_lamp(hdc, is_init_disp);
 
 		EndPaint(hWnd, &ps);
 	}break;
@@ -1992,7 +2019,7 @@ HWND open_swy_Wnd(HWND hwnd) {
 	ATOM fb = RegisterClassExW(&wcex);
 	//メインウィンドウ
 	hWnd_sub[ID_OTE0_SWY_WND] = CreateWindowW(TEXT("SWAY STAT"), TEXT("SWAY STAT"), WS_CHILD | WS_BORDER,//WS_OVERLAPPEDWINDOW,
-		OTE0_SWY_WND_X, OTE0_SWY_WND_Y, OTE0_SWY_WND_W, OTE0_SWY_WND_H,
+		OTE0_SUB_WND_X, OTE0_SUB_WND_Y, OTE0_SUB_WND_W, OTE0_SUB_WND_H,
 		hwnd, nullptr, hInst, nullptr);
 
 	HDC hdc = GetDC(hWnd_sub[ID_OTE0_SWY_WND]);
@@ -2108,17 +2135,21 @@ HWND open_camera_Wnd2(HWND hwnd, int id_cam) {
 	}
 
 
-	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetH264Resolution(320);
-	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetJPEGResolution(320);
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetH264Resolution(640);
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetJPEGResolution(640);
 
-	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetImageWidth(320);            //Image width
-	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetImageHeight(240);           //Imgae Height
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetImageWidth(360);            //Image width
+	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->m_psapi->SetImageHeight(270);           //Imgae Height
 
 	st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->LiveStart();
 
 
 	ShowWindow(hcamwnd, SW_SHOW);
 	UpdateWindow(hcamwnd);
+
+	RECT rc;
+	GetWindowRect(hWnd_work, &rc);
+	SetWindowPos(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, HWND_TOPMOST, rc.left + 350, rc.top + 35, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
 
 //	MoveWindow(hcamwnd, OTE0_CAM2_WND_X - 1280, OTE0_CAM2_WND_Y-3, OTE0_CAM2_WND_W, OTE0_CAM2_WND_H, true);
 
@@ -2174,7 +2205,7 @@ void set_OTE_panel_objects(HWND hWnd) {
 		}
 
 		//RADIO
-		for (LONGLONG i = ID_OTE_RADIO_WIDE; i <= ID_OTE_RADIO_STAT; i++) {
+		for (LONGLONG i = ID_OTE_RADIO_WIDE; i <= ID_OTE_RADIO_SWAY; i++) {
 			if ((i == ID_OTE_RADIO_WIDE) ||(i == ID_OTE_RADIO_COM)){
 				st_work_wnd.hctrl[ID_OTE_CTRL_PB][i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_PB][i], WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
 					st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_PB][i].y,
@@ -2196,7 +2227,7 @@ void set_OTE_panel_objects(HWND hWnd) {
 	//ノッチラジオボタン
 	for (int j = 0; j <= ID_AHOIST;j++) {
 		if (j == 2) {//グリップスイッチ
-			for (int i = 0; i < 9; i++) {
+			for (int i = 0; i <= 9; i++) {
 				st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i] = CreateWindowW(TEXT("BUTTON"), st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
 					st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i].x, st_work_wnd.pt_ctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i].y,
 					st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i].cx, st_work_wnd.size_ctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i].cy,
@@ -2303,16 +2334,6 @@ void draw_graphic() {
 	//ポスト
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_CX - 10, OTE0_GR_AREA_CY - 10, 18, 18);
 
-	//走行位置描画
-	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
-	INT posx =(INT) pCOte0->data.pos[ID_GANTRY];
-	px_ddx = (INT)(pCOte0->data.pos[ID_BOOM_H] * crad_sl), px_ddy = (INT)(pCOte0->data.pos[ID_BOOM_H] * srad_sl);
-
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_X+ 10 + posx-5, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20, 10, 10);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_MAZENDA], OTE0_GR_AREA_X + 10 + posx, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20 +5	
-																					, OTE0_GR_AREA_X + 10 + posx + px_ddx, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20 + 5 - px_ddy);
-	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
-
 	
 	//AREA2
 	//JIB
@@ -2344,6 +2365,16 @@ void draw_graphic() {
 	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X = px_mh_x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y = px_mh_y;
 	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].X = px_ah_x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Y = px_ah_y;
 
+	//走行位置描画
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
+	INT posx = (INT)pCOte0->data.pos[ID_GANTRY];
+	px_ddx = (INT)(pCOte0->data.pos[ID_BOOM_H] * crad_sl), px_ddy = (INT)(pCOte0->data.pos[ID_BOOM_H] * srad_sl);
+
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA2_X + 10 + posx - 5, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20, 10, 10);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_MAZENDA], OTE0_GR_AREA2_X + 10 + posx, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20 + 5
+		, OTE0_GR_AREA2_X + 10 + posx + px_ddx, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20 + 5 - px_ddy);
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
+
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Height,
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Y, SRCCOPY);
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Height,
@@ -2365,30 +2396,30 @@ void init_graphic() {
 	//
 	//クレーンジブ　フック
 	y += h; w = 20, h = 25;
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].X = x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Y = y;
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Height = h;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].X = x;		st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Y = y;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Width = w;	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Height = h;
 
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 200; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 150;
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Height = h;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 200;	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 150;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Width = w;					st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Height = h;
 
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_GRAPHIC]->DrawImage(st_work_wnd.pimg[OTE0_GRID_JC_HOOK1], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR]);
 
 	y += h; w = 12, h = 16;
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].X = x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Y = y;
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Height = h;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].X = x;		st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Y = y;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Width = w;	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Height = h;
 
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 230; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 180;
-	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Height = h;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 230;	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 180;
+	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Width = w;					st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Height = h;
 
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_GRAPHIC]->DrawImage(st_work_wnd.pimg[OTE0_GRID_JC_HOOK2], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR]);
 
 	//クレーンジブ　
 	y += h; w = 189, h = 20;//ジブ長さ63→189PIX　1m→3PIX
-	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].X = x; st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].Y = y;
-	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].Height = h;
+	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].X = x;						st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].Y = y;
+	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].Width = w;					st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR].Height = h;
 
-	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 100; st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 110;
-	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].Height = h;
+	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 100;	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 110;
+	st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].Width = w;					st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_DST_ARR].Height = h;
 
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_GRAPHIC]->DrawImage(st_work_wnd.pimg[OTE0_GRID_JC_JIB], st_work_wnd.im_rect[OTE0_GRID_JC_JIB][OTE0_ID_GR_SRC_ARR]);
 
@@ -2398,6 +2429,10 @@ void init_graphic() {
 	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], GetStockObject(NULL_BRUSH));
 	Rectangle(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, OTE0_GR_AREA_X + OTE0_GR_AREA_W, OTE0_GR_AREA_Y + OTE0_GR_AREA_H);
 	Rectangle(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_GR_AREA2_X, OTE0_GR_AREA2_Y, OTE0_GR_AREA2_X + OTE0_GR_AREA2_W, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H);
+
+	//カメラ映像領域描画
+	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], GetStockObject(GRAY_BRUSH));
+	Rectangle(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, OTE0_CAM2_WND_W + OTE0_CAM2_WND_X, OTE0_CAM2_WND_H);
 
 	//AREA1 背景グラフィック
 	//ガイド円
@@ -2417,10 +2452,10 @@ void init_graphic() {
 	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
 
 	//走行レール(1m/pix)
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY],  OTE0_GR_AREA_X + 10, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20
-																				, OTE0_GR_AREA_X + 310, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY], OTE0_GR_AREA_X + 10, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 10
-																				, OTE0_GR_AREA_X + 310, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 10);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY],  OTE0_GR_AREA2_X + 10, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20
+																				, OTE0_GR_AREA2_X + 310, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY], OTE0_GR_AREA2_X + 10, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 10
+																				, OTE0_GR_AREA2_X + 310, OTE0_GR_AREA2_Y + OTE0_GR_AREA_H - 10);
 	//AREA2 背景グラフィック
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Height,
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR].Y, SRCCOPY);
@@ -2430,7 +2465,6 @@ void init_graphic() {
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(&Mypen, OTE0_GR_AREA2_X + 150, OTE0_GR_AREA2_Y + 10, OTE0_GR_AREA2_X + 150, OTE0_GR_AREA2_Y + 240);
 	Mypen.SetColor(Color(100, 182, 255, 0)); Mypen.SetWidth(20);
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(&Mypen, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 10, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 240);
-
 	return;
 }
 void draw_info() {
@@ -2440,52 +2474,30 @@ void draw_info() {
 
 	SetTextColor(hdc, RGB(100, 100, 100));
 	SelectObject(hdc, st_work_wnd.hfont[ID_OTE_FONT12]);
-	wo_msg.str(L"");
-	wo_msg << L"旋回角(deg):"<<pCOte0->data.deg_sl;
-	TextOutW(hdc, OTE0_GR_AREA_X+5, OTE0_GR_AREA_Y+5, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L"");
-	wo_msg << L"旋回径(m):" << pCOte0->data.pos[ID_BOOM_H];
-	TextOutW(hdc, OTE0_GR_AREA_X+5, OTE0_GR_AREA_Y+20, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L"");
-#if 0
-	wo_msg.str(L"");
-	wo_msg << L"lX:" << pad_data.lX << L"  lY:" << pad_data.lY << L"  lZ:" << pad_data.lZ << L"  lRz:" << pad_data.lRz;
-	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+	
+	wo_msg.str(L""); wo_msg << L"主巻m   :" << pCOte0->data.pos[ID_HOIST]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"補巻m   :" << pCOte0->data.pos[ID_AHOIST]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y+15, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+	wo_msg.str(L""); wo_msg << L"旋回角°:" << std::setprecision(4) << pCOte0->data.deg_bh; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 30, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"旋回径m :" << pCOte0->data.pos[ID_BOOM_H]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 45, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"走行m   :" << pCOte0->data.pos[ID_GANTRY]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 60, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
-	wo_msg << L"POV0:" << pad_data.rgdwPOV[0] << L"POV1:" << pad_data.rgdwPOV[1] << L"POV2:" << pad_data.rgdwPOV[2] << L"POV3:" << pad_data.rgdwPOV[3];
-	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 65, wo_msg.str().c_str(), (int)wo_msg.str().length());
-
-	wo_msg.str(L"PB:");
-	for (int i = 0; i < 16; i++) wo_msg << L"[" << i << L"]" << pad_data.rgbButtons[i] << L" ";
-	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 50, wo_msg.str().c_str(), (int)wo_msg.str().length());
-#endif
-
-	wo_msg.str(L"");
-	wo_msg << L"走行位置(m):" << pCOte0->data.pos[ID_GANTRY];
-	TextOutW(hdc, OTE0_GR_AREA_X + 200, OTE0_GR_AREA_Y + 215, wo_msg.str().c_str(), (int)wo_msg.str().length());
-
-	wo_msg.str(L"");
-	wo_msg << L"自動目標";
-	TextOutW(hdc, OTE0_IF_AREA_X+5, OTE0_IF_AREA_Y+5, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L"");
-	wo_msg <<std::setprecision(4) << L"主巻:" << 50.0 << L" 半径:" << 36.3 << L" 旋回:" <<75.0 << L" 補巻:" << 70.0;
-	TextOutW(hdc, OTE0_IF_AREA_X + 5, OTE0_IF_AREA_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
-
-	wo_msg.str(L"");
-	wo_msg << L"主巻m:" << pCOte0->data.pos[ID_HOIST] << L" 補巻m:" << pCOte0->data.pos[ID_AHOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 185, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L"");
-	wo_msg <<  L"起伏角(deg):" << pCOte0->data.deg_bh;
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 200, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg << L"自動目標"; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 90, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	
+	wo_msg.str(L""); wo_msg  << L"主巻   :"  << 50.0; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 105, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"半径    :"   << 36.3; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 120, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"旋回    :"   << 75.0; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 135, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"補巻    :" << 70.0; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 150, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"主巻荷重(t):" << pCOte0->data.load[ID_HOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 215, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 5, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"補巻荷重(t):" << pCOte0->data.load[ID_AHOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 180, OTE0_GR_AREA2_Y + 230, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 }
 
