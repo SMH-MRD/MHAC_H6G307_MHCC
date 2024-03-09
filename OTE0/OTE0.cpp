@@ -96,6 +96,8 @@ void init_graphic();
 void draw_graphic_swy();
 void draw_bk_swy();
 
+
+
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -322,10 +324,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 static int tmp_counter = 0;
 static BYTE gmpad_PB_last[32];
 static DWORD gmpad_POV_last[4];
+static INT auto_mode_last;
+static INT gpad_mode_last;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
-	int id;
+
 	HINSTANCE hInst = GetModuleHandle(0);
 	switch (message)
 	{
@@ -337,8 +341,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//サブウィンドウ追加
 		hwnd_current_subwnd = open_fault_Wnd(hWnd);			//故障表示子ウィンドウ
 
-	//	open_swy_Wnd(hWnd);									//振れウィンドウ追加
-
 		//マルチキャストタイマ起動 
 		SetTimer(hWnd, ID_OTE_MULTICAST_TIMER, OTE_MULTICAST_SCAN_MS, NULL);
 		//ユニキャストタイマ起動
@@ -348,6 +350,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	case WM_TIMER: {
 
 		pCOte0->parse();//受信データ展開
+
+		pCOte0->parse_auto_status();
+
+		if (pCOte0->data.auto_mode != auto_mode_last) {
+			if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF) {
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i]);
+			}
+			else {
+				for (int i = 0; i < 9;i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST* N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_HOIST][i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_BOOM_H][i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_SLEW][i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_AHOIST][i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_GANTRY][i]);
+
+			}
+			 auto_mode_last = pCOte0->data.auto_mode;
+		}
 
 		if (wParam == ID_OTE_UNICAST_TIMER) {
 			//ON PAINT　呼び出し　表示更新
@@ -363,11 +386,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 
 			//情報表示エリア+カメラエリア
-			rc.left = OTE0_CAM2_WND_X; rc.right= 810; rc.top = 0; rc.bottom = 270;
+			rc.left = OTE0_CAM2_WND_X; rc.right= 810; rc.top = 0; rc.bottom = 300;
 			InvalidateRect(hWnd, &rc, FALSE);
 
 			//ボタンエリア
-			rc.left = 800; rc.right = 960; rc.top = 0; rc.bottom = 70;
+			rc.left = 800; rc.right = 960; rc.top = 0; rc.bottom = 300;
 			InvalidateRect(hWnd, &rc, FALSE);
 				//######
 		}
@@ -387,19 +410,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 		}
 
-		//操作入力状態取り込み更新（グリップスイッチetc）
+		//操作入力状態取り込み更新（NOTCHエリアグリップスイッチetc）
 		INT16 mask = 1;
 		for (int i = 0; i < N_OTE_NOTCH_ARRAY; i++) {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i], BM_GETCHECK, 0, 0)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= mask;
 				st_work_wnd.notch_pb_stat[ID_OTE_GRIP_ESTOP + i] = OTE0_PB_OFF_DELAY_COUNT;
+
+				if (i == (ID_OTE_GRIP_PAD_MODE - ID_OTE_GRIP_ESTOP)) pCOte0->data.gpad_mode = L_ON;
 			}
 			else {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~mask;
 				st_work_wnd.notch_pb_stat[ID_OTE_GRIP_ESTOP + i] = L_OFF;
+
+				if (i == (ID_OTE_GRIP_PAD_MODE - ID_OTE_GRIP_ESTOP)) pCOte0->data.gpad_mode = L_OFF;
 			}
 			mask=mask << 1;
+
+			gpad_mode_last = pCOte0->data.gpad_mode;
 		}
+
 		//リモート無効時
 		if (BST_CHECKED != SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_GETCHECK, 0, 0)) {
 			for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
@@ -610,8 +640,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 
 	
-		if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
-		//if(1){
+		//if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
+		if(pCOte0->data.gpad_mode){
 			if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = (INT16)((pad_data.lRz - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
@@ -625,8 +655,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
 			}
 		}
-		if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
-		//if(1){
+		//if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+		if (pCOte0->data.gpad_mode) {
 			if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
@@ -640,10 +670,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
 			}
 		}
-		if (pad_data.rgbButtons[11]!= gmpad_PB_last[11]) {
+		if (gpad_mode_last != pCOte0->data.gpad_mode) {
 			st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
-		}
-		if (pad_data.rgbButtons[10] != gmpad_PB_last[10]) {
 			st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
 		}
 		//カメラチルト、パン、ズーム
@@ -791,20 +819,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		case BASE_ID_OTE_PB + ID_OTE_PB_ARESET_ALL: {
 			for (int i = ID_OTE_CHK_ASET_MH; i <= ID_OTE_CHK_ASET_SL; i++) {
 				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_SETCHECK, BST_UNCHECKED, 0L);
+			
 				st_work_wnd.pb_lamp[i] .com= L_OFF;	//設定OFF　
+				for (int i = 0; i < MOTION_ID_MAX; i++){
+					pCOte0->data.auto_sel[ID_HOIST] = OTE_ID_AUTOSTAT_OFF;
+				}
 			}
 			break;
 		}
-		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_MH:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_AH:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_BH:
-		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_SL: {
-			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0))
+		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_MH: {
+			if ((BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)&&
+				(pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY))) {
 				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
-			else
+				pCOte0->data.auto_sel[ID_HOIST] = OTE_ID_AUTOSTAT_STANDBY;
+			}
+			else {
 				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
-			break;
-		}
+				pCOte0->data.auto_sel[ID_HOIST] = OTE_ID_AUTOSTAT_OFF;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_AH: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0) &&
+				(pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY)) {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+				pCOte0->data.auto_sel[ID_AHOIST] = OTE_ID_AUTOSTAT_STANDBY;
+			}
+			else {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
+				pCOte0->data.auto_sel[ID_AHOIST] = OTE_ID_AUTOSTAT_OFF;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_BH: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0) &&
+				(pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY)) {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+				pCOte0->data.auto_sel[ID_BOOM_H] = OTE_ID_AUTOSTAT_STANDBY;
+			}
+			else {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
+				pCOte0->data.auto_sel[ID_BOOM_H] = OTE_ID_AUTOSTAT_OFF;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
+		}break;
+		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_SL: {
+			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0) &&
+				(pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY)) {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
+				pCOte0->data.auto_sel[ID_SLEW] = OTE_ID_AUTOSTAT_STANDBY;
+			}
+			else {
+				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_OFF;
+				pCOte0->data.auto_sel[ID_SLEW] = OTE_ID_AUTOSTAT_OFF;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
+		}break;
+
 		//カメラウィンドウ表示
 		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_WND: {
 			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) {
@@ -890,6 +961,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 	}break;
 
+	case WM_LBUTTONDOWN: {
+		int x = LOWORD(lParam), y = HIWORD(lParam);
+		int d2 = (x - OTE0_GR_AREA_CX) ^ 2 + (y - OTE0_GR_AREA_CY) ^ 2;
+		if (d2 < OTE0_GR_AREA_R * OTE0_GR_AREA_R) {
+			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_BHSL, x, y);
+		}
+		else if ((x> OTE0_GR_AREA2_MH_SET_X)&&(x< OTE0_GR_AREA2_MH_SET_X + OTE0_GR_AREA2_MH_SET_W)&& (y > OTE0_GR_AREA2_MH_SET_Y) && (y < OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H)) {
+			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_MH, x, y);
+		}
+		else if ((x > OTE0_GR_AREA2_AH_SET_X) && (x < OTE0_GR_AREA2_AH_SET_X + OTE0_GR_AREA2_AH_SET_W) && (y > OTE0_GR_AREA2_AH_SET_Y) && (y < OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H)) {
+			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_AH, x, y);
+		}
+		else;
+	}break;
 	case WM_MOVE: {
 		//int x = LOWORD(lParam);
 		//int y = HIWORD(lParam);
@@ -1434,8 +1519,7 @@ LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	return S_OK;
 }
 LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	HDC hdc;
-	int id;
+
 	HINSTANCE hInst = GetModuleHandle(0);
 
 	CPsaMain* pPSA=NULL;
@@ -1653,8 +1737,7 @@ LRESULT CALLBACK WndCamProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	return S_OK;
 }
 LRESULT CALLBACK WndCam2Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	HDC hdc;
-	int id;
+
 	HINSTANCE hInst = GetModuleHandle(0);
 
 	CPsaMain* pPSA = NULL;
@@ -2090,10 +2173,10 @@ HWND open_camera_Wnd(HWND hwnd, int id_cam) {
 			st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA = new CPsaMain(hcamwnd, OTE_CAMERA_PTZ0_IP, OTE_CAMERA_USER, OTE_CAMERA_PASS, DEF_STREAM_FORMAT_H264);
 		}
 		st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStart();
-	}
 
-	ShowWindow(hcamwnd, SW_SHOW);
-	UpdateWindow(hcamwnd);
+		ShowWindow(hcamwnd, SW_SHOW);
+		UpdateWindow(hcamwnd);
+	}
 
 	return hcamwnd;
 }
@@ -2260,7 +2343,7 @@ void set_OTE_panel_objects(HWND hWnd) {
 	SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_SETCHECK, BST_UNCHECKED, 0L);
 	st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~ID_OTE_GRIP_NOTCH_POS;
 	SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_SETCHECK, BST_CHECKED, 0L);
-	st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_RMT] |= ID_OTE_GRIP_RMT_POS;
+	st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= ID_OTE_GRIP_RMT_POS;
 
 	return;
 }
@@ -2283,17 +2366,11 @@ void draw_graphic() {
 
 	//MEM0に書き込み
 	//AREA1
-#if 0 //デバッグ
-	rad_bh = rad_bh + 0.01; if (rad_bh > 1.4)rad_bh = -0.8;
-	rad_sl += 0.02; if (rad_sl > 6.28)rad_sl = 0.0;
-	//mhy -= 0.5; if (mhy < -5.0)mhy = 50.0; ahy += 0.2; if (ahy > 50.0)ahy = -5.0;
-#else
 	rad_bh = pCOte0->data.deg_bh * DEG1RAD;
 	rad_sl = pCOte0->data.pos[ID_SLEW];
 	mhy = pCOte0->data.pos[ID_HOIST];
 	ahy = pCOte0->data.pos[ID_AHOIST];
 
-#endif
 	double srad_bh = sin(rad_bh), crad_bh = cos(rad_bh);		//sin cos 使い回し用
 	double srad_sl = sin(rad_sl), crad_sl = cos(rad_sl);		//sin cos 使い回し用
 	double ah_r_add = spec.La_add * cos(rad_bh + rad_ah_off);	//主補巻シーブ相対高さ
@@ -2312,12 +2389,23 @@ void draw_graphic() {
 	INT px_ddx0 = -(INT)(3.0 * srad_sl), px_ddy0 = (INT)(3.0 * crad_sl);	//ジブ描画オフセット量 　ジブ先幅分
 
 	//AREA1
+	// 
+	
+	//ガイド円
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R *2, OTE0_GR_AREA_R * 2);
 	//極限描画
 	st_work_wnd.ppen[OTE0_RED]->SetWidth(2.0); st_work_wnd.ppen[OTE0_RED]->SetDashStyle(DashStyleDash); st_work_wnd.ppen[OTE0_RED]->SetColor(Color(50,255,0,0));
 	INT px_mhr = (INT)(mh_lim_min * OTE0_GR_AREA_PIX1M), px_mhd=2*px_mhr;	//極限半径をPIXに変換
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawEllipse(st_work_wnd.ppen[OTE0_RED],OTE0_GR_AREA_CX - px_mhr, OTE0_GR_AREA_CY - px_mhr, px_mhd, px_mhd);
 	px_mhr = (INT)(mh_lim_max * OTE0_GR_AREA_PIX1M); px_mhd = 2 * px_mhr;
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawEllipse(st_work_wnd.ppen[OTE0_RED], OTE0_GR_AREA_CX - px_mhr, OTE0_GR_AREA_CY - px_mhr, px_mhd, px_mhd);
+
+	//JC脚部ライン及びポータル部
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
+	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 150, 150, 255));
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_CX - 12, OTE0_GR_AREA_CY - 15, 24, 30);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_BLUE], OTE0_GR_AREA_CX - 45, OTE0_GR_AREA_CY - 14, OTE0_GR_AREA_CX + 45, OTE0_GR_AREA_CY - 14);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_BLUE], OTE0_GR_AREA_CX - 45, OTE0_GR_AREA_CY + 14, OTE0_GR_AREA_CX + 45, OTE0_GR_AREA_CY + 14);
 
 	//JIB 6角形で表現　補巻位置まで描画
 	Point pts[] = { Point(px_ah_x - px_ddx0, px_ah_y + px_ddy0),Point(px_ah_x + px_ddx0, px_ah_y - px_ddy0),Point(px_ah_x2 + px_ddx0*2, px_ah_y2 - px_ddy0*2),Point(OTE0_GR_AREA_CX + px_ddx0 *2, OTE0_GR_AREA_CY - px_ddy0 *2),Point(OTE0_GR_AREA_CX - px_ddx0 *2, OTE0_GR_AREA_CY + px_ddy0 *2),Point(px_ah_x2 - px_ddx0*2, px_ah_y2 + px_ddy0*2)};
@@ -2332,8 +2420,31 @@ void draw_graphic() {
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_RED], px_mh_x + px_ddx, px_mh_y - px_ddy, px_mh_x - px_ddx, px_mh_y + px_ddy);
 
 	//ポスト
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_CX - 10, OTE0_GR_AREA_CY - 10, 18, 18);
 
+	//走行位置描画
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
+	INT posx = (INT)pCOte0->data.pos[ID_GANTRY];
+	px_ddx = (INT)(pCOte0->data.pos[ID_BOOM_H] * crad_sl), px_ddy = (INT)(pCOte0->data.pos[ID_BOOM_H] * srad_sl);
+
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_X + 10 + posx - 5, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20, 10, 10);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_MAZENDA], OTE0_GR_AREA_X + 10 + posx, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20 + 5
+		, OTE0_GR_AREA_X + 10 + posx + px_ddx, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20 + 5 - px_ddy);
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
+
+
+
+
+
+	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
+	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
+
+	//走行レール(1m/pix)
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_GLAY], OTE0_GR_AREA_X + 10, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20
+		, OTE0_GR_AREA_X + 310, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 20);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_GLAY], OTE0_GR_AREA_X + 10, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 10
+		, OTE0_GR_AREA_X + 310, OTE0_GR_AREA_Y + OTE0_GR_AREA_H - 10);
 	
 	//AREA2
 	//JIB
@@ -2357,28 +2468,36 @@ void draw_graphic() {
 			NULL, NULL, NULL);
 
 	//フック描画
+
+	//現在高さライン描画
+	INT px_mh_h = (INT)(mhy * OTE0_GR_AREA2_PIX1M);
+	INT px_ah_h = (INT)(ahy * OTE0_GR_AREA2_PIX1M);
+
+	//st_work_wnd.ppen[OTE0_RED]->SetWidth(6.0); st_work_wnd.ppen[OTE0_RED]->SetDashStyle(DashStyleSolid); st_work_wnd.ppen[OTE0_RED]->SetColor(Color(255, 255, 0, 0));
+	//線で描画
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_BLUE], OTE0_GR_AREA2_MH_SET_X-20, OTE0_GR_AREA2_LV0_Y - px_mh_h, OTE0_GR_AREA2_MH_SET_X-20 + OTE0_GR_AREA2_MH_SET_W, OTE0_GR_AREA2_LV0_Y - px_mh_h);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_BLUE], OTE0_GR_AREA2_AH_SET_X - 10, OTE0_GR_AREA2_LV0_Y - px_ah_h, OTE0_GR_AREA2_AH_SET_X - 10 + OTE0_GR_AREA2_AH_SET_W, OTE0_GR_AREA2_LV0_Y - px_ah_h);
+
+
 	px_mh_x = OTE0_GR_AREA2_R0_X + (INT)(mh_r * OTE0_GR_AREA2_PIX1M) +5;//吊具画像幅の半分
-	px_mh_y = OTE0_GR_AREA2_LV0_Y - (INT)(mhy * OTE0_GR_AREA2_PIX1M);
+	px_mh_y = OTE0_GR_AREA2_LV0_Y - px_mh_h;
 	px_ah_x = OTE0_GR_AREA2_R0_X + (INT)(ah_r * OTE0_GR_AREA2_PIX1M) +3;//吊具画像幅の半分
-	px_ah_y = OTE0_GR_AREA2_LV0_Y - (INT)(ahy * OTE0_GR_AREA2_PIX1M);
-	
+	px_ah_y = OTE0_GR_AREA2_LV0_Y - px_ah_h;
+		
 	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X = px_mh_x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y = px_mh_y;
 	st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].X = px_ah_x; st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Y = px_ah_y;
-
-	//走行位置描画
-	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
-	INT posx = (INT)pCOte0->data.pos[ID_GANTRY];
-	px_ddx = (INT)(pCOte0->data.pos[ID_BOOM_H] * crad_sl), px_ddy = (INT)(pCOte0->data.pos[ID_BOOM_H] * srad_sl);
-
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA2_X + 10 + posx - 5, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20, 10, 10);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_MAZENDA], OTE0_GR_AREA2_X + 10 + posx, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20 + 5
-		, OTE0_GR_AREA2_X + 10 + posx + px_ddx, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20 + 5 - px_ddy);
-	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
 
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_DST_ARR].Height,
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK1][OTE0_ID_GR_SRC_ARR].Y, SRCCOPY);
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_DST_ARR].Height,
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_HOOK2][OTE0_ID_GR_SRC_ARR].Y, SRCCOPY);
+
+
+	//巻目標位置設定ガイドライン
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
+	st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
+	st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H -5);
 
 }
 void init_graphic() {
@@ -2392,6 +2511,7 @@ void init_graphic() {
 	st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].X = OTE0_GR_AREA2_X + 30; st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Y = OTE0_GR_AREA2_Y + 40;
 	st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Width = w; st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Height = h;
 	st_work_wnd.pgraphic[OTE0_GDIP_GR_GRAPHIC]->DrawImage(st_work_wnd.pimg[OTE0_GRID_JC_BODY], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR]);
+	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawImage(st_work_wnd.pimg[OTE0_GRID_JC_BODY], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR]);
 
 	//
 	//クレーンジブ　フック
@@ -2426,7 +2546,7 @@ void init_graphic() {
 	//背景描画 DC BK
 	//マップ背景ライン描画
 	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], st_work_wnd.hpen[OTE0_GLAY]);
-	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], GetStockObject(NULL_BRUSH));
+	SelectObject(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], GetStockBrush(NULL_BRUSH));
 	Rectangle(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, OTE0_GR_AREA_X + OTE0_GR_AREA_W, OTE0_GR_AREA_Y + OTE0_GR_AREA_H);
 	Rectangle(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_GR_AREA2_X, OTE0_GR_AREA2_Y, OTE0_GR_AREA2_X + OTE0_GR_AREA2_W, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H);
 
@@ -2435,36 +2555,13 @@ void init_graphic() {
 	Rectangle(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, OTE0_CAM2_WND_W + OTE0_CAM2_WND_X, OTE0_CAM2_WND_H);
 
 	//AREA1 背景グラフィック
-	//ガイド円
-	SolidBrush mySolidBrush(Color(255, 255, 247, 214));
-	INT r = 120;INT dia = 2 * r;
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->FillEllipse(&mySolidBrush, OTE0_GR_AREA_CX-r, OTE0_GR_AREA_CY-r, dia,dia);
 
-	//JC脚部ライン及びポータル部
-	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 200, 200, 255));
-	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 150, 150, 255));
 
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->FillRectangle(st_work_wnd.pbrush[OTE0_BLUE], OTE0_GR_AREA_CX - 12, OTE0_GR_AREA_CY - 15, 24, 30);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_BLUE], OTE0_GR_AREA_CX - 45, OTE0_GR_AREA_CY - 14, OTE0_GR_AREA_CX + 45, OTE0_GR_AREA_CY - 14);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_BLUE], OTE0_GR_AREA_CX - 45, OTE0_GR_AREA_CY + 14, OTE0_GR_AREA_CX + 45, OTE0_GR_AREA_CY + 14);
-
-	st_work_wnd.pbrush[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
-	st_work_wnd.ppen[OTE0_BLUE]->SetColor(Color(255, 0, 0, 255));
-
-	//走行レール(1m/pix)
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY],  OTE0_GR_AREA2_X + 10, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20
-																				, OTE0_GR_AREA2_X + 310, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 20);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(st_work_wnd.ppen[OTE0_GLAY], OTE0_GR_AREA2_X + 10, OTE0_GR_AREA2_Y + OTE0_GR_AREA2_H - 10
-																				, OTE0_GR_AREA2_X + 310, OTE0_GR_AREA2_Y + OTE0_GR_AREA_H - 10);
 	//AREA2 背景グラフィック
 	BitBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Y, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Width, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_DST_ARR].Height,
 		st_work_wnd.hdc[ID_OTE_HDC_MEM_GR], st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR].X, st_work_wnd.im_rect[OTE0_GRID_JC_BODY][OTE0_ID_GR_SRC_ARR].Y, SRCCOPY);
 	
-	//巻目標位置設定ガイドライン
-	Pen Mypen(Color(100, 255, 216, 0), 40);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(&Mypen, OTE0_GR_AREA2_X + 150, OTE0_GR_AREA2_Y + 10, OTE0_GR_AREA2_X + 150, OTE0_GR_AREA2_Y + 240);
-	Mypen.SetColor(Color(100, 182, 255, 0)); Mypen.SetWidth(20);
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_BK]->DrawLine(&Mypen, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 10, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 240);
+
 	return;
 }
 void draw_info() {
@@ -2493,11 +2590,11 @@ void draw_info() {
 
 	wo_msg.str(L"");
 	wo_msg << L"主巻荷重(t):" << pCOte0->data.load[ID_HOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 5, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 5, OTE0_GR_AREA2_Y + 5, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"補巻荷重(t):" << pCOte0->data.load[ID_AHOIST];
-	TextOutW(hdc, OTE0_GR_AREA2_X + 200, OTE0_GR_AREA2_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	TextOutW(hdc, OTE0_GR_AREA2_X + 5, OTE0_GR_AREA2_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 }
 
@@ -2560,9 +2657,6 @@ void draw_bk_swy() {
 /// </summary>
 void draw_lamp(HDC hdc,bool is_init) {
 
-	UINT32* plamp_com_hold, *plamp_com_now;
-	UINT32  lamp_com_delta,icolor;
-	
 	SelectObject(hdc, GetStockObject(NULL_PEN));
 
 	//PBランプ
@@ -2609,41 +2703,55 @@ void draw_lamp(HDC hdc,bool is_init) {
 	return;
 } 
 void create_objects(HWND hWnd) {
-	st_work_wnd.hbrush[OTE0_WHITE]		= CreateSolidBrush(RGB(255, 255, 255));
-	st_work_wnd.hbrush[OTE0_GLAY]		= CreateSolidBrush(RGB(192, 192, 192));
-	st_work_wnd.hbrush[OTE0_RED]		= CreateSolidBrush(RGB(255, 0, 0));
-	st_work_wnd.hbrush[OTE0_BLUE]		= CreateSolidBrush(RGB(0, 0, 255));
-	st_work_wnd.hbrush[OTE0_GREEN]		= CreateSolidBrush(RGB(0, 255, 0));
-	st_work_wnd.hbrush[OTE0_YELLOW]		= CreateSolidBrush(RGB(255, 253, 85));
-	st_work_wnd.hbrush[OTE0_MAZENDA]	= CreateSolidBrush(RGB(234, 63, 247));
-	st_work_wnd.hbrush[OTE0_ORANGE]		= CreateSolidBrush(RGB(255, 142, 85));
+	st_work_wnd.hbrush[OTE0_WHITE]				= CreateSolidBrush(RGB(255, 255, 255));
+	st_work_wnd.hbrush[OTE0_GLAY]				= CreateSolidBrush(RGB(192, 192, 192));
+	st_work_wnd.hbrush[OTE0_RED]				= CreateSolidBrush(RGB(255, 0, 0));
+	st_work_wnd.hbrush[OTE0_BLUE]				= CreateSolidBrush(RGB(0, 0, 255));
+	st_work_wnd.hbrush[OTE0_GREEN]				= CreateSolidBrush(RGB(0, 255, 0));
+	st_work_wnd.hbrush[OTE0_YELLOW]				= CreateSolidBrush(RGB(255, 253, 85));
+	st_work_wnd.hbrush[OTE0_MAZENDA]			= CreateSolidBrush(RGB(234, 63, 247));
+	st_work_wnd.hbrush[OTE0_ORANGE]				= CreateSolidBrush(RGB(255, 142, 85));
+	st_work_wnd.hbrush[OTE0_COLOR_AUTO_OFF]		= CreateSolidBrush(RGB(255, 142, 85));
+	st_work_wnd.hbrush[OTE0_COLOR_AUTO_STANDBY] = CreateSolidBrush(RGB(255, 142, 85));
+	st_work_wnd.hbrush[OTE0_COLOR_AUTO_ACTIVE]	= CreateSolidBrush(RGB(255, 142, 85));
+	st_work_wnd.hbrush[OTE0_COLOR_BACK_GROUND]  = CreateSolidBrush(RGB(240, 240, 240));
+	
 
-	st_work_wnd.hpen[OTE0_WHITE] = CreatePen(PS_SOLID,2,RGB(255, 255, 255));
-	st_work_wnd.hpen[OTE0_GLAY] = CreatePen(PS_SOLID, 2, RGB(192, 192, 192));
-	st_work_wnd.hpen[OTE0_RED] = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
-	st_work_wnd.hpen[OTE0_BLUE] = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
-	st_work_wnd.hpen[OTE0_GREEN] = CreatePen(PS_SOLID, 2, RGB(0, 255, 0));
-	st_work_wnd.hpen[OTE0_YELLOW] = CreatePen(PS_SOLID, 2, RGB(255, 253, 85));
-	st_work_wnd.hpen[OTE0_MAZENDA] = CreatePen(PS_SOLID, 2, RGB(234, 63, 247));
-	st_work_wnd.hpen[OTE0_ORANGE] = CreatePen(PS_SOLID, 2, RGB(255, 142, 85));
+	st_work_wnd.hpen[OTE0_WHITE]				= CreatePen(PS_SOLID,2,RGB(255, 255, 255));
+	st_work_wnd.hpen[OTE0_GLAY]					= CreatePen(PS_SOLID, 2, RGB(192, 192, 192));
+	st_work_wnd.hpen[OTE0_RED]					= CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+	st_work_wnd.hpen[OTE0_BLUE]					= CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
+	st_work_wnd.hpen[OTE0_GREEN]				= CreatePen(PS_SOLID, 2, RGB(0, 255, 0));
+	st_work_wnd.hpen[OTE0_YELLOW]				= CreatePen(PS_SOLID, 2, RGB(255, 253, 85));
+	st_work_wnd.hpen[OTE0_MAZENDA]				= CreatePen(PS_SOLID, 2, RGB(234, 63, 247));
+	st_work_wnd.hpen[OTE0_ORANGE]				= CreatePen(PS_SOLID, 2, RGB(255, 142, 85));
 
-	st_work_wnd.pbrush[OTE0_WHITE]	= new SolidBrush(Color(255,255, 255, 255));
-	st_work_wnd.pbrush[OTE0_GLAY]	= new SolidBrush(Color(255,192, 192, 192));
-	st_work_wnd.pbrush[OTE0_RED]	= new SolidBrush(Color(255,255, 0, 0));
-	st_work_wnd.pbrush[OTE0_BLUE]	= new SolidBrush(Color(255,0, 0, 255));
-	st_work_wnd.pbrush[OTE0_GREEN]	= new SolidBrush(Color(255,0, 255, 0));
-	st_work_wnd.pbrush[OTE0_YELLOW] = new SolidBrush(Color(255,255, 253, 85));
-	st_work_wnd.pbrush[OTE0_MAZENDA]= new SolidBrush(Color(255,234, 63, 247));
-	st_work_wnd.pbrush[OTE0_ORANGE] = new SolidBrush(Color(255,255, 142, 85));
+	st_work_wnd.pbrush[OTE0_WHITE]				= new SolidBrush(Color(255,255, 255, 255));
+	st_work_wnd.pbrush[OTE0_GLAY]				= new SolidBrush(Color(255,192, 192, 192));
+	st_work_wnd.pbrush[OTE0_RED]				= new SolidBrush(Color(255,255, 0, 0));
+	st_work_wnd.pbrush[OTE0_BLUE]				= new SolidBrush(Color(255,0, 0, 255));
+	st_work_wnd.pbrush[OTE0_GREEN]				= new SolidBrush(Color(255,0, 255, 0));
+	st_work_wnd.pbrush[OTE0_YELLOW]				= new SolidBrush(Color(255,255, 253, 85));
+	st_work_wnd.pbrush[OTE0_MAZENDA]			= new SolidBrush(Color(255,234, 63, 247));
+	st_work_wnd.pbrush[OTE0_ORANGE]				= new SolidBrush(Color(255,255, 142, 85));
+	st_work_wnd.pbrush[OTE0_COLOR_AUTO_OFF]		= new SolidBrush(Color(50, 182, 255, 0));
+	st_work_wnd.pbrush[OTE0_COLOR_AUTO_STANDBY] = new SolidBrush(Color(100, 255, 142, 85));
+	st_work_wnd.pbrush[OTE0_COLOR_AUTO_ACTIVE]	= new SolidBrush(Color(100, 234, 63, 247));
+	st_work_wnd.pbrush[OTE0_COLOR_BACK_GROUND] = new SolidBrush(Color(50, 240, 240, 240));
+		
 
-	st_work_wnd.ppen[OTE0_WHITE]	= new Pen(Color(255, 255, 255, 255), 2);
-	st_work_wnd.ppen[OTE0_GLAY]		= new Pen(Color(255, 192, 192, 192), 2);
-	st_work_wnd.ppen[OTE0_RED]		= new Pen(Color(255, 255, 0, 0), 2);
-	st_work_wnd.ppen[OTE0_BLUE]		= new Pen(Color(255, 0, 0, 255), 2);
-	st_work_wnd.ppen[OTE0_GREEN]	= new Pen(Color(255, 0, 255, 0), 2);
-	st_work_wnd.ppen[OTE0_YELLOW]	= new Pen(Color(255, 255, 253, 85), 2);
-	st_work_wnd.ppen[OTE0_MAZENDA]	= new Pen(Color(255, 234, 63, 247), 2);
-	st_work_wnd.ppen[OTE0_ORANGE]	= new Pen(Color(255, 255, 142, 85), 2);
+	st_work_wnd.ppen[OTE0_WHITE]				= new Pen(Color(255, 255, 255, 255), 2);
+	st_work_wnd.ppen[OTE0_GLAY]					= new Pen(Color(255, 192, 192, 192), 2);
+	st_work_wnd.ppen[OTE0_RED]					= new Pen(Color(255, 255, 0, 0), 2);
+	st_work_wnd.ppen[OTE0_BLUE]					= new Pen(Color(255, 0, 0, 255), 2);
+	st_work_wnd.ppen[OTE0_GREEN]				= new Pen(Color(255, 0, 255, 0), 2);
+	st_work_wnd.ppen[OTE0_YELLOW]				= new Pen(Color(255, 255, 253, 85), 2);
+	st_work_wnd.ppen[OTE0_MAZENDA]				= new Pen(Color(255, 234, 63, 247), 2);
+	st_work_wnd.ppen[OTE0_ORANGE]				= new Pen(Color(255, 255, 142, 85), 2);
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]		= new Pen(Color(50, 182, 255, 0),2);
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]	= new Pen(Color(255, 255, 142, 85),2);
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]	= new Pen(Color(255, 234, 63, 247), 2);
+	st_work_wnd.ppen[OTE0_COLOR_BACK_GROUND]	= new Pen(Color(50, 240, 240, 240), 2);
 
 	//表示フォント設定
 	st_work_wnd.hfont[ID_OTE_FONT8] = CreateFont(8, 0, 0, 0, 0, FALSE, FALSE, FALSE, SHIFTJIS_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FIXED_PITCH | FF_MODERN, TEXT("Arial"));
@@ -2693,4 +2801,65 @@ void delete_objects(HWND hWnd) {
 	for(int i = 0; i < N_OTE_HDC; i++) 	DeleteDC(st_work_wnd.hdc[i]);
 	for (int i = 0; i < N_OTE_HBMAP; i++)	DeleteObject(st_work_wnd.hBmap[i]);
 	for (int i = 0; i < N_OTE_FONT; i++)	DeleteObject(st_work_wnd.hfont[i]);
+}
+
+void COte::parse_auto_status() {
+
+	if(pCOte0->st_msg_pc_u_rcv.body.pb_lamp[ID_OTE_PB_AUTO].com == OTE_LAMP_COM_FLICK)
+		data.auto_mode = OTE_ID_AUTOSTAT_ACTIVE;
+	else if(pCOte0->st_msg_pc_u_rcv.body.pb_lamp[ID_OTE_PB_AUTO].color != OTE0_GREEN)
+		data.auto_mode = OTE_ID_AUTOSTAT_STANDBY;	
+	else 
+		data.auto_mode = OTE_ID_AUTOSTAT_OFF;
+	
+	if (pCOte0->st_msg_pc_u_rcv.body.pb_lamp[ID_OTE_PB_FUREDOME].com == OTE_LAMP_COM_FLICK)
+		data.anti_sway_mode = OTE_ID_AUTOSTAT_ACTIVE;
+	else if (pCOte0->st_msg_pc_u_rcv.body.pb_lamp[ID_OTE_PB_FUREDOME].color != OTE0_GREEN)
+		data.anti_sway_mode = OTE_ID_AUTOSTAT_STANDBY;
+	else
+		data.anti_sway_mode = OTE_ID_AUTOSTAT_OFF;
+	return;
+}
+
+void COte::update_auto_target_touch(int area, int x, int y) {
+	if (data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+		switch (area) {
+		case OTE0_ID_AREA_GR_BHSL: {
+			double d_x = (double)(x - OTE0_GR_AREA_CX);
+			double d_y = (double)(y - OTE0_GR_AREA_CY);
+			double r = sqrt(d_x * d_x + d_y * d_y);
+			double rad =0.0;
+			if (d_x == 0) {
+				if (d_y >= 0) rad = PI90;
+				else rad=-PI90;
+			}
+			else if (d_x >0) {
+				rad = atan(d_y/d_x);
+			}
+			else {
+				rad = PI180 - atan(d_y / d_x);
+			}
+			if ((data.auto_sel[ID_BOOM_H])&&(data.auto_sel[ID_SLEW])) {
+				data.pt_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_BHSL] = { x,y };
+				data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = r * OTE0_GR_AREA_M1PIX;
+				data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = rad;
+			}
+		}break;
+		case OTE0_ID_AREA_GR_MH: {
+			if (data.auto_sel[ID_HOIST]) {
+				data.pt_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_MH] = { x,y };
+				data.pt_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = { 0,0 };
+				data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = (double)(y- OTE0_GR_AREA2_LV0_Y)* OTE0_GR_AREA_M1PIX;
+			}
+		}break;
+		case OTE0_ID_AREA_GR_AH: {
+			if (data.auto_sel[ID_AHOIST]) {
+				data.pt_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_AH] = { x,y };
+				data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = (double)(y - OTE0_GR_AREA2_LV0_Y) * OTE0_GR_AREA_M1PIX;
+			}
+		}break;
+		default:break;
+		}
+	}
+	return; 
 }

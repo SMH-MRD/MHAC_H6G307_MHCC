@@ -4,7 +4,7 @@
 #include "PLC_DEF.h"
 #include <windowsx.h>
 #include "Mdfunc.h"
-#include "OTE0panel.h""
+#include "OTE0panel.h"
 
 extern ST_SPEC def_spec;
 extern ST_KNL_MANAGE_SET    knl_manage_set;

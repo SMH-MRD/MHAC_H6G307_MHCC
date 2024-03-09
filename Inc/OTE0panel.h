@@ -7,8 +7,8 @@
 #include <gdiplus.h>
 using namespace Gdiplus;
 
-#define N_OTE_PEN				8
-#define N_OTE_BRUSH				8
+#define N_OTE_PEN				16
+#define N_OTE_BRUSH				16
 
 #define OTE0_GLAY               0
 #define OTE0_WHITE              1
@@ -18,6 +18,11 @@ using namespace Gdiplus;
 #define OTE0_YELLOW             5
 #define OTE0_MAZENDA            6 
 #define OTE0_ORANGE				7
+#define OTE0_COLOR_AUTO_OFF		8
+#define OTE0_COLOR_AUTO_STANDBY	9
+#define OTE0_COLOR_AUTO_ACTIVE	10
+#define OTE0_COLOR_BACK_GROUND	11
+
 
 //オブジェクトID
 #define BASE_ID_OTE_STATIC			10700
@@ -133,7 +138,7 @@ using namespace Gdiplus;
 #define ID_OTE_GRIP_ESTOP		20			//グリップ停止スイッチ
 #define ID_OTE_GRIP_NOTCH		21			//グリップスイッチ
 #define ID_OTE_GRIP_RMT			22			//リモート有効
-#define ID_OTE_GRIP_PAD_MODE	23　　		//ゲームパッドモード
+#define ID_OTE_GRIP_PAD_MODE	23			//ゲームパッドモード
 #define ID_OTE_GRIP_PP			24			//カメラパン＋
 #define ID_OTE_GRIP_PN			25			//カメラパン－
 #define ID_OTE_GRIP_TP			26			//カメラチルト＋
@@ -191,23 +196,45 @@ using namespace Gdiplus;
 
 #define OTE0_PB_OFF_DELAY_COUNT	10
 
+//グラフィックエリア
+#define OTE0_N_AREA_GR			8
+#define OTE0_ID_AREA_GR_BHSL	1
+#define OTE0_ID_AREA_GR_MH		2
+#define OTE0_ID_AREA_GR_AH		3
+
+
 #define OTE0_GR_AREA_X			140
 #define OTE0_GR_AREA_Y			310
 #define OTE0_GR_AREA_W			320
 #define OTE0_GR_AREA_H			250
-#define OTE0_GR_AREA_CX			300		//AREA1中心
-#define OTE0_GR_AREA_CY			435		//AREA1中心
-#define OTE0_GR_AREA_PIX1M		2.0		//1m当りのPIX数
 
 #define OTE0_GR_AREA2_X			520
 #define OTE0_GR_AREA2_Y			310
 #define OTE0_GR_AREA2_W			320
 #define OTE0_GR_AREA2_H			250
-#define OTE0_GR_AREA2_CX		620		//AREA2中心
-#define OTE0_GR_AREA2_CY		405		//AREA2中心
+
+#define OTE0_GR_AREA_CX			300		//AREA1中心
+#define OTE0_GR_AREA_CY			435		//AREA1中心
+
+#define OTE0_GR_AREA2_R0_X		600		//半径0のPIX位置　ポスト中心
+#define OTE0_GR_AREA2_LV0_Y		535		//高さ0のPIX位置
+
+#define OTE0_GR_AREA_PIX1M		2.0		//1m当りのPIX数
 #define OTE0_GR_AREA2_PIX1M		3.0		//1m当りのPIX数
-#define OTE0_GR_AREA2_LV0_Y		515		//高さ0のPIX位置
-#define OTE0_GR_AREA2_R0_X		600		//半径0のPIX位置
+#define OTE0_GR_AREA_M1PIX		0.5		//1PIX当りのm数
+#define OTE0_GR_AREA2_M1PIX		0.333333//1PIX当りのm数
+
+#define OTE0_GR_AREA_R			120		//旋回範囲円半径PIX
+
+#define OTE0_GR_AREA2_MH_SET_X	720		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_MH_SET_Y	320		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_MH_SET_W	40		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_MH_SET_H	240		//主巻高さ設定エリア
+
+#define OTE0_GR_AREA2_AH_SET_X	770		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_AH_SET_Y	320		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_AH_SET_W	20		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_AH_SET_H	240		//主巻高さ設定エリア
 
 
 #define OTE0_IF_AREA_X			705
@@ -501,7 +528,7 @@ typedef struct _stOTEWorkWnd {
 		L"FAULT",
 		//STAT
 		L"主巻",L"補巻",L"引込",L"旋回",L"走行",
-		
+
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
@@ -538,7 +565,7 @@ typedef struct _stOTEWorkWnd {
 		L"LIVE",L"TIL U",L"TIL D",L"PAN L",L"PAN R",L"ZM W",L"ZM N",
 		//ID_OTE_PB_CAMERA_STOP
 		L"STOP",
-		
+
 		L"",L"",L"",L"",L"",L"",L"",
 
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
@@ -548,12 +575,12 @@ typedef struct _stOTEWorkWnd {
 
 
 		//NOTCH
-		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//MH
-		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//GT
+		L"↓4",L"↓3",L"↓2",L"↓1",L"0",L"↑1",L"↑2",L"↑3",L"↑4",L"",//MH
+		L"←4",L"←3",L"←2",L"←1",L"0",L"1→",L"2→",L"3→",L"4→",L"",//GT
 		L"GSTP",L"GACT",L"RMT",L"PADM",L"P+",L"P-",L"T+",L"T-",L"Z+",L"Z-", //GRIP CAMERA リモート
-		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//BH
-		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//SL
-		L"-4",L"-3",L"-2",L"-1",L"0",L"1",L"2",L"3",L"4",L"",//AH
+		L"↓4",L"↓3",L"↓2",L"↓1",L"0",L"↑1",L"↑2",L"↑3",L"↑4",L"",//BH
+		L"4→",L"3→",L"2→",L"1→",L"0",L"←1",L"←2",L"←3",L"←4",L"",//SL
+		L"↓4",L"↓3",L"↓2",L"↓1",L"0",L"↑1",L"↑2",L"↑3",L"↑4",L"",//AH
 		L"",L"",L"",L"",
 
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
@@ -561,6 +588,26 @@ typedef struct _stOTEWorkWnd {
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
 		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",L""
 
+	};
+	WCHAR notch_auto_text[MOTION_ID_MAX][N_OTE_NOTCH_ARRAY][128] = {
+		L"-5",L"-1",L"-.5",L"-.1",L"0",L"+.1",L"+.5",L"+1",L"+5",L"",//MH
+		L"-",L"-",L"-",L"-",L"-",L"-",L"-",L"-",L"-",L"",//GT
+		L"GSTP",L"GACT",L"RMT",L"PADM",L"P+",L"P-",L"T+",L"T-",L"Z+",L"Z-", //GRIP CAMERA リモート
+		L"-5",L"-1",L"-.5",L"-.1",L"0",L"+.1",L"+.5",L"+1",L"+5",L"",//BH
+		L"-5",L"-1",L"-.5",L"-.1",L"0",L"+.1",L"+.5",L"+1",L"+5",L"",//SL
+		L"-5",L"-1",L"-.5",L"-.1",L"0",L"+.1",L"+.5",L"+1",L"+5",L"",//AH
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+		L"",L"",L"",L"",L"",L"",L"",L"",L"",L"",
+	};	
+	double notch_auto_shift[MOTION_ID_MAX][N_OTE_NOTCH_ARRAY] = {
+		-5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//MH
+		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,//GT
+		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,//GRIP CAMERA リモート
+		-5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//BH
+		-5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//SL
+		- 5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//AH
+		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
 	};
 
 }ST_OTE_WORK_WND, * LPST_OTE_WORK_WND;

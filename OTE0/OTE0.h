@@ -15,6 +15,7 @@
 
 #include "CPsaMain.H"
 
+
 //カメラ
 #define OTE_CAMERA_PTZ0_IP "192.168.1.202"
 #define OTE_CAMERA_FISH0_IP "192.168.1.201"
@@ -102,14 +103,34 @@
 #define OTE_CODE_FLICKER_FREQ		0x0040
 #define OTE_CODE_SUB_STATIC_FREQ	0x0001
 
+#define OTE_N_TARGET		8
+#define OTE_ID_HOT_TARGET	0
+#define OTE_ID_S1_TARGET	1
+#define OTE_ID_S2_TARGET	2
+#define OTE_ID_S3_TARGET	3
+#define OTE_ID_N1_TARGET	4
+#define OTE_ID_N2_TARGET	5
+#define OTE_ID_N3_TARGET	6
+
+#define OTE_ID_AUTOSTAT_OFF		0
+#define OTE_ID_AUTOSTAT_STANDBY	1
+#define OTE_ID_AUTOSTAT_ACTIVE	2
+
 //メインウィンドウ管理構造体
 typedef struct stOte0DataTag {
-	double pos[MOTION_ID_MAX];
-	double load[MOTION_ID_MAX];
-	double v_fb[MOTION_ID_MAX];
-	double v_ref[MOTION_ID_MAX];
-	double deg_sl;//旋回角°
-	double deg_bh;//起伏角°
+	double	pos[MOTION_ID_MAX];
+	double	load[MOTION_ID_MAX];
+	double	v_fb[MOTION_ID_MAX];
+	double	v_ref[MOTION_ID_MAX];
+	double	deg_sl;				//旋回角°
+	double	deg_bh;				//起伏角°
+	POINT	pt_tgpos[OTE_N_TARGET][OTE0_N_AREA_GR];
+	double	d_tgpos[OTE_N_TARGET][MOTION_ID_MAX];
+	INT gpad_mode = L_OFF;
+	INT auto_mode = OTE_ID_AUTOSTAT_OFF;
+	INT anti_sway_mode = OTE_ID_AUTOSTAT_OFF;
+	INT auto_sel[MOTION_ID_MAX] = { OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF };
+
 }ST_OTE0_DATA, * LPST_OTE0_DATA;
 
 //カメラ映像処理用構造体
@@ -189,9 +210,12 @@ public:
 		inet_pton(AF_INET, ip, &(paddr->sin_addr.s_addr));
 	};
 
+	void parse_auto_status();
+	void update_auto_target_touch(int area, int x, int y);
+
 	std::wstring msg_ws;
 	std::wostringstream msg_wos;
 
-	long PlayStatus;
+	//long PlayStatus;
 };
 
