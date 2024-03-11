@@ -212,6 +212,7 @@ public:
 
 	void parse_auto_status();
 	void update_auto_target_touch(int area, int x, int y);
+	POINT cal_gr_pos_from_d_pos(int motion, double dpos1,double dpos2);	//軸の位置からグラフィック上のポイントを求める 引込、旋回はdpos1,dpos2が必要、主補巻はdpos1のみ
 
 	std::wstring msg_ws;
 	std::wostringstream msg_wos;

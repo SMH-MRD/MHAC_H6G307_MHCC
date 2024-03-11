@@ -353,6 +353,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		pCOte0->parse_auto_status();
 
+		//目標位置クリアセット
+		if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF) {
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_HOIST];
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_BOOM_H];
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_SLEW];
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_AHOIST];
+
+			pCOte0->cal_gr_pos_from_d_pos(ID_HOIST, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST], 0.0);
+			pCOte0->cal_gr_pos_from_d_pos(ID_AHOIST, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST], 0.0);
+			pCOte0->cal_gr_pos_from_d_pos(ID_BOOM_H, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H], pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW]);
+
+		}
+		else {
+			if (pCOte0->data.auto_sel[ID_HOIST] == L_OFF) {
+				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_HOIST];
+
+				pCOte0->cal_gr_pos_from_d_pos(ID_HOIST, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST], 0.0);
+			}
+			if (pCOte0->data.auto_sel[ID_AHOIST] == L_OFF) {
+				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_AHOIST];
+
+				pCOte0->cal_gr_pos_from_d_pos(ID_AHOIST, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST], 0.0);
+			}
+			if ((pCOte0->data.auto_sel[ID_BOOM_H] == L_OFF) || (pCOte0->data.auto_sel[ID_SLEW] == L_OFF)) {
+				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_BOOM_H];
+				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_SLEW];
+
+				pCOte0->cal_gr_pos_from_d_pos(ID_BOOM_H, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H], pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW]);
+			}
+		}
+
 		if (pCOte0->data.auto_mode != auto_mode_last) {
 			if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF) {
 				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i]);
@@ -962,16 +993,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	}break;
 
 	case WM_LBUTTONDOWN: {
-		int x = LOWORD(lParam), y = HIWORD(lParam);
-		int d2 = (x - OTE0_GR_AREA_CX) ^ 2 + (y - OTE0_GR_AREA_CY) ^ 2;
-		if (d2 < OTE0_GR_AREA_R * OTE0_GR_AREA_R) {
+		LONG x = (LONG)LOWORD(lParam), y = (LONG)HIWORD(lParam);
+		LONG d2 = (x - OTE0_GR_AREA_CX) * (x - OTE0_GR_AREA_CX)  + (y - OTE0_GR_AREA_CY)* (y - OTE0_GR_AREA_CY);
+		//旋回引込目標位置設定エリア
+		if (d2 < OTE0_GR_AREA_R * OTE0_GR_AREA_R) {								
 			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_BHSL, x, y);
 		}
-		else if ((x> OTE0_GR_AREA2_MH_SET_X)&&(x< OTE0_GR_AREA2_MH_SET_X + OTE0_GR_AREA2_MH_SET_W)&& (y > OTE0_GR_AREA2_MH_SET_Y) && (y < OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H)) {
-			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_MH, x, y);
+		//主巻目標位置設定エリア
+		else if ((x> OTE0_GR_AREA2_MH_SET_X)&&(x< (OTE0_GR_AREA2_MH_SET_X + OTE0_GR_AREA2_MH_SET_W))){
+			if((y > OTE0_GR_AREA2_MH_SET_Y) && (y < (OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H))) 
+				pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_MH, x, y);
 		}
-		else if ((x > OTE0_GR_AREA2_AH_SET_X) && (x < OTE0_GR_AREA2_AH_SET_X + OTE0_GR_AREA2_AH_SET_W) && (y > OTE0_GR_AREA2_AH_SET_Y) && (y < OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H)) {
-			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_AH, x, y);
+		//補巻目標位置設定エリア
+		else if ((x > OTE0_GR_AREA2_AH_SET_X) && (x < (OTE0_GR_AREA2_AH_SET_X + OTE0_GR_AREA2_AH_SET_W))){
+			if((y > OTE0_GR_AREA2_AH_SET_Y) && (y < (OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H)))
+				pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_AH, x, y);
 		}
 		else;
 	}break;
@@ -2576,17 +2612,23 @@ void draw_info() {
 	wo_msg.str(L""); wo_msg << L"主巻m   :" << pCOte0->data.pos[ID_HOIST]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, wo_msg.str().c_str(), (int)wo_msg.str().length());
 	wo_msg.str(L""); wo_msg << L"補巻m   :" << pCOte0->data.pos[ID_AHOIST]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y+15, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
-	wo_msg.str(L""); wo_msg << L"旋回角°:" << std::setprecision(4) << pCOte0->data.deg_bh; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 30, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"起伏角°:" << std::setprecision(4) << pCOte0->data.deg_bh; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 30, wo_msg.str().c_str(), (int)wo_msg.str().length());
 	wo_msg.str(L""); wo_msg << L"旋回径m :" << pCOte0->data.pos[ID_BOOM_H]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 45, wo_msg.str().c_str(), (int)wo_msg.str().length());
 	wo_msg.str(L""); wo_msg << L"走行m   :" << pCOte0->data.pos[ID_GANTRY]; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 60, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
-	wo_msg.str(L"");
-	wo_msg << L"自動目標"; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 90, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	
-	wo_msg.str(L""); wo_msg  << L"主巻   :"  << 50.0; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 105, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L""); wo_msg << L"半径    :"   << 36.3; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 120, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L""); wo_msg << L"旋回    :"   << 75.0; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 135, wo_msg.str().c_str(), (int)wo_msg.str().length());
-	wo_msg.str(L""); wo_msg << L"補巻    :" << 70.0; TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 150, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"自動目標";
+	TextOutW(hdc, OTE0_GR_AREA2_X + 105, OTE0_GR_AREA2_Y + 125, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg  << L"主巻:"  << pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST];
+	TextOutW(hdc, OTE0_GR_AREA2_X +105, OTE0_GR_AREA2_Y + 140, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"補巻 :" << pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST];
+	TextOutW(hdc, OTE0_GR_AREA2_X + 105, OTE0_GR_AREA2_Y + 155, wo_msg.str().c_str(), (int)wo_msg.str().length());
+
+	wo_msg.str(L""); wo_msg << L"自動目標" << pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H];
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 5, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"半径:" << pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] ;
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 20, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L""); wo_msg << L"旋回:" << pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW];
+	TextOutW(hdc, OTE0_GR_AREA_X + 5, OTE0_GR_AREA_Y + 35, wo_msg.str().c_str(), (int)wo_msg.str().length());
 
 	wo_msg.str(L"");
 	wo_msg << L"主巻荷重(t):" << pCOte0->data.load[ID_HOIST];
@@ -2826,40 +2868,62 @@ void COte::update_auto_target_touch(int area, int x, int y) {
 		switch (area) {
 		case OTE0_ID_AREA_GR_BHSL: {
 			double d_x = (double)(x - OTE0_GR_AREA_CX);
-			double d_y = (double)(y - OTE0_GR_AREA_CY);
+			double d_y = (double)(OTE0_GR_AREA_CY - y );
 			double r = sqrt(d_x * d_x + d_y * d_y);
 			double rad =0.0;
 			if (d_x == 0) {
 				if (d_y >= 0) rad = PI90;
 				else rad=-PI90;
 			}
-			else if (d_x >0) {
+			else if (d_x >0.0) {
 				rad = atan(d_y/d_x);
 			}
 			else {
-				rad = PI180 - atan(d_y / d_x);
+				
+				if (d_y < 0.0)	rad = -PI180 + atan(d_y / d_x);
+				else			rad = PI180 + atan(d_y / d_x);
 			}
 			if ((data.auto_sel[ID_BOOM_H])&&(data.auto_sel[ID_SLEW])) {
 				data.pt_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_BHSL] = { x,y };
-				data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = r * OTE0_GR_AREA_M1PIX;
+				data.d_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_BHSL] = r * OTE0_GR_AREA_M1PIX;
 				data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = rad;
 			}
 		}break;
 		case OTE0_ID_AREA_GR_MH: {
 			if (data.auto_sel[ID_HOIST]) {
 				data.pt_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_MH] = { x,y };
-				data.pt_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = { 0,0 };
-				data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = (double)(y- OTE0_GR_AREA2_LV0_Y)* OTE0_GR_AREA_M1PIX;
+				data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = (double)(OTE0_GR_AREA2_LV0_Y - y)* OTE0_GR_AREA_M1PIX;
 			}
 		}break;
 		case OTE0_ID_AREA_GR_AH: {
 			if (data.auto_sel[ID_AHOIST]) {
 				data.pt_tgpos[OTE_ID_HOT_TARGET][OTE0_ID_AREA_GR_AH] = { x,y };
-				data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = (double)(y - OTE0_GR_AREA2_LV0_Y) * OTE0_GR_AREA_M1PIX;
+				data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = (double)(OTE0_GR_AREA2_LV0_Y - y) * OTE0_GR_AREA_M1PIX;
 			}
 		}break;
 		default:break;
 		}
 	}
 	return; 
+}
+
+POINT COte::cal_gr_pos_from_d_pos(int motion, double HorR, double Slew) {
+	POINT ans = { 0,0 };
+	if (motion == ID_HOIST) {
+		ans.x = OTE0_GR_AREA2_MH_SET_X;
+		ans.y = OTE0_GR_AREA2_LV0_Y - LONG(HorR * OTE0_GR_AREA2_PIX1M);
+	}
+	else if (motion == ID_AHOIST) {
+		ans.x = OTE0_GR_AREA2_AH_SET_X;
+		ans.y = OTE0_GR_AREA2_LV0_Y - LONG(HorR * OTE0_GR_AREA2_PIX1M);
+	}
+	else if ((motion == ID_BOOM_H) || (motion == ID_SLEW)) {
+		double x = HorR * cos(Slew) * OTE0_GR_AREA_PIX1M;
+		double y = HorR * sin(Slew) * OTE0_GR_AREA_PIX1M;
+		ans.x = (LONG)x + OTE0_GR_AREA_CX;
+		ans.y = (LONG)x + OTE0_GR_AREA_CY;
+	}
+	else;
+
+	return ans;
 }
