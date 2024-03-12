@@ -22,6 +22,8 @@
 #define OTE_CAMERA_HOOK0_IP "192.168.1.205"
 #define OTE_CAMERA_DOOM0_IP "192.168.1.204"
 
+#define OTE_DIO_NAME		"DIO000"
+
 #define OTE_CAMERA_USER "SHIMH"
 #define OTE_CAMERA_PASS "Shimh001"
 #define OTE_CAMERA_FORMAT_JPEG 0
@@ -116,6 +118,10 @@
 #define OTE_ID_AUTOSTAT_STANDBY	1
 #define OTE_ID_AUTOSTAT_ACTIVE	2
 
+#define OTE_GRIP_ESTP		0x03
+#define OTE_GRIP_ENABLE		0x08
+#define OTE_GRIP_ACTIVE		0X14
+
 //メインウィンドウ管理構造体
 typedef struct stOte0DataTag {
 	double	pos[MOTION_ID_MAX];
@@ -130,7 +136,7 @@ typedef struct stOte0DataTag {
 	INT auto_mode = OTE_ID_AUTOSTAT_OFF;
 	INT anti_sway_mode = OTE_ID_AUTOSTAT_OFF;
 	INT auto_sel[MOTION_ID_MAX] = { OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF };
-
+	BYTE grip_stat[2];
 }ST_OTE0_DATA, * LPST_OTE0_DATA;
 
 //カメラ映像処理用構造体

@@ -79,4 +79,7 @@
       <Filter>リソース ファイル</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\Lib\CDIO.lib" />
+  </ItemGroup>
 </Project>

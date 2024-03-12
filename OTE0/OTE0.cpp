@@ -8,6 +8,7 @@
 #include "PLC_DEF.h"
 #include "COTE0_GR.h"
 #include "spec.h"
+#include "CDio.h"
 
 #include <windowsx.h>       //# コモンコントロール
 #include <winsock2.h>
@@ -326,6 +327,7 @@ static BYTE gmpad_PB_last[32];
 static DWORD gmpad_POV_last[4];
 static INT auto_mode_last;
 static INT gpad_mode_last;
+static short dio_id;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
@@ -335,6 +337,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	{
 	case WM_CREATE: {
 		InitCommonControls();//コモンコントロール初期化
+
+		char DeviceName[100]= OTE_DIO_NAME;
+		DioInit(DeviceName, &dio_id);
 
 		//ウィンドウにコントロール追加
 		set_OTE_panel_objects(hWnd);
@@ -458,6 +463,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 
 		//操作入力状態取り込み更新（NOTCHエリアグリップスイッチetc）
+
+		//グリップスイッチ
+		long dio_ret = DioInpByte(dio_id, 0, &pCOte0->data.grip_stat[0]);
+		dio_ret = DioInpByte(dio_id, 1, &pCOte0->data.grip_stat[1]);
+
+		
+		if (!(pCOte0->data.grip_stat[0] & OTE_GRIP_ESTP)) {	//緊急停止
+			if((st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0001))
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_SETCHECK, BST_UNCHECKED, 0);
+		}
+		else {
+			if (!(st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0001))
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_SETCHECK, BST_CHECKED, 0);
+		}
+
+		if (pCOte0->data.grip_stat[0] & OTE_GRIP_ACTIVE) {	//グリップ入力
+			if (!(st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0002))
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_SETCHECK, BST_CHECKED, 0);
+		}
+		else {
+			if ((st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0002))
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_SETCHECK, BST_UNCHECKED, 0);
+		}
+
 		INT16 mask = 1;
 		for (int i = 0; i < N_OTE_NOTCH_ARRAY; i++) {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i], BM_GETCHECK, 0, 0)) {
@@ -629,171 +658,171 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 
 		//ゲームパッド
-		if (lpGamePad != NULL) {
-			HRESULT hr = lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
-			if (FAILED(hr)) {
-				lpGamePad->Acquire();
-				lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
-			}
-		}
-
-		//Game pad入力
-		//主幹PB
-		if (pad_data.rgbButtons[4]) st_work_wnd.pb_stat[ID_OTE_PB_SYUKAN] = OTE0_PB_OFF_DELAY_COUNT;
-		//故障リセットPB
-		if (pad_data.rgbButtons[5]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
-
-		if (pad_data.rgbButtons[3] && !gmpad_PB_last[3]) {
-			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_GETCHECK, 0, 0)) {
-
-				if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
-					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStop();
-					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->OnClose();
-					delete st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
-					DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd);
+		{
+			if (lpGamePad != NULL) {
+				HRESULT hr = lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+				if (FAILED(hr)) {
+					lpGamePad->Acquire();
+					lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
 				}
+			}
 
-				if (st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd != NULL) {
-					st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->LiveStop();
-					st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->OnClose();
-					delete st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA;
-					DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd);
+			//Game pad入力
+			//主幹PB
+			if (pad_data.rgbButtons[4]) st_work_wnd.pb_stat[ID_OTE_PB_SYUKAN] = OTE0_PB_OFF_DELAY_COUNT;
+			//故障リセットPB
+			if (pad_data.rgbButtons[5]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
+
+			if (pad_data.rgbButtons[3] && !gmpad_PB_last[3]) {
+				if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_GETCHECK, 0, 0)) {
+
+					if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
+						st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStop();
+						st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->OnClose();
+						delete st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
+						DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd);
+					}
+
+					if (st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd != NULL) {
+						st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->LiveStop();
+						st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA->OnClose();
+						delete st_ipcam[OTE_CAMERA_WND_ID_OPT1].pPSA;
+						DestroyWindow(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd);
+					}
+
+					SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_SETCHECK, BST_UNCHECKED, 0);
 				}
+				else {
+					if (st_work_wnd.camera_sel == ID_OTE_RADIO_WIDE)open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
+					else if (st_work_wnd.camera_sel == ID_OTE_RADIO_OPE1)open_camera_Wnd(hWnd, OTE_CAMERA_ID_FISH0);
+					else if (st_work_wnd.camera_sel == ID_OTE_RADIO_HOOK)open_camera_Wnd(hWnd, OTE_CAMERA_ID_HOOK0);
+					else open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
 
-				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_SETCHECK, BST_UNCHECKED, 0);
+					open_camera_Wnd2(hWnd, OTE_CAMERA_ID_PTZ0);
+
+					SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_SETCHECK, BST_CHECKED, 0);
+				}
 			}
+
+			//カメラ切替PB
+
+			if (pad_data.rgbButtons[0] && !gmpad_PB_last[0]) {
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_WIDE);
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_WIDE);
+			}
+			if (pad_data.rgbButtons[1] && !gmpad_PB_last[1]) {
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
+			}
+
+			//if (pad_data.rgbButtons[11]) 
+			if (pCOte0->data.gpad_mode) {
+				if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = (INT16)((pad_data.lRz - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+				}
+				else {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = ID_OTE_0NOTCH_POS;
+				}
+				if ((pad_data.lZ < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lZ > OTE0_GMPAD_NOTCH0_MAX)) {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = (INT16)((pad_data.lZ - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+				}
+				else {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
+				}
+			}
+			//if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+			if (pCOte0->data.gpad_mode) {
+				if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+				}
+				else {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = ID_OTE_0NOTCH_POS;
+				}
+				if ((pad_data.lX < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lX > OTE0_GMPAD_NOTCH0_MAX)) {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = (INT16)(-(pad_data.lX - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
+				}
+				else {
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
+				}
+			}
+			if (gpad_mode_last != pCOte0->data.gpad_mode) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
+			}
+			//カメラチルト、パン、ズーム
+			if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd == NULL);							//表示カメラ未登録時はスルー
 			else {
-				if (st_work_wnd.camera_sel == ID_OTE_RADIO_WIDE)open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
-				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_OPE1)open_camera_Wnd(hWnd, OTE_CAMERA_ID_FISH0);
-				else if (st_work_wnd.camera_sel == ID_OTE_RADIO_HOOK)open_camera_Wnd(hWnd, OTE_CAMERA_ID_HOOK0);
-				else open_camera_Wnd(hWnd, OTE_CAMERA_ID_PTZ0);
 
-				open_camera_Wnd2(hWnd, OTE_CAMERA_ID_PTZ0);
+				CPsaMain* pPSA = st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
 
-				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_SETCHECK, BST_CHECKED, 0);
-			}
-		}
+				//カメラズーム,チルト、パン
+				if (pad_data.rgbButtons[6]) {
+					pPSA->lzoom = DEF_SPD_CAM_ZOOM;//ZOOM N
+				}
+				else if (pad_data.rgbButtons[8]) {
+					pPSA->lzoom = -DEF_SPD_CAM_ZOOM;//ZOOM W
+				}
+				else;
+				if ((pad_data.rgbButtons[7] != gmpad_PB_last[7]) || (pad_data.rgbButtons[9] != gmpad_PB_last[9])) {
+					pPSA->lzoom = 0;
+				}
+				else;
 
-		//カメラ切替PB
+				if ((gmpad_POV_last[0] > 36000) && (pad_data.rgdwPOV[0] <= 36000)) {//入力ON時指令クリア
+					pPSA->ltilt = pPSA->lpan = 0;
+				}
+				else if ((gmpad_POV_last[0] <= 36000) && (pad_data.rgdwPOV[0] > 36000)) {//入力OFF時指令クリア
+					pPSA->ltilt = pPSA->lpan = 0;
+				}
+				else if (pad_data.rgdwPOV[0] < 1500) {
+					pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = 0;
+				}
+				else if (pad_data.rgdwPOV[0] < 7500) {
+					pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = DEF_SPD_CAM_PAN;
+				}
+				else if (pad_data.rgdwPOV[0] < 10500) {
+					pPSA->ltilt = 0; pPSA->lpan = DEF_SPD_CAM_PAN;
+				}
+				else if (pad_data.rgdwPOV[0] < 16500) {
+					pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = DEF_SPD_CAM_PAN;
+				}
+				else if (pad_data.rgdwPOV[0] < 19500) {
+					pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = 0;
+				}
+				else if (pad_data.rgdwPOV[0] < 25500) {
+					pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = -DEF_SPD_CAM_PAN;
+				}
+				else if (pad_data.rgdwPOV[0] < 28500) {
+					pPSA->ltilt = 0; pPSA->lpan = -DEF_SPD_CAM_PAN;
+				}
+				else if (pad_data.rgdwPOV[0] < 34500) {
+					pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = -DEF_SPD_CAM_PAN;
+				}
+				else if (pad_data.rgdwPOV[0] <= 36000) {
+					pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = 0;
+				}
+				else;
 
-		if (pad_data.rgbButtons[0]  && !gmpad_PB_last[0]) {
-			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_WIDE);
-			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_WIDE);
-		}
-		if (pad_data.rgbButtons[1] && !gmpad_PB_last[1]) {
-			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
-			SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
-		}
+				//全方位カメラ
+				if (pad_data.rgbButtons[12] > gmpad_PB_last[12]) {
+					pPSA->m_psapi->SetCameraImageCap(20, 0);//魚眼天井
+					pPSA->LiveStop(); Sleep(1000);
+					pPSA->LiveStart();
+				}
+				else if (pad_data.rgbButtons[13] > gmpad_PB_last[13]) {
 
+					pPSA->m_psapi->SetCameraImageCap(21, 1);//１PTZ壁
+					pPSA->LiveStop(); Sleep(1000);
+					pPSA->LiveStart();
+				}
+				else if (pad_data.rgbButtons[14] > gmpad_PB_last[14]) {
+					pPSA->m_psapi->SetCameraImageCap(22, 0);//4PTZ天井
+					pPSA->LiveStop(); Sleep(1000);
+					pPSA->LiveStart();
+				}
+				else;
 
-	
-		//if (pad_data.rgbButtons[11]) {//ノッチPB　ONの時有効
-		if(pCOte0->data.gpad_mode){
-			if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = (INT16)((pad_data.lRz - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
 			}
-			else {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = ID_OTE_0NOTCH_POS;
-			}
-			if ((pad_data.lZ < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lZ > OTE0_GMPAD_NOTCH0_MAX)) {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = (INT16)((pad_data.lZ - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
-			}
-			else {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
-			}
-		}
-		//if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
-		if (pCOte0->data.gpad_mode) {
-			if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
-			}
-			else {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = ID_OTE_0NOTCH_POS;
-			}
-			if ((pad_data.lX < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lX > OTE0_GMPAD_NOTCH0_MAX)) {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = (INT16)(-(pad_data.lX - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
-			}
-			else {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
-			}
-		}
-		if (gpad_mode_last != pCOte0->data.gpad_mode) {
-			st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
-			st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
-		}
-		//カメラチルト、パン、ズーム
-		if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd == NULL);							//表示カメラ未登録時はスルー
-		else{ 
-			
-			CPsaMain* pPSA = st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA;
-
-			//カメラズーム,チルト、パン
-			if (pad_data.rgbButtons[6]) {
-				pPSA->lzoom = DEF_SPD_CAM_ZOOM;//ZOOM N
-			}
-			else if (pad_data.rgbButtons[8]) {
-				pPSA->lzoom = -DEF_SPD_CAM_ZOOM;//ZOOM W
-			}
-			else;
-			if ((pad_data.rgbButtons[7] != gmpad_PB_last[7]) || (pad_data.rgbButtons[9] != gmpad_PB_last[9])) {
-				pPSA->lzoom = 0;
-			}
-			else;
-
-			if ((gmpad_POV_last[0] > 36000) && (pad_data.rgdwPOV[0] <= 36000)) {//入力ON時指令クリア
-				pPSA->ltilt = pPSA->lpan = 0;
-			}
-			else if ((gmpad_POV_last[0] <= 36000) && (pad_data.rgdwPOV[0] > 36000)) {//入力OFF時指令クリア
-				pPSA->ltilt = pPSA->lpan = 0;
-			}
-			else if (pad_data.rgdwPOV[0] < 1500) {
-				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = 0;
-			}
-			else if (pad_data.rgdwPOV[0] < 7500) {
-				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = DEF_SPD_CAM_PAN;
-			}
-			else if (pad_data.rgdwPOV[0] < 10500) {
-				pPSA->ltilt = 0; pPSA->lpan = DEF_SPD_CAM_PAN;
-			}
-			else if (pad_data.rgdwPOV[0] < 16500) {
-				pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = DEF_SPD_CAM_PAN;
-			}
-			else if (pad_data.rgdwPOV[0] < 19500) {
-				pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = 0;
-			}
-			else if (pad_data.rgdwPOV[0] < 25500) {
-				pPSA->ltilt = -DEF_SPD_CAM_TILT; pPSA->lpan = -DEF_SPD_CAM_PAN;
-			}
-			else if (pad_data.rgdwPOV[0] < 28500) {
-				pPSA->ltilt = 0; pPSA->lpan = -DEF_SPD_CAM_PAN;
-			}
-			else if (pad_data.rgdwPOV[0] < 34500) {
-				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = -DEF_SPD_CAM_PAN;
-			}
-			else if (pad_data.rgdwPOV[0] <= 36000) {
-				pPSA->ltilt = DEF_SPD_CAM_TILT;	pPSA->lpan = 0;
-			}
-			else;
-
-			//全方位カメラ
-			if (pad_data.rgbButtons[12] > gmpad_PB_last[12]) {
-				pPSA->m_psapi->SetCameraImageCap(20, 0);//魚眼天井
-				pPSA->LiveStop(); Sleep(1000);
-				pPSA->LiveStart();
-			}
-			else if (pad_data.rgbButtons[13] > gmpad_PB_last[13]) {
-
-				pPSA->m_psapi->SetCameraImageCap(21, 1);//１PTZ壁
-				pPSA->LiveStop(); Sleep(1000);
-				pPSA->LiveStart();
-			}
-			else if (pad_data.rgbButtons[14] > gmpad_PB_last[14]) {
-				pPSA->m_psapi->SetCameraImageCap(22, 0);//4PTZ天井
-				pPSA->LiveStop(); Sleep(1000);
-				pPSA->LiveStart();
-			}
-			else;
-
 		}
 
 		//前回値保持
@@ -2472,7 +2501,15 @@ void draw_graphic() {
 	// 
 	
 	//ガイド円
-	st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R *2, OTE0_GR_AREA_R * 2);
+	if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_ACTIVE) && pCOte0->data.auto_sel[ID_BOOM_H] && pCOte0->data.auto_sel[ID_SLEW]) {
+		st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_ACTIVE], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R * 2, OTE0_GR_AREA_R * 2);
+	}
+	else if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+		st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_STANDBY], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R * 2, OTE0_GR_AREA_R * 2);
+	}
+	else {
+		st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R * 2, OTE0_GR_AREA_R * 2);
+	}
 	//極限描画
 	st_work_wnd.ppen[OTE0_RED]->SetWidth(2.0); st_work_wnd.ppen[OTE0_RED]->SetDashStyle(DashStyleDash); st_work_wnd.ppen[OTE0_RED]->SetColor(Color(50,255,0,0));
 	INT px_mhr = (INT)(mh_lim_min * OTE0_GR_AREA_PIX1M), px_mhd=2*px_mhr;	//極限半径をPIXに変換
@@ -2577,11 +2614,33 @@ void draw_graphic() {
 
 
 	//巻目標位置設定ガイドライン
-	st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
-	st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
-	st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
-	st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H -5);
 
+	if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_ACTIVE) && pCOte0->data.auto_sel[ID_HOIST]) {
+		st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
+		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
+	}
+	else if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+		st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
+		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
+	}
+	else {
+		st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
+		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
+	}
+
+
+	if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_ACTIVE) && pCOte0->data.auto_sel[ID_AHOIST] ) {
+		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H - 5);
+		st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
+	}
+	else if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+		st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
+		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H - 5);
+	}
+	else {
+		st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
+		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H - 5);
+	}
 	//巻目標位置ライン
 	if(pCOte0->data.auto_sel[ID_HOIST])
 		st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->DrawLine(st_work_wnd.ppen[OTE0_MAZENDA], OTE0_GR_AREA2_MH_SET_X - 20, pCOte0->data.pt_tgpos[OTE_ID_HOT_TARGET][ID_HOIST].y, OTE0_GR_AREA2_MH_SET_X - 20 + OTE0_GR_AREA2_MH_SET_W/2, pCOte0->data.pt_tgpos[OTE_ID_HOT_TARGET][ID_HOIST].y);
@@ -2831,8 +2890,8 @@ void create_objects(HWND hWnd) {
 	st_work_wnd.pbrush[OTE0_MAZENDA]			= new SolidBrush(Color(255,234, 63, 247));
 	st_work_wnd.pbrush[OTE0_ORANGE]				= new SolidBrush(Color(255,255, 142, 85));
 	st_work_wnd.pbrush[OTE0_COLOR_AUTO_OFF]		= new SolidBrush(Color(50, 182, 255, 0));
-	st_work_wnd.pbrush[OTE0_COLOR_AUTO_STANDBY] = new SolidBrush(Color(100, 255, 142, 85));
-	st_work_wnd.pbrush[OTE0_COLOR_AUTO_ACTIVE]	= new SolidBrush(Color(100, 234, 63, 247));
+	st_work_wnd.pbrush[OTE0_COLOR_AUTO_STANDBY] = new SolidBrush(Color(50, 255, 216, 0));
+	st_work_wnd.pbrush[OTE0_COLOR_AUTO_ACTIVE]	= new SolidBrush(Color(50, 234, 63, 247));
 	st_work_wnd.pbrush[OTE0_COLOR_BACK_GROUND] = new SolidBrush(Color(50, 240, 240, 240));
 		
 
@@ -2845,8 +2904,8 @@ void create_objects(HWND hWnd) {
 	st_work_wnd.ppen[OTE0_MAZENDA]				= new Pen(Color(255, 234, 63, 247), 2);
 	st_work_wnd.ppen[OTE0_ORANGE]				= new Pen(Color(255, 255, 142, 85), 2);
 	st_work_wnd.ppen[OTE0_COLOR_AUTO_OFF]		= new Pen(Color(50, 182, 255, 0),2);
-	st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]	= new Pen(Color(255, 255, 142, 85),2);
-	st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]	= new Pen(Color(255, 234, 63, 247), 2);
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]	= new Pen(Color(50, 255, 216, 0),2);
+	st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]	= new Pen(Color(50, 234, 63, 247), 2);
 	st_work_wnd.ppen[OTE0_COLOR_BACK_GROUND]	= new Pen(Color(50, 240, 240, 240), 2);
 
 	//表示フォント設定
