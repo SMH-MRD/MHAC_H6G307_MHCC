@@ -226,12 +226,12 @@ using namespace Gdiplus;
 
 #define OTE0_GR_AREA_R			120		//旋回範囲円半径PIX
 
-#define OTE0_GR_AREA2_MH_SET_X	720		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_MH_SET_X	700		//主巻高さ設定エリア
 #define OTE0_GR_AREA2_MH_SET_Y	320		//主巻高さ設定エリア
 #define OTE0_GR_AREA2_MH_SET_W	40		//主巻高さ設定エリア
 #define OTE0_GR_AREA2_MH_SET_H	240		//主巻高さ設定エリア
 
-#define OTE0_GR_AREA2_AH_SET_X	770		//主巻高さ設定エリア
+#define OTE0_GR_AREA2_AH_SET_X	750		//主巻高さ設定エリア
 #define OTE0_GR_AREA2_AH_SET_Y	320		//主巻高さ設定エリア
 #define OTE0_GR_AREA2_AH_SET_W	20		//主巻高さ設定エリア
 #define OTE0_GR_AREA2_AH_SET_H	240		//主巻高さ設定エリア
@@ -604,7 +604,7 @@ typedef struct _stOTEWorkWnd {
 		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,//GT
 		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,//GRIP CAMERA リモート
 		-5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//BH
-		-5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//SL
+		-0.087266,-0.017453,-0.0087266,-0.0017453,0.0,0.0017453,0.0087266,0.017453,0.087266,//SL
 		- 5.0,-1.0,-0.5,-0.1,0.0,0.1,0.5,1.0,5.0,0.0,//AH
 		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
 		0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
