@@ -70,13 +70,13 @@ ST_OTE_U_MSG COteIF::st_ote_active_msg;	//操作信号が有効な現メッセージ
 COteIF::COteIF(HWND hWnd) {
     hWnd_parent = hWnd;
     // 共有メモリオブジェクトのインスタンス化
-    pOteIOObj = new CSharedMem;
-    pCraneStatusObj = new CSharedMem;
-    pSimulationStatusObj = new CSharedMem;
-    pPLCioObj = new CSharedMem;
-    pCSInfObj = new CSharedMem;
-    pAgentInfObj = new CSharedMem;
-    pSwayIO_Obj = new CSharedMem;
+    pOteIOObj				= new CSharedMem;
+    pCraneStatusObj			= new CSharedMem;
+    pSimulationStatusObj	= new CSharedMem;
+    pPLCioObj				= new CSharedMem;
+    pCSInfObj				= new CSharedMem;
+    pAgentInfObj			= new CSharedMem;
+    pSwayIO_Obj				= new CSharedMem;
 
 	cnt_snd_pc_u = cnt_snd_pc_m_pc = cnt_snd_pc_m_ote = 0;
 	cnt_rcv_ote_u = cnt_rcv_ote_m = cnt_rcv_pc_m = 0;
@@ -215,6 +215,28 @@ int COteIF::input() {
 int COteIF::parse() { 
 	
 	pOTEio->ote_u_silent_cnt++;//メッセージ受信イベントでクリア
+
+	bool bgrip_enable;
+
+	if((pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ENABLE)|| (pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_DBG_ENABLE))
+		bgrip_enable = true;
+	else
+		bgrip_enable = false;
+	if(!bgrip_enable && pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ESTP)  //GURIP握り切り
+		pOTEio->ote_estop = L_ON;
+	else if (bgrip_enable && !(pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ESTP))
+		pOTEio->ote_estop = L_ON;
+	else if ((pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ESTP)||!bgrip_enable)
+		pOTEio->ote_estop = L_OFF;
+	else														
+		pOTEio->ote_estop = L_ON;
+
+	if (pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ACTIVE)	pOTEio->ote_grip = L_ON;
+	else														pOTEio->ote_grip = L_OFF;
+
+	if (pOTEio->ote_umsg_in.body.ope_mode & OTE_ID_OPE_MODE_GPAD)	pOTEio->ote_padmode = L_ON;
+	else															pOTEio->ote_padmode = L_OFF;
+
 
     return 0;
 }    
@@ -470,102 +492,6 @@ BOOL COteIF::hide_if_wnd() {
 /// <param name="wParam"></param>
 /// <param name="lParam"></param>
 /// <returns></returns>
-#if 0
-LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	HDC hdc;
-	int id;
-	switch (message)
-	{
-	case WM_CREATE: {
-		InitCommonControls();//コモンコントロール初期化
-		//ウィンドウにコントロール追加
-		set_OTEIF_panel_objects(hWnd);
-
-	}break;
-	case WM_TIMER: {
-	}break;
-	case WM_COMMAND:{
-		int wmId = LOWORD(wParam);
-		// 選択されたメニューの解析:
-		switch (wmId)
-		{
-		case 1:break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
-	}break;
-	
-	//ソケットIF
-	case ID_SOCK_EVENT_OTE_UNI_PC: {
-		int nEvent = WSAGETSELECTEVENT(lParam);
-		switch (nEvent) {
-		case FD_READ: {
-			if (rcv_ote_u_pc(&st_msg_ote_u_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
-				cnt_rcv_ote_u++;
-
-				if (S_OK == snd_pc_u_ote(set_msg_pc_u(), &addrin_pc_u_snd)) {//PC->OTMへユニキャスト送信
-					cnt_snd_pc_u++;
-				}
-			}
-			else {
-				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
-			}
-		}break;
-		case FD_WRITE: break;
-		case FD_CLOSE: break;
-		}
-	}break;
-
-	case ID_SOCK_EVENT_PC_MULTI_PC: {
-		int nEvent = WSAGETSELECTEVENT(lParam);
-		switch (nEvent) {
-		case FD_READ: {
-			if (rcv_pc_m_pc(&st_msg_pc_m_pc_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
-				cnt_rcv_pc_m++;
-			}
-			else {
-				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
-			}
-		}break;
-		case FD_WRITE: break;
-		case FD_CLOSE: break;
-		}
-	}break;
-
-	case ID_SOCK_EVENT_OTE_MULTI_PC: {
-		int nEvent = WSAGETSELECTEVENT(lParam);
-		switch (nEvent) {
-		case FD_READ: {
-			if (rcv_ote_m_pc(&st_msg_ote_m_pc_rcv) == S_OK) {				//PCからのユニキャストメッセージ受信
-				cnt_rcv_ote_m++;
-			}
-			else {
-				msg_ws = L"ERROR : rcv_ote_u_pc()";	wstr_out_inf(msg_ws);
-			}
-		}break;
-		case FD_WRITE: break;
-		case FD_CLOSE: break;
-		}
-	}break;
-
-	case WM_PAINT:{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hWnd, &ps);
-		EndPaint(hWnd, &ps);
-	}break;
-
-	case WM_DESTROY:{
-		close();
-		PostQuitMessage(0);
-	}break;
-
-	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
-	}
-	return S_OK;
-}
-#endif
-
 
 LRESULT CALLBACK COteIF::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message)

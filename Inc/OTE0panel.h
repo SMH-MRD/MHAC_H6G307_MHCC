@@ -278,8 +278,8 @@ using namespace Gdiplus;
 typedef struct _stOTEWorkWnd {
 	int area_x = 0, area_y = 0, area_w = 0, area_h = 0; //メインウィンドウ上の表示エリア(デバイスコンテキスト用）
 	int bmp_w, bmp_h;									//グラフィックビットマップサイズ
-	ST_OTE_LAMP_COM pb_lamp[N_OTE_PNL_PB];		//ランプ状態　　
-	ST_OTE_LAMP_COM notch_lamp[N_OTE_PNL_PB];	//ランプ状態　
+	ST_OTE_LAMP_COM pb_lamp[N_OTE_PNL_PB];				//ランプ状態　　
+	ST_OTE_LAMP_COM notch_lamp[N_OTE_PNL_PB];			//ランプ状態　
 	UINT16 pb_stat[N_OTE_PNL_PB];						//PB状態 OFFディレイカウント
 	UINT16 notch_pb_stat[N_OTE_PNL_PB];					//PB状態 OFFディレイカウント
 	INT16  notch_pos[3][MOTION_ID_MAX] = { { 0,0,0,0,0,0,0,0 }, { 0,0,0,0,0,0,0,0 } ,{ 0,0,0,0,0,0,0,0 } };//HOLD,TRIG,COUNT

@@ -450,7 +450,7 @@ int CClientService::parce_onboard_input(int mode) {
 
 //# OTE入力操作端末有効判断
 int CClientService::can_ote_activate() {
-	if ((pOTE_IO->ote_u_silent_cnt < CS_OTE_U_MSG_TIMEOUT)&&(pOTE_IO->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_RMT])) {
+	if ((pOTE_IO->ote_u_silent_cnt < CS_OTE_U_MSG_TIMEOUT)&&(pOTE_IO->ote_umsg_in.body.ope_mode & OTE_ID_OPE_MODE_COMMAND)) {
 		CS_workbuf.ote_remote_status |= CS_CODE_OTE_REMOTE_ENABLE;
 		return L_ON;
 	}
@@ -468,15 +468,26 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 
 		//グリップスイッチ
 		CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_RMT].com = CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_PAD_MODE].com = CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_ESTOP].com = CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_NOTCH].com = OTE_LAMP_COM_ON;
-		CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_RMT].color = OTE0_ORANGE;
 		
-		if (pOTE_IO->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])	CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_ESTOP].color = OTE0_GREEN;
-		else 														CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_ESTOP].color = OTE0_RED;
-		if (pOTE_IO->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_NOTCH])	CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_NOTCH].color = OTE0_ORANGE;
-		else														CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_NOTCH].color = OTE0_GREEN;
+		if (pOTE_IO->ote_estop == L_OFF)	
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_ESTOP].color = OTE0_GREEN;
+		else 								
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_ESTOP].color = OTE0_RED;
+		
+		if (pOTE_IO->ote_grip == L_ON)		
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_NOTCH].color = OTE0_ORANGE;
+		else								
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_NOTCH].color = OTE0_GREEN;
 
-		if (pOTE_IO->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_PAD_MODE])	CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_PAD_MODE].color = OTE0_ORANGE;
-		else														CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_PAD_MODE].color = OTE0_GLAY;
+		if (pOTE_IO->ote_padmode == L_ON)	
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_PAD_MODE].color = OTE0_ORANGE;
+		else											
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_PAD_MODE].color = OTE0_GLAY;
+
+		if (pOTE_IO->ote_umsg_in.body.ope_mode & OTE_ID_OPE_MODE_COMMAND)	
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_RMT].color = OTE0_ORANGE;
+		else																
+			CS_workbuf.ote_notch_lamp[ID_OTE_GRIP_RMT].color = OTE0_GLAY;
 
 		//操作スイッチ
 		{

@@ -129,7 +129,7 @@ typedef struct PcUBody {
 	ST_OTE_XYZ			mhld_pos;								//主巻吊荷位置FB（吊点相対位置）
 	ST_OTE_XYZ			ahld_pos;								//補巻吊荷位置FB（吊点相対位置）
 	INT32				brk[MOTION_ID_MAX];						//ブレーキ状態
-	double				tg_pos[MOTION_ID_MAX];					//目標位置座標
+	double				auro_tg_pos[MOTION_ID_MAX];				//現在目標位置座標
 	INT32				swy_cam_pix[OTE_N_LOAD][MOTION_ID_MAX];	//振れセンサカメラ検出位置
 }ST_PC_U_BODY, * LPST_PC_U_BODY;
 typedef struct PcUMsg {
@@ -142,11 +142,23 @@ typedef struct PcUMsg {
 #define ID_OTE_NOTCH_POS_TRIG	1
 #define ID_OTE_NOTCH_POS_CNT	2
 
+#define OTE_GRIP_ESTP		0x03
+#define OTE_GRIP_ENABLE		0x08
+#define OTE_GRIP_ACTIVE		0X14
+#define OTE_GRIP_DBG_ENABLE 0x80
+
+#define OTE_ID_OPE_MODE_MONITOR		0
+#define OTE_ID_OPE_MODE_COMMAND		1
+#define OTE_ID_OPE_MODE_GPAD		0x10
+
 typedef struct OteUBody {
 	UINT16		pb_ope[128];					//操作卓PB入力
 	UINT16		pb_notch[128];					//操作卓ノッチ入力
 	INT16		notch_pos[2][MOTION_ID_MAX];	//ノッチ入力位置
-	double		tg_pos[MOTION_ID_MAX];			//設定目標位置
+	double		auto_tg_pos[MOTION_ID_MAX];		//自動目標位置
+	INT32		auto_sel[MOTION_ID_MAX];			//自動動作対象軸
+	INT32		ope_mode;						//0:モニタのみ　1:運転入力有効
+	INT32		grip_status;					
 }ST_OTE_U_BODY, * LPST_OTE_U_BODY;
 typedef struct OteUMsg {
 	ST_OTE_HEAD         head;

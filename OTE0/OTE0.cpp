@@ -464,36 +464,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		//操作入力状態取り込み更新（NOTCHエリアグリップスイッチetc）
 
-		//グリップスイッチ
-		long dio_ret = DioInpByte(dio_id, 0, &pCOte0->data.grip_stat[0]);
-		dio_ret = DioInpByte(dio_id, 1, &pCOte0->data.grip_stat[1]);
+		//グリップスイッチ DIO入力
+		long dio_ret = DioInpByte(dio_id, 0, &pCOte0->data.grip_stat.b[0]);
+		dio_ret = DioInpByte(dio_id, 1, &pCOte0->data.grip_stat.b[1]);
 
-		
-		if (!(pCOte0->data.grip_stat[0] & OTE_GRIP_ESTP)) {	//緊急停止
-			if((st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0001))
-				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_SETCHECK, BST_UNCHECKED, 0);
-		}
-		else {
-			if (!(st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0001))
+		if (pCOte0->data.grip_stat.b[0] & OTE_GRIP_ENABLE) {
+			//緊急停止
+			if (!(pCOte0->data.grip_stat.b[0] & OTE_GRIP_ESTP)) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= 0x0001;
 				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_SETCHECK, BST_CHECKED, 0);
-		}
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= ~0x0001;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
 
-		if (pCOte0->data.grip_stat[0] & OTE_GRIP_ACTIVE) {	//グリップ入力
-			if (!(st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0002))
+			if (pCOte0->data.grip_stat.b[0] & OTE_GRIP_ACTIVE) {	//グリップ入力
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= 0x0002;
 				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_SETCHECK, BST_CHECKED, 0);
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~0x0002;
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_SETCHECK, BST_UNCHECKED, 0);
+			}
+
+			pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_DBG_ENABLE;
 		}
 		else {
-			if ((st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] & 0x0002))
-				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_SETCHECK, BST_UNCHECKED, 0);
-		}
+			pCOte0->data.grip_stat.b[0] |= OTE_GRIP_DBG_ENABLE;
+			//緊急停止
 
-		INT16 mask = 1;
+			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_GETCHECK, 0, 0)){
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~0x0001;
+				pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_ESTP;
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= 0x0001;
+				pCOte0->data.grip_stat.b[0] |= OTE_GRIP_ESTP;
+			}
+
+			//グリップ入力
+			if ((BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_GETCHECK, 0, 0))) {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= 0x0002;
+				pCOte0->data.grip_stat.b[0] |= OTE_GRIP_ACTIVE;
+			}
+			else {
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~0x0002;
+				pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_ACTIVE;
+			}
+		}
+#if 0
 		for (int i = 0; i < N_OTE_NOTCH_ARRAY; i++) {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i], BM_GETCHECK, 0, 0)) {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= mask;
 				st_work_wnd.notch_pb_stat[ID_OTE_GRIP_ESTOP + i] = OTE0_PB_OFF_DELAY_COUNT;
 
-				if (i == (ID_OTE_GRIP_PAD_MODE - ID_OTE_GRIP_ESTOP)) pCOte0->data.gpad_mode = L_ON;
+				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= mask;
+
 			}
 			else {
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~mask;
@@ -505,13 +532,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 			gpad_mode_last = pCOte0->data.gpad_mode;
 		}
-
+#endif
 		//リモート無効時
 		if (BST_CHECKED != SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_GETCHECK, 0, 0)) {
+			pCOte0->data.ope_mode == OTE_ID_OPE_MODE_MONITOR;
 			for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 				if (i == ID_OTE_GRIP_SWITCH)continue;//	グリップスイッチは対象外
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;	//0ノッチで初期化
 			}
+		}
+		else {
+			pCOte0->data.ope_mode |= OTE_ID_OPE_MODE_COMMAND;
 		}
 		
 		//PB Stat 更新　PBはカウントダウン
@@ -749,6 +780,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
 			}
+			gpad_mode_last = pCOte0->data.gpad_mode;
+
 			//カメラチルト、パン、ズーム
 			if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd == NULL);							//表示カメラ未登録時はスルー
 			else {
@@ -858,10 +891,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = wmId - ID_OTE_NOTCH_GT_MIN;
 				else
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
+
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][ID_GANTRY] = wmId - ID_OTE_NOTCH_GT_MIN;
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_CNT][ID_GANTRY] = OTE0_PB_OFF_DELAY_COUNT;
 			}
-			else if (wmId < ID_OTE_NOTCH_GR_MAX);//グリップスイッチはスルー チェックボックスを定周期チェック
+			else if (wmId < ID_OTE_NOTCH_GR_MAX) {//グリップノッチの非常停止とグリップはチェックボックスを定周期チェック
+				//リモート
+				if ((wmId - ID_OTE_NOTCH_MH_MIN) == ID_OTE_GRIP_RMT) {
+					if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_GETCHECK, 0, 0)) {
+						pCOte0->data.ope_mode &= ~OTE_ID_OPE_MODE_COMMAND;
+					}
+					else {
+						pCOte0->data.ope_mode |= OTE_ID_OPE_MODE_COMMAND;
+					}
+				}
+				//ジョイパッドモード
+				if ((wmId - ID_OTE_NOTCH_MH_MIN) == ID_OTE_GRIP_PAD_MODE) {
+					if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_PAD_MODE], BM_GETCHECK, 0, 0)) {
+						pCOte0->data.gpad_mode = L_OFF;
+						pCOte0->data.ope_mode &= ~OTE_ID_OPE_MODE_GPAD;
+					}
+					else {
+						pCOte0->data.gpad_mode = L_ON;
+						pCOte0->data.ope_mode |= OTE_ID_OPE_MODE_GPAD;
+					}
+				}
+			}
 			else if (wmId < ID_OTE_NOTCH_BH_MAX) {
 				if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF)
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = wmId - ID_OTE_NOTCH_BH_MIN;
@@ -877,6 +932,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			else if (wmId < ID_OTE_NOTCH_SL_MAX) {
 				if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF)
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = wmId - ID_OTE_NOTCH_SL_MIN;
+				else
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] = ID_OTE_0NOTCH_POS;
+
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][ID_SLEW] = wmId - ID_OTE_NOTCH_SL_MIN;
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_CNT][ID_SLEW] = OTE0_PB_OFF_DELAY_COUNT;
 
@@ -886,7 +944,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 			else {
 				if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF)
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST] = wmId - ID_OTE_NOTCH_AH_MIN;
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST] = wmId - ID_OTE_NOTCH_AH_MIN;
+				else
+					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST] = ID_OTE_0NOTCH_POS;
+
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][ID_AHOIST] = wmId - ID_OTE_NOTCH_AH_MIN;
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_CNT][ID_AHOIST] = OTE0_PB_OFF_DELAY_COUNT;
 
@@ -1562,9 +1623,6 @@ LRESULT CALLBACK WndStatusProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	}
 	return S_OK;
 }
-
-//static HDC hCaptureDC;
-//static HBITMAP hCaptureBitmap;
 LRESULT CALLBACK WndSwyProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
 	switch (message)
@@ -2504,7 +2562,7 @@ void draw_graphic() {
 	if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_ACTIVE) && pCOte0->data.auto_sel[ID_BOOM_H] && pCOte0->data.auto_sel[ID_SLEW]) {
 		st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_ACTIVE], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R * 2, OTE0_GR_AREA_R * 2);
 	}
-	else if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+	else if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) && pCOte0->data.auto_sel[ID_BOOM_H] && pCOte0->data.auto_sel[ID_SLEW]){
 		st_work_wnd.pgraphic[OTE0_GDIP_GR_M0]->FillEllipse(st_work_wnd.pbrush[OTE0_COLOR_AUTO_STANDBY], OTE0_GR_AREA_CX - OTE0_GR_AREA_R, OTE0_GR_AREA_CY - OTE0_GR_AREA_R, OTE0_GR_AREA_R * 2, OTE0_GR_AREA_R * 2);
 	}
 	else {
@@ -2619,7 +2677,7 @@ void draw_graphic() {
 		st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
 		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
 	}
-	else if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+	else if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) && pCOte0->data.auto_sel[ID_HOIST]) {
 		st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]->SetWidth(OTE0_GR_AREA2_MH_SET_W);
 		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY], OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y, OTE0_GR_AREA2_MH_SET_X, OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H - 5);
 	}
@@ -2633,7 +2691,7 @@ void draw_graphic() {
 		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H - 5);
 		st_work_wnd.ppen[OTE0_COLOR_AUTO_ACTIVE]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
 	}
-	else if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) {
+	else if ((pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY) && pCOte0->data.auto_sel[ID_AHOIST]) {
 		st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY]->SetWidth(OTE0_GR_AREA2_AH_SET_W);
 		st_work_wnd.pgraphic[ID_OTE_HDC_MEM0]->DrawLine(st_work_wnd.ppen[OTE0_COLOR_AUTO_STANDBY], OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y, OTE0_GR_AREA2_AH_SET_X, OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H - 5);
 	}
@@ -2734,6 +2792,14 @@ void draw_info() {
 	wo_msg.str(L"");
 	wo_msg << L"補巻(t):" << pCOte0->data.load[ID_AHOIST];
 	TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 95, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	
+	wo_msg.str(L"");
+	wo_msg << L"PAD Y:" << pad_data.lY;
+	TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 110, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	wo_msg.str(L"");
+	wo_msg << L"PAD X:" << pad_data.lX;
+	TextOutW(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y + 125, wo_msg.str().c_str(), (int)wo_msg.str().length());
+	
 
 	wo_msg.str(L""); wo_msg << L"自動目標";
 	TextOutW(hdc, OTE0_GR_AREA2_X + 250, OTE0_GR_AREA2_Y + 5, wo_msg.str().c_str(), (int)wo_msg.str().length());

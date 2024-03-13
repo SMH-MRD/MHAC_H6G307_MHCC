@@ -144,6 +144,9 @@ typedef struct StOTE_IO {
 	ST_PC_U_MSG		ote_umsg_out;		//端末への送信データ（ユニキャスト）
 	UINT32			id_ote;				//ユニキャスト接続端末ID
 	UINT32			ote_u_silent_cnt;  	//受信カウント変化無しでカウントアップ
+	UINT32			ote_estop;
+	UINT32			ote_grip;
+	UINT32			ote_padmode;
 }ST_OTE_IO, * LPST_OTE_IO;
 
 #pragma endregion 操作端末卓信号定義構造体
@@ -613,10 +616,11 @@ typedef struct stCSInfo {
 	int job_set_event;
 
 	//自動,遠隔設定（モード）
-	int auto_mode;														//自動モード
-	int antisway_mode;													//振れ止めモード
-	int estop_active;													//非常停止動作中
-	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
+	INT32		auto_mode;												//自動モード
+	INT32		antisway_mode;											//振れ止めモード
+	INT32		auto_sel[MOTION_ID_MAX];
+//	int estop_active;													//非常停止動作中
+//	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
 
 	double ote_camera_height_m;											//操作端末VIEWのカメラ設置高さ
 
@@ -705,7 +709,6 @@ typedef struct stAgentInfo {
 
 	int as_count[MOTION_ID_MAX];					//振れ止めレシピ作成呼び出し回数
 	int command_count;								//コマンドレシピ作成呼び出し回数
-
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

@@ -317,12 +317,12 @@ int CPLC_IF::parse_data_in() {
 int CPLC_IF::parse_data_out() {
 
     //PC 操作有効信号
-    plc_if_workbuf.output.wbuf.ctrl_mode = mode;
+    plc_if_workbuf.output.wbuf.ctrl_mode = (INT16)mode;
 
  //パネルシミュレーション
 #pragma region OPEROOM
     // 非常停止　PB（主幹OFF　PB）　*PLC NORMAL CLOSE
-    if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || !(pOTEio->ote_umsg_in.body.pb_notch[ID_OTE_GRIP_ESTOP])) {
+    if ((pOTEio->ote_umsg_in.body.pb_ope[ID_OTE_PB_HIJYOU]) || (pOTEio->ote_estop)) {
          plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.cab_estp.x] &= ~cab_bout_map.cab_estp.y; //非常停止
     }
     else {

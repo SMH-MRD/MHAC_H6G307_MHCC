@@ -97,7 +97,7 @@ int COte::parse() {
 		data.v_ref[i] = st_msg_pc_u_rcv.body.v_ref[i];
 	}
 
-	data.deg_sl=RAD1DEG * (double)data.pos[ID_SLEW];
+	data.deg_sl=DEG1RAD * (double)data.pos[ID_SLEW];
 	data.deg_bh= (double)st_msg_pc_u_rcv.body.plc_in.cab_ai[PLC_IF_CAB_AI_BH_ANGLE] * 0.018 + 4.462;//PLCソフト計算式
 	data.load[ID_HOIST] = st_msg_pc_u_rcv.body.plc_in.cab_ai[PLC_IF_CAB_AI_MH_LOAD]*0.206;
 	data.load[ID_AHOIST] = st_msg_pc_u_rcv.body.plc_in.cab_ai[PLC_IF_CAB_AI_AH_LOAD]*0.0312;
@@ -118,17 +118,25 @@ LPST_OTE_U_MSG COte::set_msg_ote_u() {
 	st_msg_ote_u_snd.head.status = 0x2;
 
 	//Body部
-	//PB
-	memcpy(st_msg_ote_u_snd.body.pb_ope, pst_work_wnd->pb_stat, 128);
+	//操作卓PB入力　UINT16		pb_ope[128];
+	memcpy(st_msg_ote_u_snd.body.pb_ope, pst_work_wnd->pb_stat, 256);//OFF DELAYカウンタ
 
-	//ノッチデータ
-	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_HOLD], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_HOLD], 16);
-	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_TRIG], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_TRIG], 16);
+	//ノッチデータ　UINT16　pb_notch[128];
 	memcpy(st_msg_ote_u_snd.body.pb_notch, pst_work_wnd->notch_pb_stat, 128);
 
-	//ランプ
-	
-  
+	//ノッチ入力位置　INT16		notch_pos[2][MOTION_ID_MAX];
+	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_HOLD], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_HOLD], 16);
+	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_TRIG], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_TRIG], 16);
+
+	//自動目標位置　	double		auto_tg_pos[MOTION_ID_MAX];	
+	for(int i=0;i< MOTION_ID_MAX;i++) st_msg_ote_u_snd.body.auto_tg_pos[i] = data.d_tgpos[OTE_ID_HOT_TARGET][i];
+
+	//その他状態
+	//INT32		ope_mode;						//0:モニタのみ　1:運転入力有効
+	//INT32		grip_status;
+	st_msg_ote_u_snd.body.ope_mode = data.ope_mode;
+	st_msg_ote_u_snd.body.grip_status = data.grip_stat.ui32;
+	  
 	return &st_msg_ote_u_snd;
 }
 
