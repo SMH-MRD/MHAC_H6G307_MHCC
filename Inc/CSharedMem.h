@@ -108,6 +108,21 @@ typedef struct StMoveSet {
 #define PLC_IF_LIMIT_COM_REV_NORM_EX3	0x0020000
 #define PLC_IF_LIMIT_COM_FWD_EMR_EX3	0x0040000
 #define PLC_IF_LIMIT_COM_REV_EMR_EX3	0x0080000
+
+#define PLC_IF_ID_MH7      0
+#define PLC_IF_ID_MH14     1
+#define PLC_IF_ID_MH21     2
+
+#define PLC_IF_ID_AH12     0
+#define PLC_IF_ID_AH24     1
+
+#define PLC_IF_ID_BH57     0
+#define PLC_IF_ID_BH62     1
+#define PLC_IF_ID_BH_REST  2
+
+struct PlcIfCraneStat {
+
+};
 										   
 typedef struct StPLC_IO {
 	INT32 mode;
@@ -125,12 +140,15 @@ typedef struct StPLC_IO {
 	double lah;										//補巻ロープ長
 
 	INT16 brk[MOTION_ID_MAX];						//ブレーキ状態FB 0閉
+	INT16 notch_auto[MOTION_ID_MAX];				//AGENT指令のノッチ位置
 	INT32 endlim[MOTION_ID_MAX];					//極限センサ状態
 	INT16 notch_ref[MOTION_ID_MAX];					//ノッチ指令入力FB（OTE入力含む）
 	PLC_READ_BUF		input;						//PLCからの読み取り信号生値
 	PLC_WRITE_BUF		output;						//PLCへの書き込み信号生値
 
-	double notch_spd[MOTION_ID_MAX][NOTCH_MAX];			//# ノッチ速度設定現在値
+	INT32 mh_spd_mode;
+	INT32 ah_spd_mode;
+	INT32 bh_ope_mode;
 
 }ST_PLC_IO, * LPST_PLC_IO;
 

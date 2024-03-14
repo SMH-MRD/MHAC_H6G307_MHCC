@@ -14,6 +14,7 @@ INT16 bit_mask[16] = {BIT0,BIT1,BIT2,BIT3,BIT4,BIT5,BIT6,BIT7,BIT8,BIT9,BIT10,BI
 ST_PLC_NOTCH_PTN notch_ptn;//PLCのノッチ信号入力パターン
 
 CABPLC_BOUT_MAP cab_bout_map;
+CABPLC_BIN_MAP cab_bin_map;
 ERMPLC_BOUT_MAP erm_bout_map;
 ERMPLC_YOUT_MAP erm_yout_map;
 ERMPLC_UXIN_MAP  erm_uxin_map;
@@ -308,6 +309,27 @@ int CPLC_IF::parse_data_in() {
         plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_FWD_EMR_EX3;
     if (!(plc_if_workbuf.output.wbuf.erm_x[erm_xin_map.ah_camlim_emr_low.x] & erm_xin_map.ah_camlim_emr_low.y))
         plc_if_workbuf.endlim[ID_AHOIST] |= PLC_IF_LIMIT_COM_REV_EMR;
+
+    //運転モード
+    if (plc_if_workbuf.input.rbuf.cab_bi[cab_bin_map.mh_spd_low.x] & cab_bin_map.mh_high_spd.y) 
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_MH21;
+    else if (plc_if_workbuf.input.rbuf.cab_bi[cab_bin_map.mh_spd_low.x] & cab_bin_map.mh_spd_middle.y)  
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_MH14;
+    else       
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_MH7;
+
+    if (plc_if_workbuf.input.rbuf.cab_bi[cab_bin_map.mh_spd_low.x] & cab_bin_map.ah_sel_high_spd.y)
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_AH24;
+    else 
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_AH12;
+
+    if (plc_if_workbuf.input.rbuf.cab_bi[cab_bin_map.bh_rest.x] & cab_bin_map.bh_rest.y)
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_BH_REST;
+    else if (plc_if_workbuf.input.rbuf.cab_bi[cab_bin_map.bh_down.x] & cab_bin_map.bh_down.y)
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_BH62;
+    else
+        plc_if_workbuf.mh_spd_mode = PLC_IF_ID_BH57;
+      
  
     return 0;
 }
@@ -370,8 +392,53 @@ int CPLC_IF::parse_data_out() {
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.il_bypass.x] &= ~cab_bout_map.il_bypass.y;
 
         //ノッチ
+        UINT ui_notch;
         if (pCSInf->auto_mode) {//AGENT 出力をセット;
+
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] &= notch_ptn.bits[ID_HOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            if (pCSInf->auto_sel[ID_HOIST]) {
+                 ui_notch = get_notch_from_spd(ID_HOIST, pAgentInf->v_ref[ID_HOIST]) + NOTCH_4;//ノッチ配列設定は-4ノッチが0
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] |= notch_ptn.bits[ID_HOIST][ui_notch];
+            }
+            else {
+                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] |= notch_ptn.bits[ID_HOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]];
+            }
+
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] &= notch_ptn.bits[ID_GANTRY][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            if (pCSInf->auto_sel[ID_GANTRY]) {
+                ui_notch = get_notch_from_spd(ID_GANTRY, pAgentInf->v_ref[ID_GANTRY]) + NOTCH_4;//ノッチ配列設定は-4ノッチが0
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] |= notch_ptn.bits[ID_GANTRY][ui_notch];
+            }
+            else {
+                  plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] |= notch_ptn.bits[ID_GANTRY][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY]];
+            }
+
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] &= notch_ptn.bits[ID_BOOM_H][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            if (pCSInf->auto_sel[ID_BOOM_H]) {
+                ui_notch = get_notch_from_spd(ID_GANTRY, pAgentInf->v_ref[ID_BOOM_H]) + NOTCH_4;//ノッチ配列設定は-4ノッチが0
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] |= notch_ptn.bits[ID_BOOM_H][ui_notch];
+            }
+            else {
+                  plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] |= notch_ptn.bits[ID_BOOM_H][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H]];
+            }
             
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] &= notch_ptn.bits[ID_SLEW][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            if (pCSInf->auto_sel[ID_SLEW]) {
+                ui_notch = get_notch_from_spd(ID_GANTRY, pAgentInf->v_ref[ID_SLEW]) + NOTCH_4;//ノッチ配列設定は-4ノッチが0
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] |= notch_ptn.bits[ID_SLEW][ui_notch];
+            }
+            else {
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] |= notch_ptn.bits[ID_SLEW][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW]];
+            }
+
+            plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] &= notch_ptn.bits[ID_AHOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
+            if (pCSInf->auto_sel[ID_AHOIST]) {
+                ui_notch = get_notch_from_spd(ID_GANTRY, pAgentInf->v_ref[ID_AHOIST]) + NOTCH_4;//ノッチ配列設定は-4ノッチが0
+                plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][ui_notch];
+            }
+            else {
+                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]];
+            }
         }
         else {//OTEノッチ信号セット
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] &= notch_ptn.bits[ID_HOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
@@ -899,6 +966,8 @@ INT16 CPLC_IF::get_notch_pos(UINT16 code) {
     return pos;
 }
 
+
+
 //*********************************************************************************************
 //set_ao_coms()
 // AGENTタスクのアナログ指令、ヘルシー信号等の出力セット
@@ -916,7 +985,6 @@ int CPLC_IF::set_ao_coms() {
 //*********************************************************************************************
 int CPLC_IF::parse_ope_com() {
 
- 
     return 0;
 }
 
@@ -938,4 +1006,53 @@ int CPLC_IF::parce_brk_status() {
 int CPLC_IF::parse_sensor_fb() {
 
     return 0;
+}
+
+//*********************************************************************************************
+// parse_sensor_fb()
+// センサ信号取り込み
+//*********************************************************************************************
+INT16   CPLC_IF::get_notch_from_spd(int motion, double spdref) {
+    INT16 ans = 0;
+
+    if (spdref == 0.0) return 0;
+
+    double spd_check = 1.1 * spdref;        //10%増しで評価　ノッチ速度よりも少し低くても切り上げる為
+    if (spd_check < 0.0) spd_check *= -1.0;//絶対値でチェック
+
+    double retio;
+    double* ptable = def_spec.notch_spd_f[ID_HOIST];
+    switch (motion) {
+    case ID_HOIST: {
+        retio = def_spec.notch_spd_retio[ID_HOIST][plc_if_workbuf.mh_spd_mode];
+        ptable = def_spec.notch_spd_f[ID_HOIST];
+     }break;
+    case ID_GANTRY: {
+        retio = 1.0;
+        ptable = def_spec.notch_spd_f[ID_GANTRY];
+    }break;
+    case ID_BOOM_H: {
+        retio = 1.0;
+        ptable = def_spec.notch_spd_f[ID_BOOM_H];
+    }break;
+    case ID_SLEW: {
+        retio = 1.0;
+        ptable = def_spec.notch_spd_f[ID_SLEW];
+
+    }break;
+    case ID_AHOIST: {
+        retio = def_spec.notch_spd_retio[ID_AHOIST][plc_if_workbuf.ah_spd_mode];
+    }break;
+    default:return 0;
+        break;
+    }//end switch
+
+    for (int i = 3; i >-1; i--) {
+        if (spd_check > *(ptable + i)*retio) {
+            ans = i + 1; break;
+        }
+    }
+
+    if (spdref < 0.0) ans = -ans; 
+    return ans;
 }

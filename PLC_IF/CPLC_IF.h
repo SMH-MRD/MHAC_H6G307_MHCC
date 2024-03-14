@@ -88,8 +88,9 @@ private:
     int set_notch_ref();
     int set_ao_coms();
 
-    UINT16 get_notch_code(INT16 notch);
-    INT16 get_notch_pos(UINT16 code);
+    UINT16  get_notch_code(INT16 notch);
+    INT16   get_notch_pos(UINT16 code);
+    INT16   get_notch_from_spd(int motion, double spdref);
     void set_pg_abs_cnt();//シミュレータドラム回転数からカウント値セット
 
  };
