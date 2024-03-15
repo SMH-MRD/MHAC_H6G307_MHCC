@@ -30,8 +30,8 @@ typedef struct stAgentWork {
     double w2;	                                //振れ角周波数2乗
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
-    double a_abs[MOTION_ID_MAX];	                //モータの加速度
-    double a_hp_abs[MOTION_ID_MAX];	                //モータの加速度
+    double a_abs[MOTION_ID_MAX];	            //モータの加速度絶対値
+    double a_hp_abs[MOTION_ID_MAX];	            //吊点の加速度絶対値
     double vmax[MOTION_ID_MAX];                 //吊点の加速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
  
@@ -98,7 +98,7 @@ class CAgent:public CTaskObj
     int set_ref_gt();                                       //走行速度指令値出力
     int set_ref_slew();                                     //旋回速度指令値出力
     int set_ref_bh();                                       //引込速度指令値出力
-    void update_pb_lamp_com();                              //ランプ表示出力
+  //  void update_pb_lamp_com();                              //ランプ表示出力
      
     int dbg_mont[8];//デバッグ用
                                                          

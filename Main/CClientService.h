@@ -61,7 +61,6 @@ public:
 
 private:
 
-    int parce_onboard_input(int mode);
     int can_ote_activate();         //‘€ì’[––—LŒø”»’è
     int ote_handle_proc();          //‘€ì’[––ˆ—
  

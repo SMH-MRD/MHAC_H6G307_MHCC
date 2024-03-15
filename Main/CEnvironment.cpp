@@ -316,7 +316,7 @@ int CEnvironment::sys_mode_set() {
 /*@’İ“_‚Ì‰ÁŒ¸‘¬“xŒvZi¦ù‰ñ‚Ím/s)@ƒI[ƒo[ƒ[ƒhiù‰ñ”¼ŒaŒ»İ’l or w’èj
 */
 /****************************************************************************/
-
+#if 0
 //ù‰ñ”¼ŒaŒ»İˆÊ’u‚Å‚ÌŒvZ
 double CEnvironment::cal_hp_acc(int motion, int dir ) {
 
@@ -388,10 +388,11 @@ double CEnvironment::cal_hp_dec(int motion, int dir, double R) {
 	return ans;      //’İ“_‚ÌŒ¸‘¬“xŒvZ
 }
 
+#endif
 /****************************************************************************/
 /*@ ‰ÁŒ¸‘¬U‚êŠpŒvZ		ƒI[ƒo[ƒ[ƒhiù‰ñ”¼ŒaŒ»İ’l or w’èj @@   */
 /****************************************************************************/
-
+#if 0
 ///ù‰ñ”¼ŒaŒ»İˆÊ’u‚Å‚Ì‰Á‘¬U‚êŒvZ@a/g
 double CEnvironment::cal_arad_acc(int motion, int dir) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
 	double ans = cal_hp_acc(motion, dir);
@@ -429,11 +430,27 @@ double CEnvironment::cal_arad2(int motion, int dir, double R) {     //‰ÁŒ¸‘¬U‚ê
 	ans /= GA;
 	return (ans * ans); //’İ“_‚Ì‰Á‘¬U‚ê2æŒvZ
 }
+#endif
+
+//w’èˆÊ’u‚Å‚Ì²‰Á‘¬“xŒvZ@a/g
+double CEnvironment::cal_acc(int motion, double pos, int unit) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
+
+	return spec.accdec[motion][FWD][ACC];      //’İ“_‚Ì‰Á‘¬U‚êŒvZ
+
+}
+
+double CEnvironment::cal_arad2(int motion, double pos, int unitr) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
+	double ans = cal_acc(motion, pPLC_IO->pos[motion], UNIT_CODE_M);
+	ans /= GA;
+	return (ans * ans); //’İ“_‚Ì‰Á‘¬U‚ê2æŒvZ
+
+}
+
 
 bool CEnvironment::is_sway_larger_than_accsway(int motion){
 	//UŠpU•‚ª‰Á‘¬UŠp‚æ‚è‚à‘å‚«‚¢‚©”»’è
 
-	double rad_acc2 = cal_arad2(motion, FWD);	//‰Á‘¬U‚êŠp2æ
+	double rad_acc2 = cal_arad2(motion, pPLC_IO->pos[motion], UNIT_CODE_RAD);	//‰Á‘¬U‚êŠp2æ
 
 	if (pSway_IO->rad_amp2[SID_LOAD_MH][motion] > rad_acc2) return true;
 	else return false;

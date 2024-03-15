@@ -22,6 +22,7 @@
 #define PI360           6.2832      //2π
 #define PI330           5.7596   
 #define PI315           5.4978
+#define PI270           4.7124
 #define PI180           3.1416      //π
 #define PI165           2.8798
 #define PI150           2.6180
@@ -42,6 +43,11 @@
 #define DEG2RAD         0.0174533
 #define RAD2DEG2        3282.6
 #define DEG2RAD2        0.00030462
+
+#define UNIT_CODE_M     0//単位のコード m
+#define UNIT_CODE_RAD   1//単位のコード rad
+#define UNIT_CODE_MM    2//単位のコード mm
+#define UNIT_CODE_DEG   3//単位のコード deg
 
 /*** マクロ ***/
 #ifndef MIN

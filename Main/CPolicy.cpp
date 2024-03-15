@@ -1089,13 +1089,13 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
 
 		if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
 			//’Ý“_‚Ì‰Á‘¬“x
-			st_com_work.a_hp_abs[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);
+			st_com_work.a_hp_abs[i] = pEnvironment->cal_acc(i, pPLC_IO->pos[i], UNIT_CODE_M);
 			if (st_com_work.a_hp_abs[i] < 0.0) st_com_work.a_hp_abs[i] *= -1.0;
 
 			//‰Á‘¬ŽžU‚ê’†S
-			st_com_work.pp_th0[i][ACC] = pEnvironment->cal_arad_acc(i, FWD);
+			st_com_work.pp_th0[i][ACC] = pEnvironment->cal_acc(i, pPLC_IO->pos[i], UNIT_CODE_M);
 			//Œ¸‘¬ŽžU‚ê’†S
-			st_com_work.pp_th0[i][DEC] = pEnvironment->cal_arad_dec(i, REV);
+			st_com_work.pp_th0[i][DEC] = -pEnvironment->cal_acc(i, pPLC_IO->pos[i], UNIT_CODE_M);
 		}
 	}
 

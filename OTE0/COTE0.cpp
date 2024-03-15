@@ -128,8 +128,11 @@ LPST_OTE_U_MSG COte::set_msg_ote_u() {
 	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_HOLD], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_HOLD], 16);
 	memcpy(st_msg_ote_u_snd.body.notch_pos[ID_OTE_NOTCH_POS_TRIG], pst_work_wnd->notch_pos[ID_OTE_NOTCH_POS_TRIG], 16);
 
-	//自動目標位置　	double		auto_tg_pos[MOTION_ID_MAX];	
-	for(int i=0;i< MOTION_ID_MAX;i++) st_msg_ote_u_snd.body.auto_tg_pos[i] = data.d_tgpos[OTE_ID_HOT_TARGET][i];
+	//自動目標位置,自動選択　	double		auto_tg_pos[MOTION_ID_MAX];	
+	for (int i = 0; i < MOTION_ID_MAX; i++) {
+		st_msg_ote_u_snd.body.auto_tg_pos[i] = data.d_tgpos[OTE_ID_HOT_TARGET][i];
+		st_msg_ote_u_snd.body.auto_sel[i] = data.auto_sel[i];
+	}
 
 	//その他状態
 	//INT32		ope_mode;						//0:モニタのみ　1:運転入力有効

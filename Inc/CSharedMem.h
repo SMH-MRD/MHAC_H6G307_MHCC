@@ -128,6 +128,9 @@ typedef struct StPLC_IO {
 	INT32 mode;
 	INT32 healthy_cnt;
 	double v_fb[MOTION_ID_MAX];						//速度FB
+	double v_fb_rpm[MOTION_ID_MAX];					//速度FB rpm
+	INT16 v_fb_notch[MOTION_ID_MAX];				//速度FB ノッチ表現
+	INT16 v_com_notch[MOTION_ID_MAX];				//速度指令 ノッチ表現
 	double nv_ref[MOTION_ID_MAX];					//PLCのINVへの速度指令出力
 	double nv_tg[MOTION_ID_MAX];					//PLC目標速度
 	double trq_fb_01per[MOTION_ID_MAX];				//トルクFB
@@ -142,13 +145,14 @@ typedef struct StPLC_IO {
 	INT16 brk[MOTION_ID_MAX];						//ブレーキ状態FB 0閉
 	INT16 notch_auto[MOTION_ID_MAX];				//AGENT指令のノッチ位置
 	INT32 endlim[MOTION_ID_MAX];					//極限センサ状態
-	INT16 notch_ref[MOTION_ID_MAX];					//ノッチ指令入力FB（OTE入力含む）
+
 	PLC_READ_BUF		input;						//PLCからの読み取り信号生値
 	PLC_WRITE_BUF		output;						//PLCへの書き込み信号生値
 
 	INT32 mh_spd_mode;
 	INT32 ah_spd_mode;
 	INT32 bh_ope_mode;
+	double v_ratio[MOTION_ID_MAX] = { 1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0 };
 
 }ST_PLC_IO, * LPST_PLC_IO;
 
@@ -321,7 +325,7 @@ typedef struct stEnvSubproc {
 typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
 	bool is_tasks_standby_ok;							//タスクの立ち上がり確認
-	bool is_crane_status_ok=false;							//クレーンステータス初期化完了
+	bool is_crane_status_ok=false;						//クレーンステータス初期化完了
 	ST_SPEC spec;										//クレーン仕様
 
 //Periodical Update			：定周期更新

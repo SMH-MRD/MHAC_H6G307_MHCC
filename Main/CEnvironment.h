@@ -20,18 +20,20 @@ public:
     void routine_work(void* param);
     bool check_tasks_init();            //§Œäƒ^ƒXƒN‚Ì‰Šú‰»‚ªŠ®—¹‚µ‚Ä‚¢‚é‚©ƒ`ƒFƒbƒN
   
-    double cal_hp_acc(int motion, int dir);                 //’İ“_‚Ì‰Á‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼ŒaŒ»İˆÊ’u
-    double cal_hp_acc(int motion, int dir, double R);       //’İ“_‚Ì‰Á‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼Œaw’èR
-    double cal_hp_dec(int motion, int dir);                 //’İ“_‚ÌŒ¸‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼ŒaŒ»İˆÊ’u
-    double cal_hp_dec(int motion, int dir, double R);       //’İ“_‚ÌŒ¸‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼Œaw’èR
+   // double cal_hp_acc(int motion, int dir);                 //’İ“_‚Ì‰Á‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼ŒaŒ»İˆÊ’u
+    //  double cal_hp_acc(int motion, int dir, double R);     //’İ“_‚Ì‰Á‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼Œaw’èR
+    //  double cal_hp_dec(int motion, int dir);               //’İ“_‚ÌŒ¸‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼ŒaŒ»İˆÊ’u
+    //  double cal_hp_dec(int motion, int dir, double R);     //’İ“_‚ÌŒ¸‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼Œaw’èR
 
-    double cal_arad_acc(int motion, int dir);               //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼ŒaŒ»İˆÊ’u
-    double cal_arad_acc(int motion, int dir, double R);     //‰ÁŒ¸‘¬U‚êUŠpŒvZradù‰ñ”¼Œaw’èR
-    double cal_arad_dec(int motion, int dir);               //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼ŒaŒ»İˆÊ’u
-    double cal_arad_dec(int motion, int dir, double R);     //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼Œaw’èR
+    //  double cal_arad_acc(int motion, int dir);             //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼ŒaŒ»İˆÊ’u
+    //  double cal_arad_acc(int motion, int dir, double R);   //‰ÁŒ¸‘¬U‚êUŠpŒvZradù‰ñ”¼Œaw’èR
+   //   double cal_arad_dec(int motion, int dir);             //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼ŒaŒ»İˆÊ’u
+   //   double cal_arad_dec(int motion, int dir, double R);   //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼Œaw’èR
 
-    double cal_arad2(int motion, int dir);                  //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad
-    double cal_arad2(int motion, int dir, double R);        //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad ù‰ñ”¼Œaw’èR
+    double cal_acc(int motion, double pos,int unit);          //ˆÊ’u‚É‚æ‚é‰ÁŒ¸‘¬“xŒvZ@unit:’PˆÊ
+
+    
+    double cal_arad2(int motion, double pos, int unit);       //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad
 
     double cal_sway_r_amp2_m();                              //U‚êU•”¼Œa•ûŒü m
     double cal_sway_th_amp2_m();                             //U‚êU•‰~ü•ûŒü m
