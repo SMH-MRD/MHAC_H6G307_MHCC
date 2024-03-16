@@ -161,8 +161,8 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 			for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 				CS_workbuf.auto_sel[i] = pOTE_IO->ote_umsg_in.body.auto_sel[i];
 			}
-
-
+//半自動はOTE管理にする
+#if 0
 			//半自動　PBL
 			for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
 				if (pOTE_IO->ote_umsg_in.body.pb_ope[i]) {
@@ -188,6 +188,7 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 				}
 				else CS_workbuf.ote_pb_lamp[i].com = OTE_LAMP_COM_OFF;
 			}
+#endif
 		}
 		//ランプ
 		{
@@ -238,51 +239,21 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 
 					if (i == ID_OTE_GRIP_SWITCH) { continue; }//	グリップスイッチは対象外
 
+					//全クリア
 					for (int j = 0; j < 9; j++) {
 						CS_workbuf.ote_notch_lamp[i * 10 + j].com = OTE_LAMP_COM_ON;
 						CS_workbuf.ote_notch_lamp[i * 10 + j].color = OTE0_GLAY;
 					}
 
-					int index = ID_HOIST * 10 + pPLC_IO->v_com_notch[ID_HOIST] + NOTCH_4;
-					if (pPLC_IO->v_com_notch[ID_HOIST] != 0)	CS_workbuf.ote_notch_lamp[index].color = OTE0_ORANGE;
-					else										CS_workbuf.ote_notch_lamp[index].color = OTE0_GREEN;
+					int index_base = i * 10 + NOTCH_4;	//ノッチは10個の配列　0ノッチは4の位置
 
-					index = ID_HOIST * 10 + pPLC_IO->v_fb_notch[ID_HOIST] + NOTCH_4;
-					if (pPLC_IO->v_fb_notch[ID_HOIST] != 0) {
-						CS_workbuf.ote_notch_lamp[index].com = OTE_LAMP_COM_ON; CS_workbuf.ote_notch_lamp[index].color = OTE0_RED;
-					}
-
-					index = ID_GANTRY * 10 + pPLC_IO->v_com_notch[ID_GANTRY] + NOTCH_4;
-					if (pPLC_IO->v_com_notch[ID_GANTRY] != 0)	CS_workbuf.ote_notch_lamp[index].color = OTE0_ORANGE;
-					else										CS_workbuf.ote_notch_lamp[index].color = OTE0_GREEN;
-					index = ID_GANTRY * 10 + pPLC_IO->v_fb_notch[ID_GANTRY] + NOTCH_4;
-					if (pPLC_IO->v_fb_notch[ID_GANTRY] != 0) {
-						CS_workbuf.ote_notch_lamp[index].com = OTE_LAMP_COM_ON; CS_workbuf.ote_notch_lamp[index].color = OTE0_RED;
-					}
-
-					index = ID_BOOM_H * 10 + pPLC_IO->v_com_notch[ID_BOOM_H] + NOTCH_4;
-					if (pPLC_IO->v_com_notch[ID_BOOM_H] != 0)	CS_workbuf.ote_notch_lamp[index].color = OTE0_ORANGE;
-					else										CS_workbuf.ote_notch_lamp[index].color = OTE0_GREEN;
-					index = ID_BOOM_H * 10 + pPLC_IO->v_fb_notch[ID_BOOM_H] + NOTCH_4;
-					if (pPLC_IO->v_fb_notch[ID_BOOM_H] != 0) {
-						CS_workbuf.ote_notch_lamp[index].com = OTE_LAMP_COM_ON; CS_workbuf.ote_notch_lamp[index].color = OTE0_RED;
-					}
-
-					index = ID_SLEW * 10 + pPLC_IO->v_com_notch[ID_SLEW] + NOTCH_4;
-					if (pPLC_IO->v_com_notch[ID_SLEW] != 0)	CS_workbuf.ote_notch_lamp[index].color = OTE0_ORANGE;
-					else										CS_workbuf.ote_notch_lamp[index].color = OTE0_GREEN;
-					index = ID_SLEW * 10 + pPLC_IO->v_fb_notch[ID_SLEW] + NOTCH_4;
-					if (pPLC_IO->v_fb_notch[ID_SLEW] != 0) {
-						CS_workbuf.ote_notch_lamp[index].com = OTE_LAMP_COM_ON; CS_workbuf.ote_notch_lamp[index].color = OTE0_RED;
-					}
-
-					index = ID_AHOIST * 10 + pPLC_IO->v_com_notch[ID_AHOIST] + NOTCH_4;
-					if (pPLC_IO->v_com_notch[ID_AHOIST] != 0)	CS_workbuf.ote_notch_lamp[index].color = OTE0_ORANGE;
-					else										CS_workbuf.ote_notch_lamp[index].color = OTE0_GREEN;
-					index = ID_AHOIST * 10 + pPLC_IO->v_fb_notch[ID_AHOIST] + NOTCH_4;
-					if (pPLC_IO->v_fb_notch[ID_AHOIST] != 0) {
-						CS_workbuf.ote_notch_lamp[index].com = OTE_LAMP_COM_ON; CS_workbuf.ote_notch_lamp[index].color = OTE0_RED;
-					}
+					//ノッチ指令表示
+					if (pPLC_IO->v_com_notch[i] != 0)	//0ﾉｯﾁ以外
+						CS_workbuf.ote_notch_lamp[pPLC_IO->v_com_notch[i] + index_base].color = OTE0_ORANGE;
+					//ノッチ速度FB表示
+					CS_workbuf.ote_notch_lamp[pPLC_IO->v_fb_notch[i] + index_base].color = OTE0_RED;
+					//0ノッチ表示
+					if(pPLC_IO->v_com_notch[i] == 0) CS_workbuf.ote_notch_lamp[index_base].color = OTE0_GREEN;
 				}
 			}
 		}
@@ -463,134 +434,6 @@ int CClientService::perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg) {
 /****************************************************************************/
 void CClientService::output() {
 
-/*### 自動関連ランプ表示　###*/
-#if 0
-
-	//起動ランプ
-	//ホットなジョブがアクティブ→点灯
-	if ((pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_ACTIVE)||
-		(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_ACTIVE)){
-		CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_ON;
-	}
-	//ホットなジョブがスタンバイ→点滅
-	else if((pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_STANDBY)||
-		(pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_STANDBY)) {
-		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_ON;
-		else
-			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
-	}
-	//ホットなジョブがサスペンド→点滅
-	else if ((pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_SUSPENDED) ||
-		(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_SUSPENDED)) {
-		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_ON;
-		else
-			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
-	}
-	else {
-		CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
-	}
-
-	//目標設定ランプ　目標設定確定ランプ
-
-	if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_FIXED) {
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_ON;
-	}
-	else if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_ACTIVE) {
-		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
-		else
-			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
-
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_OFF;
-	}
-	else {
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_OFF;
-	}
-
-	if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_FIXED) {
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_ON;
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY_FIXED] = L_ON;
-	}
-	else if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_ACTIVE) {
-		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_ON;
-		else
-			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY_FIXED] = L_OFF;
-	}
-	else {
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY_FIXED] = L_OFF;
-	}
-	//自動コマンドランプ
-	if (CS_workbuf.command_type == COM_TYPE_PICK) {
-		CS_workbuf.ui_lamp[ID_PB_PICK] = L_ON;
-		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
-	}
-	else if (CS_workbuf.command_type == COM_TYPE_GRND) {
-		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_GRND] = L_ON;
-		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
-	}
-	else if (CS_workbuf.command_type == COM_TYPE_PARK) {
-		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_PARK] = L_ON;
-	}
-	else {
-		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
-		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
-	}
-
-	//半自動ランプ
-	for (int i = 0;i < SEMI_AUTO_TG_CLR;i++) {
-		if (i == CS_workbuf.semi_auto_selected) {	//半自動選択中のPB
-			if(CS_workbuf.semiauto_pb[i]){
-				if ((CS_workbuf.semiauto_pb[i] >= SEMI_AUTO_TG_RESET_TIME)||(CS_workbuf.semiauto_pb[i]< SEMI_AUTO_TG_SELECT_TIME * 4))
-					CS_workbuf.semiauto_lamp[i] = L_ON;
-				else if ((CS_workbuf.semiauto_pb[i] % (SEMI_AUTO_TG_SELECT_TIME*2)) > SEMI_AUTO_TG_SELECT_TIME)
-					CS_workbuf.semiauto_lamp[i] = L_ON;
-				else
-					CS_workbuf.semiauto_lamp[i] = L_OFF;
-			}
-			else {//目標位置確定で点灯
-				CS_workbuf.semiauto_lamp[i] = L_ON;
-			}
-		}
-		else {	//半自動選択中でないPB
-			CS_workbuf.semiauto_lamp[i] = L_OFF;
-		}
-
-		CS_workbuf.ui_lamp[ID_PB_SEMI_AUTO_S1 + i] = CS_workbuf.semiauto_lamp[i];//表示ランプバッファへコピー
-	}
-
-
-	//ブレーキ状態
-	for (int i = 0;i < MOTION_ID_MAX;i++) {
-		CS_workbuf.ui_lamp[ID_LAMP_HST_BRK + i] = pPLC_IO->status.brk[i];
-	}
-
-	//主幹ランプ　遠隔モード
-	CS_workbuf.ui_lamp[ID_PB_CRANE_MODE]		= pPLC_IO->ui.LAMP[ID_PB_CRANE_MODE];
-	CS_workbuf.ui_lamp[ID_PB_REMOTE_MODE]		= pPLC_IO->ui.LAMP[ID_PB_REMOTE_MODE];
-	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE_ON]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE_ON];
-	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE_OFF]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE_OFF];
-	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE2_ON]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE2_ON];
-	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE2_OFF]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE2_OFF];
-
-	//操作端末表示用情報セット
-	CS_workbuf.ui_lamp[ID_LAMP_OTE_NOTCH_MODE] = CS_workbuf.ote_notch_dist_mode;		//移動目標設定モード
-	set_hp_pos_for_view();																//吊点位置座標セット
-
-
-
-#endif
 
 	//共有メモリ出力
 	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));
@@ -739,7 +582,7 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 			pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ABNORMAL_END;
 
 	//		CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;		//半自動設定クリア
-			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_CLEAR;	//目標確定解除
+			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_CLEAR;		//目標確定解除
 			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_CLEAR;	//目標確定解除
 
 			job_report2client(pjobset, STAT_ABNORMAL_END);
@@ -806,7 +649,6 @@ int CClientService::job_report2client(LPST_JOB_SET pjobset, int fb_code) {      
 	return STAT_SUCCEED;
 	return STAT_NA;
 }
-
 
 /****************************************************************************/
 /*   半自動関連処理															*/

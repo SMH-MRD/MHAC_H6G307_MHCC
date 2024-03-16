@@ -383,10 +383,10 @@ void CAgent::main_proc() {
 	set_ref_bh();							//à¯çûë¨ìxéwóﬂ
 
 	//DBG CHECK
-	AgentInf_workbuf.v_ref[ID_HOIST] = -0.117;
-	AgentInf_workbuf.v_ref[ID_AHOIST] = -0.2;
-	AgentInf_workbuf.v_ref[ID_BOOM_H] = -1.0;
-	AgentInf_workbuf.v_ref[ID_SLEW] = -0.035;
+//	AgentInf_workbuf.v_ref[ID_HOIST] = -0.117;
+//	AgentInf_workbuf.v_ref[ID_AHOIST] = -0.2;
+//	AgentInf_workbuf.v_ref[ID_BOOM_H] = -1.0;
+//	AgentInf_workbuf.v_ref[ID_SLEW] = -0.035;
 	return;
 }
 

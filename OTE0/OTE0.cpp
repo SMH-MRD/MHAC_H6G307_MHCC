@@ -46,9 +46,9 @@ GdiplusStartupInput gdiSI;
 ULONG_PTR           gdiToken;
 
 //DIRECTINPUT
-static LPDIRECTINPUT8 lpDI = NULL;			//!< DIRECTINPUT8のポインタ
-static LPDIRECTINPUTDEVICE8 lpGamePad;		//!< DIRECTINPUTDEVICE8のポインタ
-static DIJOYSTATE pad_data;					//!< DIRECTINPUTDEVICE8の状態読み込みバッファ
+static LPDIRECTINPUT8		g_pDI = NULL;		//!< DIRECTINPUT8のポインタ
+static LPDIRECTINPUTDEVICE8 g_pGamePad = NULL;	//!< DIRECTINPUTDEVICE8のポインタ
+static DIJOYSTATE pad_data;						//!< DIRECTINPUTDEVICE8の状態読み込みバッファ
 
 static INT16 disp_cnt=0;
 static bool is_init_disp = true;
@@ -97,6 +97,10 @@ void init_graphic();
 void draw_graphic_swy();
 void draw_bk_swy();
 
+//DirectInput
+BOOL InitDirectInput(HWND hWnd);
+VOID ReleaseDirectInput();
+VOID VibrateController();
 
 
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
@@ -270,38 +274,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 
 	//DIRECTINPUT
-	HRESULT ret = DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8, (LPVOID*)&lpDI, NULL);
-	if (FAILED(ret)) {
-		// 作成に失敗
-		return -1;
-	}
-	// IDirectInputDevice8の取得
-	ret = lpDI->CreateDevice(GUID_Joystick, &lpGamePad, NULL);
-	if (FAILED(ret)) {
-		lpDI->Release();
-		return -1;
-	}
-
-	// 入力データ形式のセット
-	ret = lpGamePad->SetDataFormat(&c_dfDIJoystick);
-	if (FAILED(ret)) {
-		lpGamePad->Release();
-		lpDI->Release();
-		return -1;
-	}
-
-#if 0
-	// 排他制御のセット
-	ret = lpGamePad->SetCooperativeLevel(hWnd_work, DISCL_FOREGROUND | DISCL_EXCLUSIVE);
-	if (FAILED(ret)) {
-		lpGamePad->Release();
-		lpDI->Release();
-		return -1;
-	}
-#endif
-	// 動作開始
-	lpGamePad->Acquire();
-
+	InitDirectInput(hWnd_work);
 
 	//IP CAMERA
 	for (int i = 0; i < OTE0_N_IP_CAMERA; i++) {
@@ -333,12 +306,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	HDC hdc;
 
 	HINSTANCE hInst = GetModuleHandle(0);
+
 	switch (message)
 	{
 	case WM_CREATE: {
 		InitCommonControls();//コモンコントロール初期化
 
-		char DeviceName[100]= OTE_DIO_NAME;
+		char DeviceName[100] = OTE_DIO_NAME;
 		DioInit(DeviceName, &dio_id);
 
 		//ウィンドウにコントロール追加
@@ -379,13 +353,65 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			if ((pCOte0->data.auto_sel[ID_BOOM_H] == L_OFF) || (pCOte0->data.auto_sel[ID_SLEW] == L_OFF)) {
 				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_BOOM_H];
 				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = pCOte0->st_msg_pc_u_rcv.body.pos[ID_SLEW];
-
 			}
 		}
+
+		//半自動目標位置セット、ランプ
+
+		if (st_work_wnd.semiauto_selected == L_OFF)st_work_wnd.semiauto_count = 0;
+
+		for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
+			if (pCOte0->data.auto_mode == L_ON) {
+				if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_GETCHECK, 0, 0)) {
+					st_work_wnd.semiauto_selected = i;
+					st_work_wnd.semiauto_count++;
+				}
+				else if ((i == st_work_wnd.semiauto_selected) && (st_work_wnd.semiauto_count > OTE0_PB_OFF_DELAY_COUNT + 10)) {//PB OFFで選択表示に戻す
+					st_work_wnd.semiauto_count = L_ON;
+				}
+			}
+			else {
+				st_work_wnd.semiauto_selected = L_OFF;
+			}
+	
+			if (i != st_work_wnd.semiauto_selected) {
+				st_work_wnd.pb_lamp[i].com = OTE_LAMP_COM_OFF;
+				st_work_wnd.pb_lamp[i].color = OTE0_GLAY;
+			}
+			
+		}
+
+		if (st_work_wnd.semiauto_count > OTE0_SEMIAUTO_RESET_COUNT) {
+			st_work_wnd.pb_lamp[st_work_wnd.semiauto_selected].com = OTE_LAMP_COM_ON;
+			st_work_wnd.pb_lamp[st_work_wnd.semiauto_selected].color = OTE0_MAZENDA;
+
+			//登録目標位置更新
+			int i_target = ID_OTE_CHK_N3 - st_work_wnd.semiauto_selected + 1;
+			pCOte0->data.d_tgpos[i_target][ID_HOIST]	= pCOte0->data.pos[ID_HOIST];
+			pCOte0->data.d_tgpos[i_target][ID_AHOIST]	= pCOte0->data.pos[ID_AHOIST];
+			pCOte0->data.d_tgpos[i_target][ID_BOOM_H]	= pCOte0->data.pos[ID_BOOM_H];
+			pCOte0->data.d_tgpos[i_target][ID_SLEW]		= pCOte0->data.pos[ID_SLEW];
+		}
+		else if (st_work_wnd.semiauto_count > OTE0_PB_OFF_DELAY_COUNT) {
+			st_work_wnd.pb_lamp[st_work_wnd.semiauto_selected].com = OTE_LAMP_COM_FLICK;
+			st_work_wnd.pb_lamp[st_work_wnd.semiauto_selected].color = OTE0_ORANGE;
+		}
+		else if (L_OFF != st_work_wnd.semiauto_selected) {
+			st_work_wnd.pb_lamp[st_work_wnd.semiauto_selected].com = OTE_LAMP_COM_ON;
+			st_work_wnd.pb_lamp[st_work_wnd.semiauto_selected].color = OTE0_BLUE;
+
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = pCOte0->data.d_tgpos[st_work_wnd.semiauto_selected][ID_HOIST];
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = pCOte0->data.d_tgpos[st_work_wnd.semiauto_selected][ID_AHOIST];
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = pCOte0->data.d_tgpos[st_work_wnd.semiauto_selected][ID_BOOM_H];
+			pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = pCOte0->data.d_tgpos[st_work_wnd.semiauto_selected][ID_SLEW];
+		}
+		else;
+
 
 		//グラフィック目標位置セット
 		pCOte0->data.pt_tgpos[OTE_ID_HOT_TARGET][ID_HOIST] = pCOte0->cal_gr_pos_from_d_pos(ID_HOIST, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_HOIST], 0.0);
 		pCOte0->data.pt_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] = pCOte0->cal_gr_pos_from_d_pos(ID_AHOIST, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST], 0.0);
+		//引込、旋回は2軸でPOINT出力　グラフィック位置は共有
 		pCOte0->data.pt_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = pCOte0->data.pt_tgpos[OTE_ID_HOT_TARGET][ID_SLEW]
 			= pCOte0->cal_gr_pos_from_d_pos(ID_BOOM_H, pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H], pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW]);
 
@@ -414,21 +440,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i], st_work_wnd.ctrl_text[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i]);
 			}
 			else {
-				for (int i = 0; i < 9;i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST* N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_HOIST][i]);
+				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_HOIST * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_HOIST][i]);
 				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_BOOM_H * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_BOOM_H][i]);
 				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_SLEW * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_SLEW][i]);
 				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_AHOIST * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_AHOIST][i]);
 				for (int i = 0; i < 9; i++) SetWindowText(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_GANTRY * N_OTE_NOTCH_ARRAY + i], st_work_wnd.notch_auto_text[ID_GANTRY][i]);
 
 			}
-			 auto_mode_last = pCOte0->data.auto_mode;
+			auto_mode_last = pCOte0->data.auto_mode;
 		}
 
 		if (wParam == ID_OTE_UNICAST_TIMER) {
 			//ON PAINT　呼び出し　表示更新
 
 			//グラフィック表示エリア
-			RECT rc = { OTE0_WND_X,OTE0_GR_AREA_Y,OTE0_GR_AREA_X + OTE0_GR_AREA_W+20 ,OTE0_GR_AREA_Y + OTE0_GR_AREA_H };
+			RECT rc = { OTE0_WND_X,OTE0_GR_AREA_Y,OTE0_GR_AREA_X + OTE0_GR_AREA_W + 20 ,OTE0_GR_AREA_Y + OTE0_GR_AREA_H };
 			InvalidateRect(hWnd, &rc, FALSE);
 			rc.top -= 35; rc.bottom = OTE0_GR_AREA_Y;
 			InvalidateRect(hWnd, &rc, FALSE);
@@ -438,13 +464,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 
 			//情報表示エリア+カメラエリア
-			rc.left = OTE0_CAM2_WND_X; rc.right= 810; rc.top = 0; rc.bottom = 300;
+			rc.left = OTE0_CAM2_WND_X; rc.right = 810; rc.top = 0; rc.bottom = 300;
 			InvalidateRect(hWnd, &rc, FALSE);
 
 			//ボタンエリア
 			rc.left = 800; rc.right = 960; rc.top = 0; rc.bottom = 300;
 			InvalidateRect(hWnd, &rc, FALSE);
-				//######
+			//######
 		}
 
 		if (wParam == ID_OTE_MULTICAST_TIMER) {
@@ -490,11 +516,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 			pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_DBG_ENABLE;
 		}
-		else {
-			pCOte0->data.grip_stat.b[0] |= OTE_GRIP_DBG_ENABLE;
+		else {//グリップスイッチ無効時
+			pCOte0->data.grip_stat.b[0] |= OTE_GRIP_DBG_ENABLE;//グリップスイッチ握り切りの時に緊急停止を判定する為にソフトビットをONにする　メインのCSで判定用
+
 			//緊急停止
 
-			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_GETCHECK, 0, 0)){
+			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_GETCHECK, 0, 0)) {//ノーマルクローズ
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~0x0001;
 				pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_ESTP;
 			}
@@ -513,29 +540,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_ACTIVE;
 			}
 		}
-#if 0
-		for (int i = 0; i < N_OTE_NOTCH_ARRAY; i++) {
-			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP + i], BM_GETCHECK, 0, 0)) {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= mask;
-				st_work_wnd.notch_pb_stat[ID_OTE_GRIP_ESTOP + i] = OTE0_PB_OFF_DELAY_COUNT;
 
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= mask;
-
-			}
-			else {
-				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~mask;
-				st_work_wnd.notch_pb_stat[ID_OTE_GRIP_ESTOP + i] = L_OFF;
-
-				if (i == (ID_OTE_GRIP_PAD_MODE - ID_OTE_GRIP_ESTOP)) pCOte0->data.gpad_mode = L_OFF;
-			}
-			mask=mask << 1;
-
-			gpad_mode_last = pCOte0->data.gpad_mode;
-		}
-#endif
 		//リモート無効時
 		if (BST_CHECKED != SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_GETCHECK, 0, 0)) {
-			pCOte0->data.ope_mode == OTE_ID_OPE_MODE_MONITOR;
+			pCOte0->data.ope_mode = OTE_ID_OPE_MODE_MONITOR;
 			for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 				if (i == ID_OTE_GRIP_SWITCH)continue;//	グリップスイッチは対象外
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;	//0ノッチで初期化
@@ -544,7 +552,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		else {
 			pCOte0->data.ope_mode |= OTE_ID_OPE_MODE_COMMAND;
 		}
-		
+
 		//PB Stat 更新　PBはカウントダウン
 		{
 			//メインパネル
@@ -580,7 +588,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
 			if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_GETCHECK, 0, 0))
 				st_work_wnd.pb_stat[i]++;
-			else 				st_work_wnd.pb_stat[i]=0;
+			else 				st_work_wnd.pb_stat[i] = 0;
 
 		}
 
@@ -597,7 +605,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			case ID_OTE_RADIO_SOCK_PU: {
 				//受信アドレス
 				msg_wos.str(L"");
-				msg_wos  << L" PCIP:" << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b1 << L"." << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b2 << L"." << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b3 << L"." << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b4 << L": "
+				msg_wos << L" PCIP:" << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b1 << L"." << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b2 << L"." << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b3 << L"." << pCOte0->addrin_pc_u_from.sin_addr.S_un.S_un_b.s_b4 << L": "
 					<< htons(pCOte0->addrin_pc_u_from.sin_port)
 					<< L" \n MyIP:" << pCOte0->addrin_pc_u_ote.sin_addr.S_un.S_un_b.s_b1 << L"." << pCOte0->addrin_pc_u_ote.sin_addr.S_un.S_un_b.s_b2 << L"." << pCOte0->addrin_pc_u_ote.sin_addr.S_un.S_un_b.s_b3 << L"." << pCOte0->addrin_pc_u_ote.sin_addr.S_un.S_un_b.s_b4 << L": "
 					<< htons(pCOte0->addrin_pc_u_ote.sin_port);
@@ -674,7 +682,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		case ID_OTE_RADIO_MODE: {
 		}break;
 		case ID_OTE_RADIO_FAULT: {
-			}break;
+		}break;
 		case ID_OTE_RADIO_STAT: {
 		}break;
 		default:break;
@@ -690,11 +698,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		//ゲームパッド
 		{
-			if (lpGamePad != NULL) {
-				HRESULT hr = lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+			if (g_pGamePad != NULL) {
+				HRESULT hr = g_pGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
 				if (FAILED(hr)) {
-					lpGamePad->Acquire();
-					lpGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
+					g_pGamePad->Acquire();
+					g_pGamePad->GetDeviceState(sizeof(DIJOYSTATE), &pad_data);
 				}
 			}
 
@@ -702,8 +710,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			//主幹PB
 			if (pad_data.rgbButtons[4]) st_work_wnd.pb_stat[ID_OTE_PB_SYUKAN] = OTE0_PB_OFF_DELAY_COUNT;
 			//故障リセットPB
-			if (pad_data.rgbButtons[5]) st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
-
+			if (pad_data.rgbButtons[5]) {
+				st_work_wnd.pb_stat[ID_OTE_PB_FLT_RESET] = OTE0_PB_OFF_DELAY_COUNT;
+			}
+			//カメラウィンドウオープン/クローズ
 			if (pad_data.rgbButtons[3] && !gmpad_PB_last[3]) {
 				if (BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][ID_OTE_CHK_CAMERA_WND], BM_GETCHECK, 0, 0)) {
 
@@ -746,6 +756,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, ID_OTE_RADIO_OPE1);
 			}
 
+			//アナログノッチ
 			//if (pad_data.rgbButtons[11]) 
 			if (pCOte0->data.gpad_mode) {
 				if ((pad_data.lRz < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lRz > OTE0_GMPAD_NOTCH0_MAX)) {
@@ -761,7 +772,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] = ID_OTE_0NOTCH_POS;
 				}
 			}
-			//if (pad_data.rgbButtons[10]) {//ノッチPB　ONの時有効
+			//パッドモードの時有効
 			if (pCOte0->data.gpad_mode) {
 				if ((pad_data.lY < OTE0_GMPAD_NOTCH0_MIN) || (pad_data.lY > OTE0_GMPAD_NOTCH0_MAX)) {
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] = (INT16)((pad_data.lY - OTE0_GMPAD_NOTCH0) / OTE0_GMPAD_NOTCH_PITCH) + ID_OTE_0NOTCH_POS;
@@ -858,10 +869,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 		}
 
+		//バイブレータ
+		if (st_work_wnd.pb_stat[ID_OTE_PB_HIJYOU])VibrateController();
+
 		//前回値保持
 		for (int i = 0; i < 16; i++) gmpad_PB_last[i] = pad_data.rgbButtons[i];
 		gmpad_POV_last[0] = pad_data.rgdwPOV[0];
-			
+
 	}break;
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);
@@ -874,9 +888,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//NOTCH　RADIO PB
 		if ((wmId >= ID_OTE_NOTCH_MH_MIN) && (wmId <= ID_OTE_NOTCH_AH_MAX)) {
 			if (wmId < ID_OTE_NOTCH_MH_MAX) {
-				if(pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF)
+				if (pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_OFF)
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = wmId - ID_OTE_NOTCH_MH_MIN;
-				else 
+				else
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] = ID_OTE_0NOTCH_POS;
 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][ID_HOIST] = wmId - ID_OTE_NOTCH_MH_MIN;
@@ -971,7 +985,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//表示カメラ選択　RADIO PB
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_RADIO_WIDE) && (wmId <= BASE_ID_OTE_PB + ID_OTE_RADIO_OPE2)) {
 			if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
-				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA,0, wmId - BASE_ID_OTE_PB);
+				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd, OTE0_MSG_SWICH_CAMERA, 0, wmId - BASE_ID_OTE_PB);
 				SendMessage(st_ipcam[OTE_CAMERA_WND_ID_OPT1].hwnd, OTE0_MSG_SWICH_CAMERA, 0, wmId - BASE_ID_OTE_PB);
 			}
 			st_work_wnd.camera_sel = wmId - BASE_ID_OTE_PB;
@@ -980,20 +994,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		switch (wmId)
 		{
-		//自動選択
+			//自動選択
 		case BASE_ID_OTE_PB + ID_OTE_PB_ARESET_ALL: {
 			for (int i = ID_OTE_CHK_ASET_MH; i <= ID_OTE_CHK_ASET_SL; i++) {
 				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][i], BM_SETCHECK, BST_UNCHECKED, 0L);
-			
-				st_work_wnd.pb_lamp[i] .com= L_OFF;	//設定OFF　
-				for (int i = 0; i < MOTION_ID_MAX; i++){
+
+				st_work_wnd.pb_lamp[i].com = L_OFF;	//設定OFF　
+				for (int i = 0; i < MOTION_ID_MAX; i++) {
 					pCOte0->data.auto_sel[ID_HOIST] = OTE_ID_AUTOSTAT_OFF;
 				}
 			}
 			break;
 		}
 		case BASE_ID_OTE_PB + ID_OTE_CHK_ASET_MH: {
-			if ((BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)&&
+			if ((BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0) &&
 				(pCOte0->data.auto_mode == OTE_ID_AUTOSTAT_STANDBY))) {
 				st_work_wnd.pb_lamp[wmId - BASE_ID_OTE_PB].com = L_ON;
 				pCOte0->data.auto_sel[ID_HOIST] = OTE_ID_AUTOSTAT_STANDBY;
@@ -1041,10 +1055,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 		}break;
 
-		//カメラウィンドウ表示
+			//カメラウィンドウ表示
 		case BASE_ID_OTE_PB + ID_OTE_CHK_CAMERA_WND: {
 			if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][wmId - BASE_ID_OTE_PB], BM_GETCHECK, 0, 0)) {
-				
+
 				if (st_ipcam[OTE_CAMERA_WND_ID_BASE].hwnd != NULL) {
 					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->LiveStop();
 					st_ipcam[OTE_CAMERA_WND_ID_BASE].pPSA->OnClose();
@@ -1128,19 +1142,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 	case WM_LBUTTONDOWN: {
 		LONG x = (LONG)LOWORD(lParam), y = (LONG)HIWORD(lParam);
-		LONG d2 = (x - OTE0_GR_AREA_CX) * (x - OTE0_GR_AREA_CX)  + (y - OTE0_GR_AREA_CY)* (y - OTE0_GR_AREA_CY);
+		LONG d2 = (x - OTE0_GR_AREA_CX) * (x - OTE0_GR_AREA_CX) + (y - OTE0_GR_AREA_CY) * (y - OTE0_GR_AREA_CY);
 		//旋回引込目標位置設定エリア
-		if (d2 < OTE0_GR_AREA_R * OTE0_GR_AREA_R) {								
+		if (d2 < OTE0_GR_AREA_R * OTE0_GR_AREA_R) {
 			pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_BHSL, x, y);
 		}
 		//主巻目標位置設定エリア(有効エリアの描画は線）
-		else if ((x> OTE0_GR_AREA2_MH_SET_X- OTE0_GR_AREA2_MH_SET_W/2)&&(x< (OTE0_GR_AREA2_MH_SET_X + OTE0_GR_AREA2_MH_SET_W/2))){
-			if((y > OTE0_GR_AREA2_MH_SET_Y) && (y < (OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H))) 
+		else if ((x > OTE0_GR_AREA2_MH_SET_X - OTE0_GR_AREA2_MH_SET_W / 2) && (x < (OTE0_GR_AREA2_MH_SET_X + OTE0_GR_AREA2_MH_SET_W / 2))) {
+			if ((y > OTE0_GR_AREA2_MH_SET_Y) && (y < (OTE0_GR_AREA2_MH_SET_Y + OTE0_GR_AREA2_MH_SET_H)))
 				pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_MH, x, y);
 		}
 		//補巻目標位置設定エリア(有効エリアの描画は線）
-		else if ((x > OTE0_GR_AREA2_AH_SET_X - OTE0_GR_AREA2_AH_SET_W / 2) && (x < (OTE0_GR_AREA2_AH_SET_X + OTE0_GR_AREA2_AH_SET_W/2))){
-			if((y > OTE0_GR_AREA2_AH_SET_Y) && (y < (OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H)))
+		else if ((x > OTE0_GR_AREA2_AH_SET_X - OTE0_GR_AREA2_AH_SET_W / 2) && (x < (OTE0_GR_AREA2_AH_SET_X + OTE0_GR_AREA2_AH_SET_W / 2))) {
+			if ((y > OTE0_GR_AREA2_AH_SET_Y) && (y < (OTE0_GR_AREA2_AH_SET_Y + OTE0_GR_AREA2_AH_SET_H)))
 				pCOte0->update_auto_target_touch(OTE0_ID_AREA_GR_AH, x, y);
 		}
 		else;
@@ -1160,21 +1174,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		PatBlt(st_work_wnd.hdc[ID_OTE_HDC_MEM0], 0, 0, st_work_wnd.area_w, st_work_wnd.area_h, WHITENESS);
 		draw_graphic();
 		draw_info();
-	
+
 		//Windowに合成画像を書き込み
 		LONG cpyw = OTE0_GR_AREA2_X + OTE0_GR_AREA2_W - OTE0_GR_AREA_X;//MEM DCからのコピー幅
 
 		//カメラエリア
 		if (disp_cnt == 1) {
 			init_graphic();
-			BitBlt(hdc, OTE0_CAM2_WND_X , OTE0_CAM2_WND_Y, OTE0_CAM2_WND_W + OTE0_CAM2_WND_X, OTE0_CAM2_WND_H, st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, SRCCOPY);
+			BitBlt(hdc, OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, OTE0_CAM2_WND_W + OTE0_CAM2_WND_X, OTE0_CAM2_WND_H, st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_CAM2_WND_X, OTE0_CAM2_WND_Y, SRCCOPY);
 		}
 		//グラフィックエリア	
 		BitBlt(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, cpyw, OTE0_GR_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM_BK], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, SRCCOPY);
 		TransparentBlt(hdc, OTE0_GR_AREA_X, OTE0_GR_AREA_Y, cpyw, OTE0_GR_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_GR_AREA_X, OTE0_GR_AREA_Y, cpyw, OTE0_GR_AREA_H, RGB(255, 255, 255));
-		
+
 		//情報エリア
-		BitBlt(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_W, OTE0_IF_AREA_H,	st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_IF_AREA_X, OTE0_IF_AREA_Y,SRCCOPY);
+		BitBlt(hdc, OTE0_IF_AREA_X, OTE0_IF_AREA_Y, OTE0_IF_AREA_W, OTE0_IF_AREA_H, st_work_wnd.hdc[ID_OTE_HDC_MEM0], OTE0_IF_AREA_X, OTE0_IF_AREA_Y, SRCCOPY);
 
 		//ランプ描画
 		draw_lamp(hdc, is_init_disp);
@@ -1187,7 +1201,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		delete_objects(hWnd_work);
 
 		for (int i = 0; i < OTE0_N_IP_CAMERA; i++) {
-			if (st_ipcam[i].hwnd!=NULL) {
+			if (st_ipcam[i].hwnd != NULL) {
 				st_ipcam[i].pPSA->LiveStop();
 				st_ipcam[i].pPSA->OnClose();
 				delete st_ipcam[i].pPSA;
@@ -1195,12 +1209,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 		}
 
+		ReleaseDirectInput();
+
 		PostQuitMessage(0);
 	}break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return S_OK;
+
 }
 
 //*********************************************************************************************
@@ -2881,7 +2898,7 @@ void draw_lamp(HDC hdc,bool is_init) {
 	SelectObject(hdc, GetStockObject(NULL_PEN));
 
 	//PBランプ
-	for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_CHK_N3; i++) {
+	for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME; i++) {
 		if (pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].com == OTE_LAMP_COM_ON) {
 			SelectObject(hdc, st_work_wnd.hbrush[pCOte0->st_msg_pc_u_rcv.body.pb_lamp[i].color]);
 		}
@@ -2897,6 +2914,25 @@ void draw_lamp(HDC hdc,bool is_init) {
 		Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
 
 	}
+
+	for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
+		if (st_work_wnd.pb_lamp[i].com == OTE_LAMP_COM_ON) {
+			SelectObject(hdc, st_work_wnd.hbrush[st_work_wnd.pb_lamp[i].color]);
+		}
+		else if (st_work_wnd.pb_lamp[i].com == OTE_LAMP_COM_FLICK) {
+			if (disp_cnt & OTE_LAMP_FLICK_COUNT)SelectObject(hdc, st_work_wnd.hbrush[st_work_wnd.pb_lamp[i].color]);
+			else SelectObject(hdc, st_work_wnd.hbrush[OTE0_GLAY]);		//OFF色
+		}
+		else {
+			SelectObject(hdc, st_work_wnd.hbrush[OTE0_GLAY]);		//OFF色
+		}
+
+		RECT rc = st_work_wnd.pb_rect[i];
+		Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+
+	}
+
+
 
 	//NOTCHランプ
 	for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
@@ -3105,4 +3141,91 @@ POINT COte::cal_gr_pos_from_d_pos(int motion, double HorR, double Slew) {
 	else;
 
 	return ans;
+}
+
+//DirectInput
+
+static LPDIRECTINPUTEFFECT	lpdiEffect;  // receives pointer to created effect
+static DIEFFECT				diEffect;    // parameters for created effect
+static DWORD				dwAxes[2] = { DIJOFS_X, DIJOFS_Y };
+static LONG					lDirection[2] = { 18000, 0 };
+static DICONSTANTFORCE		diConstantForce;
+
+BOOL InitDirectInput(HWND hWnd) {
+
+	HRESULT hr;
+	// DirectInput デバイスの作成
+	hr = DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&g_pDI, NULL);
+	if (FAILED(hr)) return FALSE;
+
+	// ジョイスティック デバイスの作成
+	hr = g_pDI->CreateDevice(GUID_Joystick, &g_pGamePad, NULL);
+	if (FAILED(hr))	return FALSE;
+
+	// デバイスのデータフォーマットを設定
+	hr = g_pGamePad->SetDataFormat(&c_dfDIJoystick);
+	if (FAILED(hr)) return FALSE;
+
+	// デバイスの協調レベルを設定
+	hr = g_pGamePad->SetCooperativeLevel(hWnd, DISCL_EXCLUSIVE | DISCL_BACKGROUND);
+	if (FAILED(hr)) return FALSE;
+
+	// デバイスのアクセスを開始	
+	hr = g_pGamePad->Acquire();
+	if (FAILED(hr)) return FALSE;
+
+	//エフェクト作成
+	diConstantForce.lMagnitude = DI_FFNOMINALMAX;				// Full force
+//	diConstantForce.lMagnitude = 100;							// 1% force
+
+	diEffect.dwSize = sizeof(DIEFFECT);
+	diEffect.dwFlags = DIEFF_POLAR | DIEFF_OBJECTOFFSETS;
+	diEffect.dwDuration = (DWORD)(3.0 * DI_SECONDS);			//とりあえず3秒間のOFFDELAY
+	diEffect.dwSamplePeriod = 0;								// = default 
+	diEffect.dwGain = DI_FFNOMINALMAX;							// No scaling
+	diEffect.dwTriggerButton = DIEB_NOTRIGGER;					// Not a button response
+	diEffect.dwTriggerRepeatInterval = 0;						// Not applicable
+	diEffect.cAxes = 2;
+	diEffect.rgdwAxes = &dwAxes[0];
+	diEffect.rglDirection = &lDirection[0];
+	diEffect.lpEnvelope = NULL;
+	diEffect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
+	diEffect.lpvTypeSpecificParams = &diConstantForce;
+
+	hr = g_pGamePad->CreateEffect(GUID_ConstantForce,
+		&diEffect,
+		&lpdiEffect,
+		NULL);
+
+	if (FAILED(hr)) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+VOID ReleaseDirectInput() {
+	if (g_pGamePad) {
+		g_pGamePad->Unacquire();
+		g_pGamePad->Release();
+		g_pGamePad = NULL;
+	}
+
+	if (g_pDI) {
+		g_pDI->Release();
+		g_pDI = NULL;
+	}
+}
+
+
+VOID VibrateController() {
+	
+
+	// デバイスにエフェクトを送信
+	if (FAILED(lpdiEffect->Start(1, 0))) {
+		lpdiEffect->Release();
+
+		return;
+	}
+	return;
 }

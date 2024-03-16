@@ -272,7 +272,7 @@ using namespace Gdiplus;
 #define OTE0_GMPAD_NOTCH0_MAX	32867
 #define OTE0_GMPAD_NOTCH_PITCH	8000
 
-
+#define OTE0_SEMIAUTO_RESET_COUNT 50
 
 //操作端末ウィンドウ構造体
 typedef struct _stOTEWorkWnd {
@@ -293,6 +293,9 @@ typedef struct _stOTEWorkWnd {
 	UINT32 flt_disp_mode = ID_OTE_RADIO_FLT_ALL;
 	INT32  camera_sel = ID_OTE_RADIO_WIDE;
 	INT32  subpanel_sel = ID_OTE_RADIO_COM;
+
+	INT32 semiauto_selected = L_OFF;
+	INT32 semiauto_count = 0;
 
 	INT32 is_test_wnd_follow_main = true;
 

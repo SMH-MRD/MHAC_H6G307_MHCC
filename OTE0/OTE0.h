@@ -119,6 +119,9 @@
 #define OTE_ID_AUTOSTAT_ACTIVE	2
 
 
+#define BUTTON_COUNT 16
+#define AXIS_COUNT	6
+
 
 union OTE_GRIP_STAT {
 	BYTE	b[4];
