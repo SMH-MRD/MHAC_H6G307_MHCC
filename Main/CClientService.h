@@ -26,13 +26,15 @@
 
 #define CS_NORMAL_OPERATION_MODE 0
 
-#define CS_JOBSET_EVENT_CLEAR               0
-#define CS_JOBSET_EVENT_JOB_STANDBY         1
-#define CS_JOBSET_EVENT_SEMI_STANDBY        2
-#define CS_JOBSET_EVENT_JOB_TRIG            4
-#define CS_JOBSET_EVENT_SEMI_TRIG           8
-#define CS_JOBSET_EVENT_JOB_OVERFLOW       16
-#define CS_JOBSET_EVENT_SEMI_SEL_CLEAR     32
+#define CS_JOBSET_EVENT_CLEAR               0x0000
+#define CS_JOBSET_EVENT_SEMI_REQ_IN         0x0001
+#define CS_JOBSET_EVENT_JOB_STANDBY         0x0002
+#define CS_JOBSET_EVENT_SEMI_STANDBY        0x0004
+#define CS_JOBSET_EVENT_JOB_TRIG            0x0008
+#define CS_JOBSET_EVENT_SEMI_TRIG           0x0010
+#define CS_JOBSET_EVENT_JOB_OVERFLOW        0x0020
+#define CS_JOBSET_EVENT_SEMI_SEL_CLEAR      0x0040
+#define CS_JOBSET_EVENT_JOB_ABOT            0x0080
 
 #define CS_N_MSG_HOLD                       10
 

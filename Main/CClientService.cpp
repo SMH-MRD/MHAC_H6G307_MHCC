@@ -48,12 +48,6 @@ void CClientService::init_task(void* pobj) {
 	pOTE_IO = (LPST_OTE_IO)(pOTEioObj->get_pMap());
 	pJob_IO = (LPST_JOB_IO)(pJobIO_Obj->get_pMap());
 
-	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
-		CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST] = spec.semi_target[i][ID_HOIST];
-		CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H] = spec.semi_target[i][ID_BOOM_H];
-		CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW] = spec.semi_target[i][ID_SLEW];
-	}
-
 	for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
 		if (i == ID_OTE_GRIP_SWITCH)continue;//	グリップスイッチは対象外
 		CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] = CS_workbuf.notch_pos[ID_OTE_NOTCH_POS_TRIG][i] = ID_OTE_0NOTCH_POS;	//0ノッチで初期化
@@ -63,6 +57,8 @@ void CClientService::init_task(void* pobj) {
 	}
 
 	CS_workbuf.ote_remote_status &= ~CS_CODE_OTE_REMOTE_ENABLE; //リモート操作可をクリア
+
+	for (int i = ID_HOIST; i <= ID_AHOIST; i++) CS_workbuf.auto_status[i] = STAT_MANUAL;
 
 	return;
 };
@@ -159,36 +155,9 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 
 			//自動選択状態
 			for (int i = ID_HOIST; i <= ID_AHOIST; i++) {
-				CS_workbuf.auto_sel[i] = pOTE_IO->ote_umsg_in.body.auto_sel[i];
-			}
-//半自動はOTE管理にする
-#if 0
-			//半自動　PBL
-			for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
-				if (pOTE_IO->ote_umsg_in.body.pb_ope[i]) {
-					CS_workbuf.semi_auto_selected = i;
-					break;
-				}
+				CS_workbuf.auto_status[i] = pOTE_IO->ote_umsg_in.body.auto_sel[i];
 			}
 
-			for (int i = ID_OTE_CHK_S1; i <= ID_OTE_CHK_N3; i++) {
-				if (i == CS_workbuf.semi_auto_selected) {
-					if (pOTE_IO->ote_umsg_in.body.pb_ope[i] > SEMI_AUTO_TG_RESET_TIME) {
-						CS_workbuf.ote_pb_lamp[i].com = OTE_LAMP_COM_ON;
-						CS_workbuf.ote_pb_lamp[i].color = OTE0_MAZENDA;
-					}
-					else if (pOTE_IO->ote_umsg_in.body.pb_ope[i] > OTE0_PB_OFF_DELAY_COUNT) {
-						CS_workbuf.ote_pb_lamp[i].com = OTE_LAMP_COM_FLICK;
-						CS_workbuf.ote_pb_lamp[i].color = OTE0_ORANGE;
-					}
-					else {
-						CS_workbuf.ote_pb_lamp[i].com = OTE_LAMP_COM_ON;
-						CS_workbuf.ote_pb_lamp[i].color = OTE0_BLUE;
-					}
-				}
-				else CS_workbuf.ote_pb_lamp[i].com = OTE_LAMP_COM_OFF;
-			}
-#endif
 		}
 		//ランプ
 		{
@@ -212,7 +181,7 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 			}
 
 			//操作PB前回値保持
-			for (int i = ID_OTE_PB_TEISHI; i < ID_OTE_CHK_N3; i++) {
+			for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME; i++) {
 				pb_ope_last[i] = pOTE_IO->ote_umsg_in.body.pb_ope[i];
 			}
 
@@ -260,7 +229,7 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 	}
 	else {//ランプOFF
 		//操作ランプ
-		for (int i = ID_OTE_PB_TEISHI; i < ID_OTE_CHK_N3; i++) {
+		for (int i = ID_OTE_PB_TEISHI; i <= ID_OTE_PB_FUREDOME; i++) {
 			CS_workbuf.ote_pb_lamp[i].com = OTE_LAMP_COM_OFF;
 		}
 		//ノッチランプ
@@ -280,6 +249,8 @@ int CClientService::ote_handle_proc() {         //操作端末処理
 	return 0; 
 }
 
+static INT32 ote_grip_last;
+static UINT32 ote_target_seq_last;
 void CClientService::main_proc() {
 
 	//操作端末処理
@@ -294,23 +265,21 @@ void CClientService::main_proc() {
 		pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job = 0;
 		CS_workbuf.semi_auto_selected = 0;
 	}
+	else {
+		if ((pOTE_IO->ote_grip == L_ON) && (ote_grip_last == L_OFF)) {
+			if (pOTE_IO->ote_umsg_in.body.target_seq_no != ote_target_seq_last) {//目標位置シーケンス番号更新あれば目標更新
+				CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_TRIG;
+			}
+		}
+		else;
+	}
 
 	//イベント処理
 	switch (CS_workbuf.job_set_event) {
-	case CS_JOBSET_EVENT_SEMI_SEL_CLEAR: {
-		int i_job = pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
-		LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
-		//		if (p_job->status == STAT_STANDBY) p_job->status = STAT_REQ_WAIT;
-		p_job->status = STAT_REQ_WAIT;
-		pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job--;
-		if (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job < 0) pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
 
-		//イベントクリア
-		CS_workbuf.job_set_event = CS_JOBSET_EVENT_CLEAR;
-	}break;
-	case CS_JOBSET_EVENT_SEMI_STANDBY: {										//半自動STANBY状態入り
+	case CS_JOBSET_EVENT_SEMI_STANDBY: {	//半自動トリガ発生
 		//*　半自動は、複数JOBの事前登録なし
-				//現在のJOBバッファ
+		//現在のJOBバッファ
 		int i_job = pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
 		LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
 
@@ -401,6 +370,7 @@ void CClientService::main_proc() {
 		CS_workbuf.p_active_job = NULL;
 
 
+	INT32 ote_grip_last = pOTE_IO->ote_grip;
 	return;
 }
 
@@ -417,9 +387,10 @@ LPST_JOB_SET CClientService::set_semi_recipe(LPST_JOB_SET pjob_set) {
 	pjob_set->n_com = 1;
 	pjob_set->type = ID_JOBTYPE_SEMI;
 	//目標位置セット
-	pjob_set->recipe[0].target.pos[ID_HOIST] = CS_workbuf.semi_auto_selected_target.pos[ID_HOIST];
-	pjob_set->recipe[0].target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H];
-	pjob_set->recipe[0].target.pos[ID_SLEW] = CS_workbuf.semi_auto_selected_target.pos[ID_SLEW];
+	pjob_set->recipe[0].target.pos[ID_HOIST]	= CS_workbuf.semi_auto_selected_target.pos[ID_HOIST];
+	pjob_set->recipe[0].target.pos[ID_BOOM_H]	= CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H];
+	pjob_set->recipe[0].target.pos[ID_SLEW]		= CS_workbuf.semi_auto_selected_target.pos[ID_SLEW];
+	pjob_set->recipe[0].target.pos[ID_AHOIST]	= CS_workbuf.semi_auto_selected_target.pos[ID_AHOIST];
 
 	return pjob_set;
 }

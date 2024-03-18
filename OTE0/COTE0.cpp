@@ -139,6 +139,7 @@ LPST_OTE_U_MSG COte::set_msg_ote_u() {
 	//INT32		grip_status;
 	st_msg_ote_u_snd.body.ope_mode = data.ope_mode;
 	st_msg_ote_u_snd.body.grip_status = data.grip_stat.ui32;
+	st_msg_ote_u_snd.body.target_seq_no = data.target_seq_no;
 	  
 	return &st_msg_ote_u_snd;
 }

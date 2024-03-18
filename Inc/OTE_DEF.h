@@ -130,6 +130,7 @@ typedef struct PcUBody {
 	ST_OTE_XYZ			ahld_pos;								//補巻吊荷位置FB（吊点相対位置）
 	INT32				brk[MOTION_ID_MAX];						//ブレーキ状態
 	double				auro_tg_pos[MOTION_ID_MAX];				//現在目標位置座標
+	INT32				auto_status[MOTION_ID_MAX];				//自動運転状態
 	INT32				swy_cam_pix[OTE_N_LOAD][MOTION_ID_MAX];	//振れセンサカメラ検出位置
 }ST_PC_U_BODY, * LPST_PC_U_BODY;
 typedef struct PcUMsg {
@@ -156,9 +157,10 @@ typedef struct OteUBody {
 	UINT16		pb_notch[128];					//操作卓ノッチ入力
 	INT16		notch_pos[2][MOTION_ID_MAX];	//ノッチ入力位置
 	double		auto_tg_pos[MOTION_ID_MAX];		//自動目標位置
-	INT32		auto_sel[MOTION_ID_MAX];			//自動動作対象軸
+	INT32		auto_sel[MOTION_ID_MAX];		//自動動作対象軸
 	INT32		ope_mode;						//0:モニタのみ　1:運転入力有効
-	INT32		grip_status;					
+	INT32		grip_status;	
+	UINT32		target_seq_no;
 }ST_OTE_U_BODY, * LPST_OTE_U_BODY;
 typedef struct OteUMsg {
 	ST_OTE_HEAD         head;

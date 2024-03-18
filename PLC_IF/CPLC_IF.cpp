@@ -419,7 +419,7 @@ int CPLC_IF::parse_data_out() {
         if (pCSInf->auto_mode) {//AGENT 出力をセット;
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] &= notch_ptn.bits[ID_HOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
-            if (pCSInf->auto_sel[ID_HOIST]) {
+            if (pCSInf->auto_status[ID_HOIST] !=STAT_MANUAL) {
                 plc_if_workbuf.v_com_notch[ID_HOIST] = get_notch_from_spd(ID_HOIST, pAgentInf->v_ref[ID_HOIST]);
                 ui_notch = plc_if_workbuf.v_com_notch[ID_HOIST] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] |= notch_ptn.bits[ID_HOIST][ui_notch];
@@ -430,7 +430,7 @@ int CPLC_IF::parse_data_out() {
             }
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] &= notch_ptn.bits[ID_GANTRY][PLC_IF_INDEX_NOTCH_PTN_CLR];
-            if (pCSInf->auto_sel[ID_GANTRY]) {
+            if (pCSInf->auto_status[ID_GANTRY] != STAT_MANUAL) {
                 plc_if_workbuf.v_com_notch[ID_GANTRY] = get_notch_from_spd(ID_GANTRY, pAgentInf->v_ref[ID_GANTRY]);
                 ui_notch = plc_if_workbuf.v_com_notch[ID_GANTRY] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] |= notch_ptn.bits[ID_GANTRY][ui_notch];
@@ -441,7 +441,7 @@ int CPLC_IF::parse_data_out() {
             }
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] &= notch_ptn.bits[ID_BOOM_H][PLC_IF_INDEX_NOTCH_PTN_CLR];
-            if (pCSInf->auto_sel[ID_BOOM_H]) {
+            if (pCSInf->auto_status[ID_BOOM_H] != STAT_MANUAL) {
                 plc_if_workbuf.v_com_notch[ID_BOOM_H] = get_notch_from_spd(ID_BOOM_H, pAgentInf->v_ref[ID_BOOM_H]);
                 ui_notch = plc_if_workbuf.v_com_notch[ID_BOOM_H] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] |= notch_ptn.bits[ID_BOOM_H][ui_notch];
@@ -452,7 +452,7 @@ int CPLC_IF::parse_data_out() {
             }
 
              plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] &= notch_ptn.bits[ID_SLEW][PLC_IF_INDEX_NOTCH_PTN_CLR];
-            if (pCSInf->auto_sel[ID_SLEW]) {
+            if (pCSInf->auto_status[ID_SLEW] != STAT_MANUAL) {
                 plc_if_workbuf.v_com_notch[ID_SLEW] = get_notch_from_spd(ID_SLEW, pAgentInf->v_ref[ID_SLEW]);
                 ui_notch = plc_if_workbuf.v_com_notch[ID_SLEW] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_sl.x] |= notch_ptn.bits[ID_SLEW][ui_notch];
@@ -463,7 +463,7 @@ int CPLC_IF::parse_data_out() {
             }
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] &= notch_ptn.bits[ID_AHOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
-            if (pCSInf->auto_sel[ID_AHOIST]) {
+            if (pCSInf->auto_status[ID_AHOIST] != STAT_MANUAL) {
                 plc_if_workbuf.v_com_notch[ID_AHOIST] = get_notch_from_spd(ID_AHOIST, pAgentInf->v_ref[ID_BOOM_H]);
                 ui_notch = plc_if_workbuf.v_com_notch[ID_AHOIST] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][ui_notch];

@@ -488,7 +488,8 @@ typedef struct stMotionRecipe {					//移動パターン
 /*** コマンド種類 ***/
 #define STAT_MASK               0x00FF      //ステータス部マスク
 #define STAT_NA					0x0000      //適用不可
-#define STAT_STANDBY			0x0001      //適用不可
+#define STAT_MANUAL				0x0000      //適用不可
+#define STAT_STANDBY			0x0001      //スタンバイ
 #define STAT_TRIGED             0x0002      //起動済実行待ち
 #define STAT_ACTIVE             0x0004      //実行中報告
 #define STAT_SUSPENDED          0x0008      //一時停止報告
@@ -640,7 +641,7 @@ typedef struct stCSInfo {
 	//自動,遠隔設定（モード）
 	INT32		auto_mode;												//自動モード
 	INT32		antisway_mode;											//振れ止めモード
-	INT32		auto_sel[MOTION_ID_MAX];
+	INT32		auto_status[MOTION_ID_MAX];
 //	int estop_active;													//非常停止動作中
 //	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
 

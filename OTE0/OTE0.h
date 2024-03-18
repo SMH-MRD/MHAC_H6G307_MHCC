@@ -15,6 +15,7 @@
 
 #include "CPsaMain.H"
 
+#define OTE_DEBUG0_ACTIVE 1
 
 //カメラ
 #define OTE_CAMERA_PTZ0_IP "192.168.1.202"
@@ -137,11 +138,16 @@ typedef struct stOte0DataTag {
 	double	deg_sl;				//旋回角°
 	double	deg_bh;				//起伏角°
 	POINT	pt_tgpos[OTE_N_TARGET][OTE0_N_AREA_GR];
-	double	d_tgpos[OTE_N_TARGET][MOTION_ID_MAX];
+	double	d_tgpos[OTE_N_TARGET][MOTION_ID_MAX] =
+	{
+		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},
+		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},		{30.0,0,0.0,30.0,-1.4,50.0,0.0},		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},		{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0}
+	};
 	INT32	gpad_mode = L_OFF;
 	INT32	auto_mode = OTE_ID_AUTOSTAT_OFF;
 	INT32	anti_sway_mode = OTE_ID_AUTOSTAT_OFF;
 	INT32	ope_mode = OTE_ID_OPE_MODE_MONITOR;
+	UINT32  target_seq_no = 0;//目標一の更新がある度にカウントアップ
 	INT32	auto_sel[MOTION_ID_MAX] = { OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF ,OTE_ID_AUTOSTAT_OFF };
 	OTE_GRIP_STAT grip_stat;
 }ST_OTE0_DATA, * LPST_OTE0_DATA;
