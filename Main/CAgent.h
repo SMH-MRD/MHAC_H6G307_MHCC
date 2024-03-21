@@ -87,7 +87,7 @@ class CAgent:public CTaskObj
 
     LPST_COMMAND_SET    pCom_as;                            //振れ止め用コマンドセットポインタ（実態は共有メモリ上へ）
     void set_as_workbuf(int motion);                        //振れ止めパターン作成用データ取り込み
-    int cal_as_recipe(int motion);                          //振れ止めパターン計算セット
+    int cal_as_seq(int motion);                          //振れ止めパターン計算セット
 
   
     double cal_step(LPST_COMMAND_SET pCom, int motion);     //自動指令出力値の計算
@@ -95,6 +95,7 @@ class CAgent:public CTaskObj
     bool is_command_completed(LPST_COMMAND_SET pCom);
         
     int set_ref_mh();                                       //巻速度指令値出力
+    int set_ref_ah();                                       //補巻速度指令値出力
     int set_ref_gt();                                       //走行速度指令値出力
     int set_ref_slew();                                     //旋回速度指令値出力
     int set_ref_bh();                                       //引込速度指令値出力

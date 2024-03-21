@@ -384,6 +384,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_BOOM_H] = pCOte0->data.d_tgpos[i_target][ID_BOOM_H];
 				pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_SLEW] = pCOte0->data.d_tgpos[i_target][ID_SLEW];
 
+				SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_PB][st_work_wnd.semiauto_selected], BM_SETCHECK, BST_UNCHECKED, 0);//RADIOボタンクリア
+
 				pCOte0->data.target_seq_no++;//目標位置シーケンス番号更新
 			}
 			else if (st_work_wnd.semiauto_count >= OTE0_SEMIAUTO_RESET_COUNT) {	//目標設定値更新
@@ -985,7 +987,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_CNT][ID_AHOIST] = OTE0_PB_OFF_DELAY_COUNT;
 
 				if ((pCOte0->data.auto_mode != OTE_ID_AUTOSTAT_OFF) && (pCOte0->data.auto_sel[ID_AHOIST] == L_ON)) {
-					pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] += st_work_wnd.notch_auto_shift[ID_SLEW][st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][ID_AHOIST]];
+					pCOte0->data.d_tgpos[OTE_ID_HOT_TARGET][ID_AHOIST] += st_work_wnd.notch_auto_shift[ID_AHOIST][st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_TRIG][ID_AHOIST]];
 					pCOte0->data.target_seq_no++;//目標位置シーケンス番号更新
 				}
 			}

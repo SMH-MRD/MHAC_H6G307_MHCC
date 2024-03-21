@@ -1,4 +1,5 @@
 #include "CEnvironment.h"
+#include "OTE0panel.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -52,7 +53,7 @@ void CEnvironment::init_task(void* pobj) {
 
 	inf.is_init_complete = true;
 
-	stWorkCraneStat.notch0 = stWorkCraneStat.notch0_crane = BIT_SEL_MOTION;//全ノッチ0で初期化
+	stWorkCraneStat.notch0 = BIT_SEL_MOTION;//全ノッチ0で初期化
 	motion_bit[ID_HOIST] = BIT_SEL_HST;
 	motion_bit[ID_GANTRY] = BIT_SEL_GNT;
 	motion_bit[ID_TROLLY] = BIT_SEL_TRY;
@@ -84,8 +85,6 @@ void CEnvironment::init_task(void* pobj) {
 			stWorkCraneStat.Ldr[i][j] = stWorkCraneStat.Ldr[i][j - 1] + stWorkCraneStat.spec.prm_nw[NW_ITEM_GROOVE][i] * stWorkCraneStat.Cdr[i][j];
 		}
 	}
-
-
 	return;
 };
 
@@ -191,68 +190,18 @@ void CEnvironment::tweet_update() {
 /*　　ノッチ入力信号を速度指令に変換して取り込み				            */
 /****************************************************************************/
 int CEnvironment::parse_notch_com() {
-#if 0
 	//クレーン上ノッチ
-	INT16* p_notch;
-	//p_notch = pPLC_IO->ui.notch_pos;
-	for (int i = 0;i < MOTION_ID_MAX;i++) {
-		notch_pos[i] = *p_notch;
-		if (*p_notch != NOTCH_0) {
-			stWorkCraneStat.notch0_crane &= ~motion_bit[i];
+	stWorkCraneStat.notch0 = 0;
+	for (int i = 0; i <= ID_AHOIST; i++) {
+		if (i == ID_TROLLY)continue;
+		if (pOTE_IO->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][i] == ID_OTE_0NOTCH_POS) {
+			stWorkCraneStat.notch0 |= motion_bit[i];
 		}
-		else {
-			stWorkCraneStat.notch0_crane |= motion_bit[i];
-		}
-		p_notch++;
 	}
 
 	//0ノッチインターロック用判定
-	if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= ~BIT_SEL_ALL_0NOTCH;
-	else												stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
-
-#endif
-	//端末ノッチ
-	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) {
-#if 0
-		if ((stWorkCraneStat.notch0_crane & BIT_SEL_ALL_0NOTCH) && !(pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE])) {//機上全0ノッチ
-			p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;				//端末受信内容
-			for (int i = 0;i < MOTION_ID_MAX;i++) {
-				if (!(stWorkCraneStat.notch0_crane & motion_bit[i])) {//機上0ノッチでない
-					stWorkCraneStat.notch0 &= ~motion_bit[i];
-				}
-				else if (*p_notch != NOTCH_0) {
-					stWorkCraneStat.notch0 &= ~motion_bit[i];
-					notch_pos[i] = *p_notch;
-				}
-				else {
-					stWorkCraneStat.notch0 |= motion_bit[i];
-				}
-				p_notch++;
-			}
-			//0ノッチインターロック用判定
-			if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= ~BIT_SEL_ALL_0NOTCH;
-			else
-				stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
-		}
-#endif
-	}
-	else {
-		stWorkCraneStat.notch0 = stWorkCraneStat.notch0_crane;
-	}
-
-
-
-	for (int i = 0;i < MOTION_ID_MAX;i++) {
-		if (notch_pos[i] == NOTCH_0) {
-			stWorkCraneStat.notch_spd_ref[i] = 0.0;
-		}
-		else {
-			if (notch_pos[i] < 0)
-				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_r[i][-notch_pos[i]] * 1.001;
-			else 
-				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_f[i][notch_pos[i]] * 1.001;
-		}
-	}
+	if (~stWorkCraneStat.notch0 & BIT_SEL_MOTION) stWorkCraneStat.notch0 &= ~BIT_SEL_ALL_0NOTCH;
+	else										  stWorkCraneStat.notch0 |= BIT_SEL_ALL_0NOTCH;
 
 	return 0;
 

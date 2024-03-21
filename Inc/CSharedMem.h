@@ -341,8 +341,6 @@ typedef struct StCraneStatus {
 	Vector3 rl_a;										//補巻吊荷のクレーン吊点とのx,y,z相対座標
 	Vector3 rcam_m_a;									//補巻振れセンサ検出x,y,z座標 m
 	
-	double notch_spd_ref[MOTION_ID_MAX];				//ノッチ速度指令
-
 	double mh_l;										//ロープ長
 	double T;											//振周期		s
 	double w;											//振角周波数	/s
@@ -364,8 +362,6 @@ typedef struct StCraneStatus {
 	INT32 OTE_req_status;								//操作端末要求状態
 
 	INT32 notch0;										//0ノッチ判定総合
-	INT32 notch0_crane;									//0ノッチ判定PLC
-
 
 	double Cdr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム1層円周
 	double Ldr[MOTION_ID_MAX][PLC_DRUM_LAYER_MAX];	//ドラム層巻取量
@@ -433,7 +429,7 @@ typedef struct StCraneStatus {
 #define STEP_OPT_PHASE_REV					1		//起動位相の配列インデックス　DOUBLE　逆方向用
 #define STEP_OPT_PHASE_CHK_RANGE			2		//起動位相の配列インデックス　DOUBLE　逆方向用
 
-typedef struct stMotionElement {	//運動要素
+typedef struct stMotionStep {	//運動要素
 	//recipe
 	int type;								//制御種別
 	double _a;								//目標加減速度
@@ -455,7 +451,7 @@ typedef struct stMotionElement {	//運動要素
 #define M_STEP_MAX	32
 
 //Recipe
-typedef struct stMotionRecipe {					//移動パターン
+typedef struct stMotionSequence {				//動作シーケンス
 	//CS set
 	int axis_id;
 	int motion_type;
@@ -467,10 +463,10 @@ typedef struct stMotionRecipe {					//移動パターン
 
 	//Agent set
 	int i_hot_step;								//実行中要素配列index -1で完了
-	int motion_act_count;						//動作実行時間カウントカウント数
+	int sequence_act_count;						//動作実行時間カウントカウント数
 	int fin_code;								//完了コード
 
-}ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
+}ST_MOTION_SEQ, * LPST_MOTION_SEQ;
 
 /********************************************************************************/
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
@@ -514,21 +510,29 @@ typedef struct StPosTargets {
 typedef struct StCommandCode {
 	int i_list;
 	int i_job;
-	int i_recipe;
+	int i_com;
 }ST_COM_CODE, * LPST_COM_CODE;
+
+
+#define COM_RECIPE_OPTION_N			8
 
 typedef struct stCommandSet {
 	//POLICY SET
 	ST_COM_CODE com_code;
-	int n_motion;									//コマンドで動作する軸の数
-	int active_motion[MOTION_ID_MAX];				//コマンド動作する軸のID配列（MOTION　RECIPEの対象配列）
-	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
+	int n_seq;									//コマンドで動作する軸の数
+	int seq_mode[MOTION_ID_MAX];				//コマンド動作する軸のID配列（MOTION　RECIPEの対象配列）
+	ST_MOTION_SEQ seq[MOTION_ID_MAX];
 	ST_POS_TARGETS target;							//目標位置	
+	int option_i[COM_RECIPE_OPTION_N];
+	double option_d[COM_RECIPE_OPTION_N];
 
 	//AGENT SET
-	int motion_status[MOTION_ID_MAX];
-	int recipe_counter[MOTION_ID_MAX];
+	int seq_status[MOTION_ID_MAX];
+	int seq_counter[MOTION_ID_MAX];
 	int com_status;
+
+	SYSTEMTIME time_start;
+	SYSTEMTIME time_end;
 
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
@@ -548,35 +552,16 @@ typedef struct stCommandSet {
 /* 　JOB	:From-Toの搬送作業													*/
 /************************************************************************************/
 #define JOB_REGIST_MAX				10			//　JOB登録最大数
-#define JOB_N_STEP_SEMIAUTO			1
-#define COM_RECIPE_OPTION_N			8
-
-typedef struct stComRecipe {
-	//CS SET
-	int id;
-	int type;									//JOB種別（PICK,GRND,PARK...）
-	int time_limit;								//JOB構成コマンド数
-	ST_POS_TARGETS target;						//各コマンドの目標位置	
-
-	int option_i[COM_RECIPE_OPTION_N];
-	double option_d[COM_RECIPE_OPTION_N];
-
-	ST_COMMAND_SET comset;						//レシピを展開したコマンドセット
-	int status;
-
-	SYSTEMTIME time_start;
-	SYSTEMTIME time_end;
-}ST_COM_RECIPE, * LPST_COM_RECIPE;
 
 typedef struct stJobSet {
 	int list_id;								//登録されているJOB listのid
 	int id;										//登録されているJOB list内でのid
-	int status;									//現在実行対象のJOBの状態
 	int n_com;									//JOB構成コマンド数
 	int type;									//JOB種別（JOB,半自動,OPERATION））
-	ST_COM_RECIPE recipe[JOB_COMMAND_MAX];	//各コマンドのレシピ
+	ST_COMMAND_SET com_recipe[JOB_COMMAND_MAX];	//コマンドのレシピ
+	
 	int i_hot_com;
-
+	int status;									//JOBの状態
 	SYSTEMTIME time_start;
 	SYSTEMTIME time_end;
 }ST_JOB_SET, * LPST_JOB_SET;
@@ -585,9 +570,11 @@ typedef struct stJobSet {
 typedef struct _stJobList {
 	int id;
 	int type;									//JOB種別（JOB,半自動）
-	int n_hold_job;								//未完Job数
-	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
+	int n_job;								   //Job数
 	ST_JOB_SET job[JOB_REGIST_MAX];				//登録job
+
+	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
+	int status;									//JOB LISTの状態
 }ST_JOB_LIST, * LPST_JOB_LIST;
 
 #define N_JOB_LIST						2				//JOB LIST登録数
@@ -623,27 +610,21 @@ typedef struct stCSInfo {
 	//UI関連
 	ST_OTE_LAMP_COM ote_pb_lamp[N_OTE_PNL_PB];							//端末ランプ表示指令
 	ST_OTE_LAMP_COM ote_notch_lamp[N_OTE_PNL_NOTCH];					//端末ランプ表示指令
-	int	semi_auto_selected;												//選択中の半自動ID
 	int ote_remote_status;												//操作端末の状態　0bit：端末信号有効
 	INT16	notch_pos[2][MOTION_ID_MAX];								//ノッチ指定値
 
-	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置
-	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）
-	INT32 hunging_point_for_view[MOTION_ID_MAX];						//半自動選択目標位置(カメラ座標）	
 
 	int command_type;													//PARK,PICK,GRND
 	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値
 	int target_set_z = CS_SEMIAUTO_TG_SEL_FIXED, target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;		//Z座標目標位置確定
 	LPST_JOB_SET p_active_job;
-	int job_set_event;
-
+	int job_control_status;
+	
 	//自動,遠隔設定（モード）
 	INT32		auto_mode;												//自動モード
 	INT32		antisway_mode;											//振れ止めモード
 	INT32		auto_status[MOTION_ID_MAX];
-//	int estop_active;													//非常停止動作中
-//	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
 
 	double ote_camera_height_m;											//操作端末VIEWのカメラ設置高さ
 
@@ -732,6 +713,8 @@ typedef struct stAgentInfo {
 
 	int as_count[MOTION_ID_MAX];					//振れ止めレシピ作成呼び出し回数
 	int command_count;								//コマンドレシピ作成呼び出し回数
+
+	LPST_COMMAND_SET    pCom_hot;					//実行中コマンドセット
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

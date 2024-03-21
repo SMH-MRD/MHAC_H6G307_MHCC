@@ -72,12 +72,13 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_SET setup_job_command(LPST_COM_RECIPE pcom_recipe, int type);  //実行する半自動のコマンドをセットする
+    LPST_COMMAND_SET setup_job_command(LPST_COMMAND_SET pcom_seq, int type);  //実行する半自動のコマンドをセットする
   
  
-    int set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-    int set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-    int set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_seq_semiauto_bh(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_seq_semiauto_slw(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_seq_semiauto_mh(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_seq_semiauto_ah(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
 
     LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trget);
     ST_POLICY_INFO   PolicyInf_workbuf;

@@ -29,6 +29,8 @@ CAgent::CAgent() {
 	pPolicyInf = NULL;
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
+	pAgentInf = NULL;
+	for(int i=0;i<8;i++)dbg_mont[i] = 0;
 }
 
 CAgent::~CAgent() {
@@ -94,21 +96,21 @@ void CAgent::input() {
 	
 	//# 各軸条件設定axis_status（FB0,AUTO_ENABLE...)
 	{
-
 		//振れ止め自動実行可設定
 		AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_ANTISWAY_ENABLE;
 		AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_ANTISWAY_ENABLE;
 
 		//速度0状態設定
-		if (pEnv->is_speed_0(ID_HOIST))	AgentInf_workbuf.axis_status[ID_HOIST]	|= AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_HOIST))	AgentInf_workbuf.axis_status[ID_HOIST]	|=  AG_AXIS_STAT_FB0;
 		else							AgentInf_workbuf.axis_status[ID_HOIST]	&= ~AG_AXIS_STAT_FB0;
-		if (pEnv->is_speed_0(ID_BOOM_H))AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_BOOM_H))AgentInf_workbuf.axis_status[ID_BOOM_H] |=  AG_AXIS_STAT_FB0;
 		else							AgentInf_workbuf.axis_status[ID_BOOM_H] &= ~AG_AXIS_STAT_FB0;
-		if (pEnv->is_speed_0(ID_SLEW))	AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_SLEW))	AgentInf_workbuf.axis_status[ID_SLEW]	|=  AG_AXIS_STAT_FB0;
 		else							AgentInf_workbuf.axis_status[ID_SLEW]	&= ~AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_AHOIST))AgentInf_workbuf.axis_status[ID_AHOIST]	|=  AG_AXIS_STAT_FB0;
+		else							AgentInf_workbuf.axis_status[ID_AHOIST]	&= ~AG_AXIS_STAT_FB0;
 	}
-	
-	
+		
 	//# JOBコマンド設定
 	{
 		if (pCSInf->auto_mode == L_ON) {	//自動モード
@@ -125,25 +127,25 @@ void CAgent::input() {
 						pjob_active = NULL;
 					}
 				}
-				else {															//ジョブ無し
+				else {//ジョブ無し
 					pCom_hot = NULL;
 				}
 			}
-			else {//
-				if (pCom_hot != NULL) {	//ジョブ実行中でコマンド実行中
+			else {//有効ジョブ有
+				if (pCom_hot != NULL) {	//有効コマンド有　か
 					int com_complete = STAT_END;
 					for (int i = 0;i < MOTION_ID_MAX;i++) {
-						if (!(pCom_hot->motion_status[i] & STAT_END)) {//未完動作有
+						if (!(pCom_hot->seq_status[i] & STAT_END)) {//未完動作有
 							com_complete = STAT_ACTIVE;
 						}
 						else {
-							if (pCom_hot->motion_status[i] != STAT_END) {
-								com_complete = pCom_hot->motion_status[i];
+							if (pCom_hot->seq_status[i] != STAT_END) {//正常完了ではない
+								com_complete = pCom_hot->seq_status[i];
 							}
 						}
 					}
 					if (com_complete != STAT_ACTIVE) {								//コマンド完了
-						AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_JOB_MASK;		//自動制御JOB TYPEクリア
+						AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_JOB_MASK;		//自動制御JOB TYPE（JOB,半自動,クレーン操作）クリア
 						pPolicy->update_command_status(pCom_hot, com_complete);		//コマンド実行完了報告
 						pCom_hot = NULL;											//コマンドクリア
 					}
@@ -167,11 +169,13 @@ void CAgent::input() {
 		}
 		else {//自動モードOFF コマンド実行中であればABORT報告	
 			if (pCom_hot != NULL) {
-				pPolicy->update_command_status(pCom_hot, STAT_ABOTED);	//コマンド実行開始報告
+				pPolicy->update_command_status(pCom_hot, STAT_ABOTED);	//コマンドABOTE報告
 			}
 			pCom_hot = NULL;
 			pjob_active = NULL;
 		}
+
+		AgentInf_workbuf.pCom_hot = pCom_hot;//SCADA表示用
 	}
 		
 	return;
@@ -280,10 +284,17 @@ void CAgent::main_proc() {
 
 	//# 軸毎のモードセット(PLC指令出力軸の判定）
 	if ((AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL)) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW]= AgentInf_workbuf.auto_active[ID_AHOIST] = AUTO_TYPE_MANUAL;
 	}
-	else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
+	else if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) {
+		for (int i = 0; i <= ID_AHOIST; i++) {
+			if (pCSInf->auto_status[i] == L_ON)		AgentInf_workbuf.auto_active[i] = AgentInf_workbuf.auto_on_going;
+			else									AgentInf_workbuf.auto_active[i] = AUTO_TYPE_MANUAL;
+
+		}
+	}
+	else if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_active[ID_AHOIST] = AgentInf_workbuf.auto_on_going;
 	}
 	else {//FB振れ止め
 		if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_FB_ANTI_SWAY) {
@@ -303,8 +314,8 @@ void CAgent::main_proc() {
 	//#振れ止めコマンドセットクリア
 	{
 		if (!(AgentInf_workbuf.auto_on_going & AUTO_TYPE_FB_ANTI_SWAY)) {
-			AgentInf_workbuf.st_as_comset.motion_status[ID_BOOM_H] = STAT_END;
-			AgentInf_workbuf.st_as_comset.motion_status[ID_SLEW] = STAT_END;
+			AgentInf_workbuf.st_as_comset.seq_status[ID_BOOM_H] = STAT_END;
+			AgentInf_workbuf.st_as_comset.seq_status[ID_SLEW] = STAT_END;
 		}
 	}
 
@@ -318,6 +329,7 @@ void CAgent::main_proc() {
 		else if (pCom_hot == NULL) {
 			//巻は現在位置
 			AgentInf_workbuf.auto_pos_target.pos[ID_HOIST] = pPLC_IO->pos[ID_HOIST];
+			AgentInf_workbuf.auto_pos_target.pos[ID_AHOIST] = pPLC_IO->pos[ID_AHOIST];
 
 			//引込はノッチ入りまたは振れ止めOFFで現在位置　0ノッチトリガで現在位置＋減速距離位置
 			//0ノッチトリガで現在位置＋減速距離位置に設定
@@ -348,7 +360,6 @@ void CAgent::main_proc() {
 
 	}
 
-
 	//各軸の制御状態設定	axis_status[i]
 	{
 		//PC指令可設定
@@ -357,36 +368,27 @@ void CAgent::main_proc() {
 		}
 
 		//自動実行可設定
-		AgentInf_workbuf.axis_status[ID_HOIST] |= AG_AXIS_STAT_AUTO_ENABLE;
+		AgentInf_workbuf.axis_status[ID_HOIST]	|= AG_AXIS_STAT_AUTO_ENABLE;
 		AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_AUTO_ENABLE;
-		AgentInf_workbuf.axis_status[ID_SLEW] |= AG_AXIS_STAT_AUTO_ENABLE;
+		AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_AUTO_ENABLE;
+		AgentInf_workbuf.axis_status[ID_AHOIST] |= AG_AXIS_STAT_AUTO_ENABLE;
 	}
-	//# PLCへのPC選択指令セット
+	//# 自動選択セット
 	{
-		if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_OPERATION)) {//デバッグモード　または　リモート手動操作モード
-			AgentInf_workbuf.pc_ctrl_mode |= (BIT_SEL_HST | BIT_SEL_GNT | BIT_SEL_BH | BIT_SEL_SLW);
-		}
-		else {
-			AgentInf_workbuf.pc_ctrl_mode = 0;
-			if (AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_HST;
-			if (AgentInf_workbuf.auto_active[ID_GANTRY])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_GNT;
-			if (AgentInf_workbuf.auto_active[ID_BOOM_H])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_BH;
-			if (AgentInf_workbuf.auto_active[ID_SLEW])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_SLW;
-		}
+		if (pCSInf->auto_status[ID_HOIST])	AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_HST;
+		if (pCSInf->auto_status[ID_GANTRY]) AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_GNT;
+		if (pCSInf->auto_status[ID_BOOM_H]) AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_BH;
+		if (pCSInf->auto_status[ID_SLEW])	AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_SLW;
+		if (pCSInf->auto_status[ID_AHOIST])	AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_AH;
 	}
-		
-		
+			
 	//# PLCへの出力計算　
 	set_ref_mh();							//巻き速度指令
 	set_ref_gt();							//走行速度指令
 	set_ref_slew();							//旋回速度指令
 	set_ref_bh();							//引込速度指令
+	set_ref_ah();							//補巻速度指令
 
-	//DBG CHECK
-//	AgentInf_workbuf.v_ref[ID_HOIST] = -0.117;
-//	AgentInf_workbuf.v_ref[ID_AHOIST] = -0.2;
-//	AgentInf_workbuf.v_ref[ID_BOOM_H] = -1.0;
-//	AgentInf_workbuf.v_ref[ID_SLEW] = -0.035;
 	return;
 }
 
@@ -403,6 +405,7 @@ void CAgent::output() {
 	memcpy_s(pAgentInf, sizeof(ST_AGENT_INFO), &AgentInf_workbuf, sizeof(ST_AGENT_INFO));
 
 	//タスクパネルへの表示出力
+#if 0
 	wostrs << L" #SL TG:" << fixed<<setprecision(3) << AgentInf_workbuf.auto_pos_target.pos[ID_SLEW];
 	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_SLEW,false);
 
@@ -410,7 +413,11 @@ void CAgent::output() {
 	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_BOOM_H, false);
 
 	wostrs << L",ActiveSet: " << dbg_mont[0];
-	
+#endif	
+
+	wostrs.str(L"");
+	wostrs << L" pCom_hot:" << pCom_hot << L" pjob_active" << pjob_active;
+
 	wostrs <<  L" --Scan " << inf.period;;
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
@@ -428,7 +435,7 @@ void CAgent::output() {
 int CAgent::set_ref_mh(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_HST) {
 		if (AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_MANUAL)
-			AgentInf_workbuf.v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
+			AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
 		//JOB実行時
 		else if ((AgentInf_workbuf.auto_active[ID_HOIST] & AUTO_TYPE_JOB) ||
 			(AgentInf_workbuf.auto_active[ID_HOIST] & AUTO_TYPE_SEMIAUTO)) {
@@ -444,12 +451,33 @@ int CAgent::set_ref_mh(){
 	return 0; 
 }
 /****************************************************************************/
+/*   補巻指令出力処理		                                                    */
+/****************************************************************************/
+int CAgent::set_ref_ah() {
+	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_AH) {
+		if (AgentInf_workbuf.auto_active[ID_AHOIST] == AUTO_TYPE_MANUAL)
+			AgentInf_workbuf.v_ref[ID_AHOIST] = 0.0;
+		//JOB実行時
+		else if ((AgentInf_workbuf.auto_active[ID_AHOIST] & AUTO_TYPE_JOB) ||
+			(AgentInf_workbuf.auto_active[ID_AHOIST] & AUTO_TYPE_SEMIAUTO)) {
+			if (pCom_hot == NULL)	AgentInf_workbuf.v_ref[ID_AHOIST] = 0.0;
+			else					AgentInf_workbuf.v_ref[ID_AHOIST] = cal_step(pCom_hot, ID_AHOIST);
+		}
+		else
+			AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
+	}
+	else {
+		AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
+	}
+	return 0;
+}
+/****************************************************************************/
 /*   走行指令出力処理		                                                */
 /****************************************************************************/
 int CAgent::set_ref_gt(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_GNT) {
 		if (AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_MANUAL)
-			AgentInf_workbuf.v_ref[ID_GANTRY] = pCraneStat->notch_spd_ref[ID_GANTRY];
+			AgentInf_workbuf.v_ref[ID_GANTRY] = 0.0;
 		else if ((AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_JOB) ||
 			(AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_SEMIAUTO)) {
 			if (pCom_hot == NULL)	AgentInf_workbuf.v_ref[ID_GANTRY] = 0.0;
@@ -472,7 +500,7 @@ int CAgent::set_ref_slew(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_SLW) {										//制御PC指令選択ON
 		//マニュアルモード
 		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL) {
-			AgentInf_workbuf.v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
+			AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 		}
 		//JOB実行時
 		else if((AgentInf_workbuf.auto_active[ID_SLEW] & AUTO_TYPE_JOB)||
@@ -510,7 +538,7 @@ int CAgent::set_ref_bh(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_BH) {									//制御PC指令選択ON
 		//マニュアルモード
 		if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_MANUAL) {
-			AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+			AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 		}
 		//JOB実行時
 		else if ((AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_JOB) ||
@@ -525,10 +553,10 @@ int CAgent::set_ref_bh(){
 		//FB振れ止め
 		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_FB_ANTI_SWAY) {	//振れ止め中
 			if (!(AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_ACTIVE) || (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_PAUSED)) {
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 			}
 			else if (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_COMPLETE) {			//振れ止め完了
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 			}
 			else { 																		//振れ止め未完
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&AgentInf_workbuf.st_as_comset,ID_BOOM_H);
@@ -551,18 +579,18 @@ int CAgent::set_ref_bh(){
 int CAgent::init_comset(LPST_COMMAND_SET pcom) {
 	if (pcom->com_code.i_list == ID_JOBTYPE_ANTISWAY) {
 		for (int i = 0; i < MOTION_ID_MAX;i++) 
-			pcom->motion_status[i] = STAT_END;
-		pcom->motion_status[ID_BOOM_H]	= STAT_STANDBY;
-		pcom->motion_status[ID_SLEW]	= STAT_STANDBY;
-		pcom->recipe->i_hot_step = 0;
-		pcom->recipe->motion_act_count = 0;
+			pcom->seq_status[i] = STAT_END;
+		pcom->seq_status[ID_BOOM_H]	= STAT_STANDBY;
+		pcom->seq_status[ID_SLEW]	= STAT_STANDBY;
+		pcom->seq->i_hot_step = 0;
+		pcom->seq->sequence_act_count = 0;
 	}
 	else {
 		for (int i = 0; i < MOTION_ID_MAX;i++) {						//各軸の実行ステータスの初期化
-			if (pcom->active_motion[i] == L_ON) pcom->motion_status[i]	= STAT_STANDBY;
-			else								pcom->motion_status[i]	= STAT_END;
-			pcom->recipe->i_hot_step = 0;
-			pcom->recipe->motion_act_count = 0;
+			if (pcom->seq_mode[i] == L_ON) pcom->seq_status[i]	= STAT_STANDBY;
+			else								pcom->seq_status[i]	= STAT_END;
+			pcom->seq->i_hot_step = 0;
+			pcom->seq->sequence_act_count = 0;
 		}
 	}
 	pcom->com_status = STAT_STANDBY;
@@ -711,25 +739,25 @@ void CAgent::set_as_workbuf(int motion) {
 }
 
 //振れ止めパターンレシピ計算
-int CAgent::cal_as_recipe(int motion) {
+int CAgent::cal_as_seq(int motion) {
 
 	set_as_workbuf(motion);
 	AgentInf_workbuf.st_as_comset.com_code.i_list = ID_JOBTYPE_ANTISWAY;//コマンドコード　振れ止めタイプセット
 
 	/*### レシピ設定 ###*/
-	LPST_MOTION_RECIPE precipe = &AgentInf_workbuf.st_as_comset.recipe[motion];
-	precipe->n_step = 0;								// ステップクリア
-	precipe->direction = st_as_work.motion_dir[motion];
-	precipe->i_hot_step = 0;
-	precipe->motion_act_count = 0;
-	precipe->axis_id = motion;
-	precipe->fin_code = STAT_NA;
+	LPST_MOTION_SEQ pseq = &AgentInf_workbuf.st_as_comset.seq[motion];
+	pseq->n_step = 0;								// ステップクリア
+	pseq->direction = st_as_work.motion_dir[motion];
+	pseq->i_hot_step = 0;
+	pseq->sequence_act_count = 0;
+	pseq->axis_id = motion;
+	pseq->fin_code = STAT_NA;
 
-	LPST_MOTION_STEP pelement = &precipe->steps[0];
+	LPST_MOTION_STEP pelement = &pseq->steps[0];
 
 	/*### ステップ設定 ###*/
 	//#### STEP 0 起動待機
-	pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
+	pelement = &(pseq->steps[pseq->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
 	pelement->_v = 0.0;																			// 速度0
 	pelement->_p = st_as_work.pos[motion];														// 目標位置
 	pelement->status = STAT_STANDBY;
@@ -787,7 +815,7 @@ int CAgent::cal_as_recipe(int motion) {
 		|| (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_OUT)
 		|| (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_FINE_POS)) {
 
-		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement = &(pseq->steps[pseq->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->status = STAT_STANDBY;														// ステータスセット
 		pelement->type = CTR_TYPE_VOUT_TIME;
 		pelement->_t = st_as_work.as_gain_ta[motion];
@@ -806,7 +834,7 @@ int CAgent::cal_as_recipe(int motion) {
 	//#### STEP 2 定速
 
 	if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_IN){
-		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement = &(pseq->steps[pseq->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->status = STAT_STANDBY;														// ステータスセット
 		pelement->type = CTR_TYPE_VOUT_V;
 		pelement->_t = st_as_work.as_gain_ta[motion];
@@ -814,7 +842,7 @@ int CAgent::cal_as_recipe(int motion) {
 		pelement->_p = AgentInf_workbuf.auto_pos_target.pos[motion];							//振れ止め目標位置
 	}
 	else if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_OUT){
-		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement = &(pseq->steps[pseq->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->status = STAT_STANDBY;														// ステータスセット
 		pelement->type = CTR_TYPE_VOUT_V;
 		pelement->_t = st_as_work.as_gain_ta[motion];
@@ -822,7 +850,7 @@ int CAgent::cal_as_recipe(int motion) {
 		pelement->_p = (pelement-1)->_p;														//移動方向が不定→前ステップから変更なし
 	}
 	else if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_FINE_POS) {
-		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement = &(pseq->steps[pseq->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->status = STAT_STANDBY;														// ステータスセット
 		pelement->type = CTR_TYPE_FINE_POS;
 		pelement->_t = st_as_work.as_gain_ta[motion];
@@ -832,11 +860,11 @@ int CAgent::cal_as_recipe(int motion) {
 	else;
 
 	//時間条件のスキャンカウント値セット
-	for (int i = 0;i < precipe->n_step;i++) {
-		precipe->steps[i].time_count = (int)(precipe->steps[i]._t * 1000.0 / st_as_work.agent_scan_ms);
-		precipe->steps[i].act_count = 0;
+	for (int i = 0;i < pseq->n_step;i++) {
+		pseq->steps[i].time_count = (int)(pseq->steps[i]._t * 1000.0 / st_as_work.agent_scan_ms);
+		pseq->steps[i].act_count = 0;
 		//旋回はレンジを-π～πに
-		if (motion == ID_SLEW)	CHelper::fit_ph_range_upto_pi(&(precipe->steps[i]._p));
+		if (motion == ID_SLEW)	CHelper::fit_ph_range_upto_pi(&(pseq->steps[i]._p));
 	}
 
 	return L_ON;
@@ -851,25 +879,25 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	double v_out = 0.0;
 
 	//振れ止めコマンドの時、レシピ未作成の時は、ここでレシピセット
-	if ((pCom->com_code.i_list == ID_JOBTYPE_ANTISWAY) && (pCom->motion_status[motion] & STAT_END)) {
-		if (cal_as_recipe(motion) == L_OFF) {
+	if ((pCom->com_code.i_list == ID_JOBTYPE_ANTISWAY) && (pCom->seq_status[motion] & STAT_END)) {
+		if (cal_as_seq(motion) == L_OFF) {
 			return 0.0;  //振れ止めパターン計算セット レシピ生成不可時は0リターン
 		}
 		else {
 			//実行カウンタ値のクリア
-			for (int i = 0;i < AgentInf_workbuf.st_as_comset.recipe[motion].n_step;i++) {
-				AgentInf_workbuf.st_as_comset.recipe[motion].steps[i].act_count = 0;
+			for (int i = 0;i < AgentInf_workbuf.st_as_comset.seq[motion].n_step;i++) {
+				AgentInf_workbuf.st_as_comset.seq[motion].steps[i].act_count = 0;
 			}
 			//レシピ作成カウントアップ　ステータスクリア
 			AgentInf_workbuf.as_count[motion]++;
-			AgentInf_workbuf.st_as_comset.motion_status[motion] = STAT_STANDBY;
-			AgentInf_workbuf.st_as_comset.recipe[motion].i_hot_step = 0;
+			AgentInf_workbuf.st_as_comset.seq_status[motion] = STAT_STANDBY;
+			AgentInf_workbuf.st_as_comset.seq[motion].i_hot_step = 0;
 
 		}
 	}
 
-	LPST_MOTION_RECIPE	precipe = &pCom->recipe[motion];
-	LPST_MOTION_STEP	pStep = &precipe->steps[precipe->i_hot_step];
+	LPST_MOTION_SEQ	pseq = &pCom->seq[motion];
+	LPST_MOTION_STEP	pStep = &pseq->steps[pseq->i_hot_step];
 
 	if (pStep->status == STAT_STANDBY) {   //ステップ起動時
 		pStep->act_count = 1;
@@ -928,7 +956,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	}break;
 	//#	起動位相待ち（移動方向指定）
 	case CTR_TYPE_WAIT_PH_DOUBLE: {
-		precipe->direction = ID_STOP;	//完了まで移動方向未定
+		pseq->direction = ID_STOP;	//完了まで移動方向未定
 		bool is_step_end = false;
 		double ph_io = pSway_IO->ph[SID_LOAD_MH][motion];
 
@@ -947,7 +975,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		}
 
 		if (is_step_end) {
-			precipe->direction = ID_STOP;
+			pseq->direction = ID_STOP;
 			v_out = 0.0;
 			break;
 		}
@@ -973,7 +1001,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 		if (chk_ph < pStep->opt_d[STEP_OPT_PHASE_CHK_RANGE]) {	//目標位相に到達
 			pStep->status = STAT_END;
-			precipe->direction = ID_REV;
+			pseq->direction = ID_REV;
 			break;
 		}
 
@@ -996,7 +1024,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		}
 		if (chk_ph < pStep->opt_d[STEP_OPT_PHASE_CHK_RANGE]) {	//目標位相に到達
 			pStep->status = STAT_END;
-			precipe->direction = ID_FWD;
+			pseq->direction = ID_FWD;
 			break;
 		}
 
@@ -1018,11 +1046,11 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = STAT_END;
 		}
 
-		if (precipe->direction == ID_FWD) {
+		if (pseq->direction == ID_FWD) {
 			if (pStep->_v < 0.0) v_out = pStep->_v * -1.0;
 			else v_out = pStep->_v;
 		}
-		else if (precipe->direction == ID_REV) {
+		else if (pseq->direction == ID_REV) {
 			if (pStep->_v > 0.0) v_out = pStep->_v * -1.0;
 			else v_out = pStep->_v;
 		}
@@ -1036,7 +1064,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = STAT_END;
 		}
 		v_out = cal_step(&AgentInf_workbuf.st_as_comset,motion);
-		if(pCom->motion_status[motion]== STAT_END) pStep->status = STAT_END;
+		if(pCom->seq_status[motion]== STAT_END) pStep->status = STAT_END;
 	}break;
 	//#	巻位置到達待ち
 	case CTR_TYPE_WAIT_POS_HST: {				//巻き位置が目標-αより上の位置に来るまで待機
@@ -1053,7 +1081,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	case CTR_TYPE_WAIT_POS_BH: {
 		double d = pEnv->cal_dist4target(ID_BOOM_H, true);
 		if (motion == ID_SLEW) {
-			if (pCom->recipe[ID_BOOM_H].direction != ID_REV)	pStep->status = STAT_END;//引込でない時は待機無し
+			if (pCom->seq[ID_BOOM_H].direction != ID_REV)	pStep->status = STAT_END;//引込でない時は待機無し
 			else if (d < AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE)	pStep->status = STAT_END;
 			else pStep->status = STAT_ACTIVE;
 		}
@@ -1070,7 +1098,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	case CTR_TYPE_WAIT_POS_SLW: {
 		double d = pEnv->cal_dist4target(ID_SLEW, true);
 		if (motion == ID_BOOM_H) {
-			if(pCom->recipe[ID_BOOM_H].direction == ID_REV)			pStep->status = STAT_END;//引込時は待機無し
+			if(pCom->seq[ID_BOOM_H].direction == ID_REV)			pStep->status = STAT_END;//引込時は待機無し
 			else if (d < AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad)	pStep->status = STAT_END;//旋回が目標位置付近到達で待機完了
 			else pStep->status = STAT_ACTIVE;
 		}
@@ -1122,7 +1150,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		pStep->status = STAT_ACTIVE;
 		v_out = pStep->_v;
 
-		if (precipe->direction >= ID_STOP) {					//移動方向　＋
+		if (pseq->direction >= ID_STOP) {					//移動方向　＋
 			if(pPLC_IO->pos[motion] >= pStep->_p)		//目標位置を越えた
 				pStep->status = STAT_END;
 		}
@@ -1210,33 +1238,33 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		break;
 	}
 
-	if (pCom->motion_status[motion] & STAT_END) {		 //レシピ出力完了済
+	if (pCom->seq_status[motion] & STAT_END) {		 //レシピ出力完了済
 		return 0.0;
 	}
 		
 	if (pStep->status & STAT_END) {
-		precipe->i_hot_step++;
-		if (precipe->i_hot_step >= precipe->n_step) pCom->motion_status[motion] = STAT_END;
+		pseq->i_hot_step++;
+		if (pseq->i_hot_step >= pseq->n_step) pCom->seq_status[motion] = STAT_END;
 	}
 
 	//モニタ用バッファセット
-	if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB_MASK)&&(pCom->active_motion[motion])) {
-		AgentInf_workbuf.st_active_com_inf.motion_status[motion] = pCom->motion_status[motion];
+	if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB_MASK)&&(pCom->seq_mode[motion])) {
+		AgentInf_workbuf.st_active_com_inf.seq_status[motion] = pCom->seq_status[motion];
 		AgentInf_workbuf.st_active_com_inf.com_code = pCom->com_code;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step = pCom->recipe[motion].i_hot_step;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].n_step = pCom->recipe[motion].n_step;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].steps[AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step].type = pCom->recipe[motion].steps[pCom->recipe[motion].i_hot_step].type;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].steps[AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step].act_count = pCom->recipe[motion].steps[pCom->recipe[motion].i_hot_step].act_count;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].steps[AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step].status = pCom->recipe[motion].steps[pCom->recipe[motion].i_hot_step].status;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step = pCom->seq[motion].i_hot_step;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].n_step = pCom->seq[motion].n_step;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].steps[AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step].type = pCom->seq[motion].steps[pCom->seq[motion].i_hot_step].type;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].steps[AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step].act_count = pCom->seq[motion].steps[pCom->seq[motion].i_hot_step].act_count;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].steps[AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step].status = pCom->seq[motion].steps[pCom->seq[motion].i_hot_step].status;
 	}
 	else {
-		AgentInf_workbuf.st_active_com_inf.motion_status[motion] = STAT_NA;
+		AgentInf_workbuf.st_active_com_inf.seq_status[motion] = STAT_NA;
 		AgentInf_workbuf.st_active_com_inf.com_code = pCom->com_code;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step = 0;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].n_step = 0;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].steps[AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step].type = CTR_TYPE_WAIT_TIME;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].steps[AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step].act_count = 0;
-		AgentInf_workbuf.st_active_com_inf.recipe[motion].steps[AgentInf_workbuf.st_active_com_inf.recipe[motion].i_hot_step].status = STAT_NA;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step = 0;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].n_step = 0;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].steps[AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step].type = CTR_TYPE_WAIT_TIME;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].steps[AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step].act_count = 0;
+		AgentInf_workbuf.st_active_com_inf.seq[motion].steps[AgentInf_workbuf.st_active_com_inf.seq[motion].i_hot_step].status = STAT_NA;
 	}
 	return v_out;
 }

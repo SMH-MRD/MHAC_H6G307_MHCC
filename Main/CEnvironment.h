@@ -67,8 +67,7 @@ private:
     LPST_POLICY_INFO pPolicyInf;
     LPST_AGENT_INFO pAgentInf;
     INT32 motion_bit[MOTION_ID_MAX];
-    INT16 notch_pos[MOTION_ID_MAX];
-
+ 
     void input();                   //外部データ取り込み
     void main_proc();               //処理内容
     void output();                  //出力データ更新

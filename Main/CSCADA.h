@@ -6,6 +6,20 @@
 #include "CSharedMem.h"
 #include "MKChart.h"
 
+#define SCAD_MON_WND_X          500
+#define SCAD_MON_WND_Y          0
+#define SCAD_MON_WND_W          640
+#define SCAD_MON_WND_H          480
+
+//操作端末ウィンドウ構造体
+#define SCAD_ID_STATIC_MON_INF      100201
+typedef struct _stScadMonWnd {
+    HWND hinf_static;
+    HWND hmon_wnd;
+
+}ST_SCAD_MON_WND, *LPST_SCAD_MON_WND;
+
+
 #define SCAD_CHART_WND1         0   
 #define SCAD_CHART_WND2         1 
 #define SCAD_CHART_CHART1       0   
@@ -44,6 +58,7 @@ typedef struct _stCHART_PLOT
     
 }ST_CHART_PLOT, * LPST_CHART_PLOT;
 
+
 class CSCADA :public CTaskObj
 {
 public:
@@ -70,6 +85,8 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
+    static ST_SCAD_MON_WND st_mon_wnd;
+
     //タブパネルのStaticテキストを設定
     void set_panel_tip_txt();
     //タブパネルのFunctionボタンのStaticテキストを設定
@@ -85,6 +102,12 @@ private:
     int set_graph_bool(int iwnd, int ichart, int igraph, int ibool, bool* pb);
     int setup_chart(int iwnd);      //チャートライブラリのバッファにプロットデータの参照ポインタをセット
     int set_chart_data(int iptn);   //指定パターンに従ってプロットデータのバッファセット
+
+
+    //モニタリングウィンドウ
+    HWND open_monitor_wnd(HWND h_parent_wnd);
+    static LRESULT CALLBACK MonitorProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
+
 };
 
 

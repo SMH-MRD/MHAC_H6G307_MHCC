@@ -26,15 +26,12 @@
 
 #define CS_NORMAL_OPERATION_MODE 0
 
-#define CS_JOBSET_EVENT_CLEAR               0x0000
-#define CS_JOBSET_EVENT_SEMI_REQ_IN         0x0001
-#define CS_JOBSET_EVENT_JOB_STANDBY         0x0002
-#define CS_JOBSET_EVENT_SEMI_STANDBY        0x0004
-#define CS_JOBSET_EVENT_JOB_TRIG            0x0008
-#define CS_JOBSET_EVENT_SEMI_TRIG           0x0010
-#define CS_JOBSET_EVENT_JOB_OVERFLOW        0x0020
-#define CS_JOBSET_EVENT_SEMI_SEL_CLEAR      0x0040
-#define CS_JOBSET_EVENT_JOB_ABOT            0x0080
+#define CS_JOBSET_STATUS_CLEAR               0x0000
+#define CS_JOBSET_STATUS_DISABLE             0x0000
+#define CS_JOBSET_STATUS_IDLE                0x0001
+#define CS_JOBSET_STATUS_STANDBY             0x0002
+#define CS_JOBSET_STATUS_ACTIVE              0x0004
+
 
 #define CS_N_MSG_HOLD                       10
 
@@ -61,6 +58,8 @@ public:
     //CLIENTへの報告関数
     int job_report2client(LPST_JOB_SET pjobset, int fb_code);       //Jobの実行状況報告
 
+    void init_job();
+
 private:
 
     int can_ote_activate();         //操作端末有効判定
@@ -70,8 +69,8 @@ private:
     int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);
     
     //レシピセット
-    LPST_JOB_SET set_job_recipe(LPST_JOB_SET pjob_set);
-    LPST_JOB_SET set_semi_recipe(LPST_JOB_SET pjob_set);
+    LPST_JOB_SET set_job_seq(LPST_JOB_SET pjob_set);
+    LPST_JOB_SET set_semi_seq(LPST_JOB_SET pjob_set);
  
    
     LPST_CRANE_STATUS   pCraneStat;

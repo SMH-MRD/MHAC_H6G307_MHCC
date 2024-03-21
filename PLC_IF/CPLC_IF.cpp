@@ -177,8 +177,6 @@ int CPLC_IF::clear_plc_write() {
 // parse_data_in() PLCからの入力信号を展開
 //*********************************************************************************************
 
-
-
 static double th_bh_hold;//起伏角速度計算用バッファ
 static double th_bh_dt = (double)(PLC_IF_TH_BH_CHK_COUNT * SYSTEM_TICK_ms) / 1000.0;//起伏角速度計算用バッファ
 
@@ -413,10 +411,12 @@ int CPLC_IF::parse_data_out() {
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.il_bypass.x] |= cab_bout_map.il_bypass.y;
         else
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.il_bypass.x] &= ~cab_bout_map.il_bypass.y;
-
-        //***####$$$$$ ノッチ
+       
+        //###############################################################
+        // $$$$$$$$$$$$$$$$$$$$$ノッチ指令出力$$$$$$$$$$$$$$$$$$$$$$$$4$$
+        //################################################################
         UINT ui_notch;
-        if (pCSInf->auto_mode) {//AGENT 出力をセット;
+        if (pCSInf->auto_mode) {//軸設定がMANUALでない時AGENT 出力をセット;
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_mh.x] &= notch_ptn.bits[ID_HOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
             if (pCSInf->auto_status[ID_HOIST] !=STAT_MANUAL) {
@@ -436,7 +436,7 @@ int CPLC_IF::parse_data_out() {
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] |= notch_ptn.bits[ID_GANTRY][ui_notch];
             }
             else {
-                plc_if_workbuf.v_com_notch[ID_HOIST] = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] - NOTCH_4;
+                plc_if_workbuf.v_com_notch[ID_GANTRY] = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] - NOTCH_4;
                  plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_gt.x] |= notch_ptn.bits[ID_GANTRY][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY]];
             }
 
@@ -464,7 +464,7 @@ int CPLC_IF::parse_data_out() {
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] &= notch_ptn.bits[ID_AHOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
             if (pCSInf->auto_status[ID_AHOIST] != STAT_MANUAL) {
-                plc_if_workbuf.v_com_notch[ID_AHOIST] = get_notch_from_spd(ID_AHOIST, pAgentInf->v_ref[ID_BOOM_H]);
+                plc_if_workbuf.v_com_notch[ID_AHOIST] = get_notch_from_spd(ID_AHOIST, pAgentInf->v_ref[ID_AHOIST]);
                 ui_notch = plc_if_workbuf.v_com_notch[ID_AHOIST] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][ui_notch];
             }
@@ -485,11 +485,11 @@ int CPLC_IF::parse_data_out() {
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] &= notch_ptn.bits[ID_AHOIST][PLC_IF_INDEX_NOTCH_PTN_CLR];
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_ah.x] |= notch_ptn.bits[ID_AHOIST][pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]];
 
-            plc_if_workbuf.v_com_notch[ID_HOIST]    = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST] - NOTCH_4;
-            plc_if_workbuf.v_com_notch[ID_GANTRY]   = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY] - NOTCH_4;
-            plc_if_workbuf.v_com_notch[ID_BOOM_H]   = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H] - NOTCH_4;
-            plc_if_workbuf.v_com_notch[ID_SLEW]     = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW] - NOTCH_4;
-            plc_if_workbuf.v_com_notch[ID_AHOIST]   = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST] - NOTCH_4;
+            plc_if_workbuf.v_com_notch[ID_HOIST]    = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_HOIST]   - NOTCH_4;
+            plc_if_workbuf.v_com_notch[ID_GANTRY]   = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_GANTRY]  - NOTCH_4;
+            plc_if_workbuf.v_com_notch[ID_BOOM_H]   = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_BOOM_H]  - NOTCH_4;
+            plc_if_workbuf.v_com_notch[ID_SLEW]     = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_SLEW]    - NOTCH_4;
+            plc_if_workbuf.v_com_notch[ID_AHOIST]   = pOTEio->ote_umsg_in.body.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_AHOIST]  - NOTCH_4;
           }
 
         //モード設定

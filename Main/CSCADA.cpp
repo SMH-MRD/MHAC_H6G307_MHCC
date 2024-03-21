@@ -1,5 +1,12 @@
 #include "CSCADA.h"
 
+#include "framework.h"
+#include <windowsx.h>       //# コモンコントロール
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <bitset>
+
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
 extern CSharedMem* pSwayStatusObj;
@@ -10,10 +17,13 @@ extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
 extern CSharedMem* pSimulationStatusObj;
+extern CSharedMem* pJobIO_Obj;
 
 extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
 
+//スタティックメンバ
+ST_SCAD_MON_WND CSCADA ::st_mon_wnd;
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
 /****************************************************************************/
@@ -123,13 +133,109 @@ void CSCADA::main_proc() {
 //定周期処理手順3　信号出力処理
 void CSCADA::output() {
 
+	//デバッグモニタ
+	wostrs.str(L"");
+	wostrs << L"AGENT \nTARGET MH:" << pAgentInf->auto_pos_target.pos[ID_HOIST] << L" AH:" << pAgentInf->auto_pos_target.pos[ID_AHOIST] << L" BH:" << pAgentInf->auto_pos_target.pos[ID_BOOM_H] << L" SL:" << pAgentInf->auto_pos_target.pos[ID_SLEW];
+	wostrs << L"\nV_REF MH:" << pAgentInf->v_ref[ID_HOIST] << L" AH:" << pAgentInf->v_ref[ID_AHOIST] << L" BH:" << pAgentInf->v_ref[ID_BOOM_H] << L" SL:" << pAgentInf->v_ref[ID_SLEW];
+	wostrs << L"\n AUTO_SEL:" << std::bitset<8>(pAgentInf->pc_ctrl_mode) 
+		<< L" auto_active:" << std::hex << L" MH:" << pAgentInf->auto_active[ID_HOIST] << L" AH:" << pAgentInf->auto_active[ID_AHOIST] << L" BH:" << pAgentInf-> auto_active[ID_BOOM_H] << L" SL:" << pAgentInf->auto_active[ID_SLEW];;
+	wostrs << L"\npComHot:" << pAgentInf->pCom_hot;
+	if (pAgentInf->pCom_hot != NULL) {
+		wostrs << L" Comstatus:" << (pAgentInf->pCom_hot)->com_status;
+	}
+	else {
+		wostrs << L" Comstatus:" << L"pComはNULL";
+	}
+
+	LPST_JOB_IO pjob = (LPST_JOB_IO)pJobIO_Obj->get_pMap();
+
+//	wostrs << 
+
+
+	if (st_mon_wnd.hmon_wnd != NULL) {
+		SetWindowText(st_mon_wnd.hinf_static, wostrs.str().c_str());
+	}
+#if 0
 	wostrs << L" V: mh " << ((LPST_PLC_IO)pPLCioObj->get_pMap())->v_fb[ID_HOIST];
 	wostrs << L" ph: slew " << pSway_IO->ph[SID_LOAD_MH][SID_CAM_X]*180/3.14;
+#endif
+
+	wostrs.str(L"");
+
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
 };
+
+HWND CSCADA::open_monitor_wnd(HWND h_parent_wnd) {
+	InitCommonControls();//コモンコントロール初期化
+	HINSTANCE hInst = GetModuleHandle(0);
+
+	WNDCLASSEXW wcex;
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = MonitorProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = hInst;
+	wcex.hIcon = NULL;
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = TEXT("SCAD_MON");
+	wcex.lpszClassName = TEXT("SCAD_MON");
+	wcex.hIconSm = NULL;
+
+	ATOM fb = RegisterClassExW(&wcex);
+	//メインウィンドウ
+	st_mon_wnd.hmon_wnd = CreateWindowW(TEXT("SCAD_MON"), TEXT("SCAD_MON"), WS_OVERLAPPEDWINDOW,
+		SCAD_MON_WND_X, SCAD_MON_WND_Y, SCAD_MON_WND_W, SCAD_MON_WND_H,
+		h_parent_wnd, nullptr, hInst, nullptr);
+
+	ShowWindow(st_mon_wnd.hmon_wnd, SW_SHOW);
+	UpdateWindow(st_mon_wnd.hmon_wnd);
+
+	return st_mon_wnd.hmon_wnd;
+};
+
+LRESULT CALLBACK CSCADA::MonitorProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	switch (message)
+	{
+	case WM_CREATE: {
+		InitCommonControls();//コモンコントロール初期化
+		HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
+		//ウィンドウにコントロール追加
+		st_mon_wnd.hinf_static = CreateWindowW(TEXT("STATIC"),L"SCAD INF", WS_CHILD | WS_VISIBLE | SS_LEFT,
+				0, 0, SCAD_MON_WND_W, SCAD_MON_WND_H,hWnd, (HMENU)(SCAD_ID_STATIC_MON_INF), hInst, NULL);
+		break;
+	}
+	case WM_COMMAND: {
+		int wmId = LOWORD(wParam);
+		// 選択されたメニューの解析:
+		switch (wmId)
+		{
+		case 1:break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}break;
+
+	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		EndPaint(hWnd, &ps);
+	}break;
+	case WM_DESTROY: {
+		st_mon_wnd.hmon_wnd = NULL;
+		//PostQuitMessage(0);
+	}break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return S_OK;
+};
+
+
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
@@ -162,6 +268,15 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 			if (IsDlgButtonChecked(hDlg, IDC_TASK_ITEM_RADIO1) == BST_CHECKED) {
 				SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO1), BM_SETCHECK, BST_UNCHECKED, 0L);
 			}
+
+			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO6) {
+				if (IsDlgButtonChecked(hDlg, IDC_TASK_FUNC_RADIO6) == BST_CHECKED) {
+					SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO6), BM_SETCHECK, BST_UNCHECKED, 0L);
+				}
+				open_monitor_wnd(inf.hWnd_parent);
+			}
+
+
 			inf.panel_type_id = LOWORD(wp);set_panel_tip_txt();  SetFocus(GetDlgItem(inf.hWnd_opepane, IDC_TASK_EDIT1));
 			break;
 		}
@@ -200,6 +315,8 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 				chart_plot_ptn = SCAD_CHART_PTN3;
 				set_chart_data(SCAD_CHART_PTN3);
 			}
+			else;
+
 			inf.panel_type_id = LOWORD(wp);set_panel_tip_txt();  SetFocus(GetDlgItem(inf.hWnd_opepane, IDC_TASK_EDIT1));
 			break;
 		case IDSET: {
@@ -384,7 +501,7 @@ void CSCADA::set_panel_tip_txt()
 		}
 	}break;
 	case IDC_TASK_FUNC_RADIO6: {
-		wstr = L"Func6 \n\r 1:?? 2:?? 3:?? 4:?? 5:?? 6:??";
+		wstr = L"Func6 \n\r 1:MON Open 2:?? 3:?? 4:?? 5:?? 6:??";
 		switch (inf.panel_type_id) {
 		case IDC_TASK_ITEM_RADIO1:
 			wstr_type += L"Param of type1 \n\r 1:?? 2:??  3:?? \n\r 4:?? 5:?? 6:??";
@@ -424,6 +541,8 @@ void CSCADA::set_panel_pb_txt() {
 
 	WCHAR str_func01[] = L"CHART";
 	SetDlgItemText(inf.hWnd_opepane, IDC_TASK_FUNC_RADIO1, (LPCWSTR)str_func01);
+
+	SetDlgItemText(inf.hWnd_opepane, IDC_TASK_FUNC_RADIO6, L"MON");
 
 	return;
 };
