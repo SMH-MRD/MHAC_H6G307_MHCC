@@ -51,6 +51,7 @@ public:
    
     //AGENTからのアクセス関数
     LPST_JOB_SET get_next_job();                                    //次のJob問い合わせ
+    int get_gurip_status() { return grip_status; }                  //グリップ状態問い合わせ
 
     //POLICYからのアクセス関数
     int update_job_status(LPST_JOB_SET pjobset, int fb_code);       //Jobの実行状況アンサバック
@@ -61,6 +62,8 @@ public:
     void init_job();
 
 private:
+
+    int grip_status;
 
     int can_ote_activate();         //操作端末有効判定
     int ote_handle_proc();          //操作端末処理

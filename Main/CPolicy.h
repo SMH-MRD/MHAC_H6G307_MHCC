@@ -54,7 +54,7 @@ public:
    void routine_work(void* param);
  
   //AGENT
-   LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);                      //Agentからの要求に応じて実行コマンドをセットして返す
+   LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);         //Agentからの要求に応じて実行コマンドをセットして返す
    int update_command_status(LPST_COMMAND_SET pcom, int code);  //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
  
 private:
@@ -67,23 +67,25 @@ private:
     LPST_SWAY_IO        pSway_IO;
     LPST_CS_INFO        pCSInf;
     LPST_JOB_IO         pJob_IO;
+  
+    ST_POLICY_INFO   PolicyInf_workbuf;
+    ST_POLICY_WORK   st_com_work;
+    int command_id = 0;
 
     void input();               //外部データ取り込み
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_SET setup_job_command(LPST_COMMAND_SET pcom_seq, int type);  //実行する半自動のコマンドをセットする
-  
+     LPST_COMMAND_SET setup_job_command(LPST_JOB_SET pcom_seq, int icom);  //実行する半自動のコマンドをセットする
+     LPST_POLICY_WORK set_com_workbuf(LPST_COMMAND_SET pcom);
  
     int set_seq_semiauto_bh(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
     int set_seq_semiauto_slw(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
     int set_seq_semiauto_mh(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
     int set_seq_semiauto_ah(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork);
 
-    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trget);
-    ST_POLICY_INFO   PolicyInf_workbuf;
-    ST_POLICY_WORK   st_com_work;
-    int command_id = 0;
+
+
 
                                                          
    //タブパネルのStaticテキストを設定

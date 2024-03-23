@@ -218,11 +218,14 @@ int COteIF::parse() {
 
 	bool bgrip_enable;
 
+	//グリップスイッチ有効判定　2つ目の条件はデバッグ用
 	if((pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ENABLE)|| (pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_DBG_ENABLE))
 		bgrip_enable = true;
 	else
 		bgrip_enable = false;
-	if(!bgrip_enable && pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ESTP)  //GURIP握り切り
+
+	//緊急停止　ON/OFF
+	if(!bgrip_enable && pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ESTP)  //GURIP握り切り　非常停止信号NORMALで有効ビットOFF
 		pOTEio->ote_estop = L_ON;
 	else if (bgrip_enable && !(pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ESTP))
 		pOTEio->ote_estop = L_ON;
@@ -231,9 +234,11 @@ int COteIF::parse() {
 	else														
 		pOTEio->ote_estop = L_ON;
 
-	if (pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ACTIVE)	pOTEio->ote_grip = L_ON;
-	else														pOTEio->ote_grip = L_OFF;
+	//グリップ　ON/OFF
+	if (pOTEio->ote_umsg_in.body.grip_status & OTE_GRIP_ACTIVE)		pOTEio->ote_grip = L_ON;
+	else															pOTEio->ote_grip = L_OFF;
 
+	//GAME PAD MODE
 	if (pOTEio->ote_umsg_in.body.ope_mode & OTE_ID_OPE_MODE_GPAD)	pOTEio->ote_padmode = L_ON;
 	else															pOTEio->ote_padmode = L_OFF;
 

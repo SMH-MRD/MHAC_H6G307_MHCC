@@ -105,43 +105,51 @@ void CPolicy::output() {
 // AGENTからのコマンド要求処理
 LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 
-
-	int _i_hot_com = pjob_set->i_hot_com;
-	LPST_COMMAND_SET pcom_set;
-
 	if (pjob_set == NULL) return NULL;	//NULL jobにはNULLリターン
-
-	if (pjob_set->status & STAT_TRIGED) {							//JOBのステータスが実行待ち
-		_i_hot_com = pjob_set->i_hot_com = 0;						//起動時は、実行レシピののインデックスは、0
-		pcom_set = setup_job_command(&(pjob_set->com_recipe[_i_hot_com]), pjob_set->list_id);
-		pjob_set->com_recipe[_i_hot_com].com_status = STAT_STANDBY;			//コマンドステータス更新
 	
-		pCS->update_job_status(pjob_set, STAT_ACTIVE);				//JOBのステータスをACTIVEに更新
-	}
-	else if (pjob_set->status & STAT_ACTIVE) {						//JOB実行中からの呼び出し＝ 次のレシピ実行待ち
-		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {			//次のレシピ有
-			_i_hot_com = pjob_set->i_hot_com++;
-			pcom_set = setup_job_command(&(pjob_set->com_recipe[_i_hot_com]), pjob_set->list_id);
-			pjob_set->com_recipe[_i_hot_com].com_status = STAT_STANDBY;		//コマンドステータス更新
-		}
-		else {														//次レシピ無　既に完了済 
-			_i_hot_com = pjob_set->i_hot_com;
-			pcom_set = NULL;										//次レシピ無し→NULLリターン
-			pjob_set->com_recipe[_i_hot_com].com_status = STAT_END;			//コマンドステータス更新
-			pCS->update_job_status(pjob_set, STAT_END);				//JOBのステータスをNORMAL　END更新
-		}
-	}
-	else {
-		pcom_set= NULL;
-		pCS->update_job_status(pjob_set, STAT_ABOTED);				//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
-	}
+	int _i_hot_com = pjob_set->i_hot_com;
+	LPST_COMMAND_SET pcom_set=NULL;
 
+	if (pjob_set->status & STAT_TRIGED) {										//JOBのステータスが実行待ち
+		_i_hot_com = pjob_set->i_hot_com = 0;									//起動時は、実行レシピのインデックスは、0
+		pcom_set = setup_job_command(pjob_set, _i_hot_com);
+		pjob_set->com[_i_hot_com].com_status = STAT_STANDBY;					//コマンドステータス更新
+
+		pCS->update_job_status(pjob_set, STAT_STANDBY);							//JOBのステータスをACTIVEに更新
+	}
+	else if (pjob_set->status & STAT_SUSPENDED) {								//JOB中断中
+		//現在のコマンド完了済でNULL　完了していなければ今のコマンドを再計算
+		pcom_set = setup_job_command(pjob_set, _i_hot_com);
+		pjob_set->com[_i_hot_com].com_status = STAT_STANDBY;	//コマンドステータス更新
+	}
+	else if (pjob_set->status & STAT_ACTIVE) {									//JOB実行中からの呼び出し＝ 次のレシピ実行待ち
+		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {						//次のレシピ有
+			//現在のコマンド完了済で次のコマンド計算　完了していなければ今のコマンドを再計算
+			if (pjob_set->com[pjob_set->i_hot_com].com_status & STAT_END) {	//完了している
+				_i_hot_com += 1;
+			}
+			pcom_set = setup_job_command(pjob_set, _i_hot_com);
+			pjob_set->com[_i_hot_com].com_status = STAT_STANDBY;	//コマンドステータス更新
+		}
+		else {	//次レシピ無 
+			//現在のコマンド完了済でNULL　完了していなければ今のコマンドを再計算
+			if (pjob_set->com[pjob_set->i_hot_com].com_status & STAT_END) {//完了している
+				pcom_set = NULL;
+			}
+			else {
+				pjob_set->com[_i_hot_com].com_status = STAT_END;			//コマンドステータス更新
+				pCS->update_job_status(pjob_set, STAT_END);					//JOBのステータスをNORMAL　END更新
+			}
+		}
+	}
+	else; 
+	
 
 	if (pcom_set != NULL) {
 		//### コマンドコードセット
 		pcom_set->com_code.i_list = pjob_set->list_id;
-		pcom_set->com_code.i_job = pjob_set->id;
-		pcom_set->com_code.i_com = _i_hot_com;
+		pcom_set->com_code.i_job =  pjob_set->job_id;
+		pcom_set->com_code.i_com =  _i_hot_com;
 	}
 	return pcom_set;
 
@@ -150,33 +158,48 @@ LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 // AGENTからのコマンド実行報告処理
 int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
 
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	//現状　SEMIAUTOの1job　1コマンドのみ対象 それ以外は後で
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 	if (pcom == NULL)return STAT_NAK;
 	LPST_JOB_SET pjob_set = &pJob_IO->job_list[pcom->com_code.i_list].job[pcom->com_code.i_job];//紐付きJOB
 
-	//コマンドコードとJOB＿SETの内容に不整合でエラー
-	int _i_seq = pcom->com_code.i_com;
-	if (_i_seq != pjob_set->i_hot_com) return NULL;
-
-	LPST_COMMAND_SET pcom_seq = &pjob_set->com_recipe[_i_seq];
+	LPST_COMMAND_SET pcom_seq = &pjob_set->com[pjob_set->i_hot_com];
 	switch (code) {
+	//コマンド終了
 	case STAT_END: {
-		pcom_seq->com_status = code;								//コマンドのステータスを報告内容に更新
-		pCS->update_job_status(pjob_set, STAT_END);				//JOBのステータス更新
+		if (pjob_set->n_com == (pjob_set->i_hot_com + 1)) {	//コマンドシーケンスの最後のコマンドの時
+			pcom_seq->com_status = code;							//コマンドのステータスを報告内容に更新
+			pCS->update_job_status(pjob_set, STAT_END);				//JOBのステータス更新
+		}
 	}break;
 	case STAT_ABNORMAL_END: {
-		pcom_seq->com_status = code;								//コマンドのステータスを報告内容に更新
+		pcom_seq->com_status = code;							//コマンドのステータスを報告内容に更新
 		pCS->update_job_status(pjob_set, STAT_ABNORMAL_END);	//JOBのステータス更新
 	}break;
+	case STAT_ABOTED: {
+		if (pCSInf->auto_mode == L_ON) {
+			pcom_seq->com_status = STAT_SUSPENDED;				//コマンドのステータスを報告内容に更新
+			pCS->update_job_status(pjob_set, STAT_SUSPENDED);	//JOBのステータス更新
+		}
+		else {
+			pcom_seq->com_status = code;							//コマンドのステータスを報告内容に更新
+			pCS->update_job_status(pjob_set, STAT_ABOTED);			//JOBのステータス更新
+		}
+
+	}break;
+	
+	//コマンド開始
 	case STAT_ACTIVE: {
 		pCS->update_job_status(pjob_set, STAT_ACTIVE);			//JOBのステータス更新
-		pcom_seq->com_status = code;								//コマンドのステータスを報告内容に更新
+		pcom_seq->com_status = code;							//コマンドのステータスを報告内容に更新
 	}break;
-	case STAT_ABOTED: {
-		pcom_seq->com_status = code;								//コマンドのステータスを報告内容に更新
-		pCS->update_job_status(pjob_set, STAT_ABOTED);			//JOBのステータス更新
-	}break;
+
+	//実行中断
 	case STAT_SUSPENDED: {
-		pcom_seq->com_status = code;								//コマンドのステータスを報告内容に更新
+		pcom_seq->com_status = code;							//コマンドのステータスを報告内容に更新
 		pCS->update_job_status(pjob_set, STAT_SUSPENDED);		//JOBのステータス更新
 	}break;
 	default: break;
@@ -185,27 +208,27 @@ int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
 	return STAT_ACK;
 }
 
-LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COMMAND_SET pcom_seq, int type) {							//実行する半自動コマンドをセットする
+LPST_COMMAND_SET CPolicy::setup_job_command(LPST_JOB_SET pjob, int icom) {							//実行する半自動コマンドをセットする
 
-	LPST_COMMAND_SET pcom_set = pcom_seq;
+	LPST_COMMAND_SET pcom_set = &pjob->com[icom];
 
 	//半自動は、巻、旋回、引込 補巻が対象
 	for (int i = 0;i < MOTION_ID_MAX;i++) pcom_set->seq_mode[i] = L_OFF;
-	if (type == ID_JOBTYPE_SEMI) {
-		pcom_set->seq_mode[ID_HOIST] = L_ON;
-		pcom_set->seq_mode[ID_SLEW] = L_ON;
-		pcom_set->seq_mode[ID_BOOM_H] = L_ON;
-		pcom_set->seq_mode[ID_AHOIST] = L_ON;
+	if (pjob->type == ID_JOBTYPE_SEMI) {
+		for (int k = 0; k < MOTION_ID_MAX; k++){//OTE動作選択のあるもののみパターン作成
+			if (pCSInf->auto_status[k]) pcom_set->seq_mode[k]= L_ON;
+		}
 	}
-	else if (type == ID_JOBTYPE_JOB) {
+	else if (pjob->type == ID_JOBTYPE_JOB) {
 		pcom_set->seq_mode[ID_HOIST] = L_ON;
 		pcom_set->seq_mode[ID_SLEW] = L_ON;
 		pcom_set->seq_mode[ID_BOOM_H] = L_ON;
 		pcom_set->seq_mode[ID_AHOIST] = L_ON;
 	}
 	else;
+	pcom_set->target = pjob->targets[pjob->i_hot_com];//目標位置セット
 
-	set_com_workbuf(pcom_seq->target);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
+	set_com_workbuf(pcom_set);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
 
 	bool is_fb_antisway = false;
 	if (pCSInf->antisway_mode == L_ON) {
@@ -544,8 +567,13 @@ int CPolicy::set_seq_semiauto_bh(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbty
 	for (int i = 0;i < pseq->n_step;i++) {
 		pseq->steps[i].time_count = (int)(pseq->steps[i]._t / pwork->agent_scan);
 	}
+	
+	//ステップシーケンス準備完
+	pseq->seq_status = STAT_STANDBY;
 
-
+	//実行ステップ初期化
+	pseq->i_hot_step = 0;
+	
 	return POLICY_PTN_OK;
 }
 
@@ -930,6 +958,10 @@ int CPolicy::set_seq_semiauto_slw(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbt
 		pseq->steps[i].time_count = (int)(pseq->steps[i]._t / pwork->agent_scan);
 	}
 
+	//ステップシーケンス準備完
+	pseq->seq_status = STAT_STANDBY;
+	//実行ステップ初期化
+	pseq->i_hot_step = 0;
 
 	return POLICY_PTN_OK;
 }
@@ -1038,11 +1070,17 @@ int CPolicy::set_seq_semiauto_mh(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbty
 		pseq->steps[i].time_count = (int)(pseq->steps[i]._t / pwork->agent_scan);
 	}
 
+	//ステップシーケンス準備完
+	pseq->seq_status = STAT_STANDBY;
+
+	//実行ステップ初期化
+	pseq->i_hot_step = 0;
+
 	return POLICY_PTN_OK;
 }
 
 /* ############################################################################################################################## */
-/*   巻レシピ　                                                                                                                 */
+/*  補巻レシピ　                                                                                                                 */
 /* ############################################################################################################################## */
 int CPolicy::set_seq_semiauto_ah(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbtype, LPST_POLICY_WORK pwork) {
 
@@ -1145,6 +1183,12 @@ int CPolicy::set_seq_semiauto_ah(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbty
 		pseq->steps[i].time_count = (int)(pseq->steps[i]._t / pwork->agent_scan);
 	}
 
+	//ステップシーケンス準備完
+	pseq->seq_status = STAT_STANDBY;
+
+	//実行ステップ初期化
+	pseq->i_hot_step = 0;
+
 	return POLICY_PTN_OK;
 }
 
@@ -1153,11 +1197,11 @@ int CPolicy::set_seq_semiauto_ah(int jobtype, LPST_MOTION_SEQ pseq, bool is_fbty
 /*　　コマンドパターン計算用の素材データ計算,セット									*/
 /*　　目標位置,目標までの距離,最大速度,加速度,加速時間,加速振れ中心,振れ振幅*/
 /****************************************************************************/
-LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
+LPST_POLICY_WORK CPolicy::set_com_workbuf(LPST_COMMAND_SET pcom) {
 
 	st_com_work.agent_scan_ms = pAgent->inf.cycle_ms;				//AGENTタスクのスキャンタイム
 	st_com_work.agent_scan = 0.001 * (double)st_com_work.agent_scan_ms;
-	st_com_work.target = target;									//目標位置
+	st_com_work.target = pcom->target;									//目標位置
 
 	for (int i = 0; i < MOTION_ID_MAX; i++) {
 		//現在位置
@@ -1210,10 +1254,10 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
 	}
 
 	//巻きの目標位置が上の時は、巻上後に旋回引き込み動作をするので目標位置の周期でパターンを作る
-	if (target.pos[ID_HOIST] > st_com_work.pos[ID_HOIST]) {
-		st_com_work.T = pEnvironment->cal_T(target.pos[ID_HOIST]);								//振れ周期
-		st_com_work.w = pEnvironment->cal_w(target.pos[ID_HOIST]);								//振れ角周波数
-		st_com_work.w2 = pEnvironment->cal_w2(target.pos[ID_HOIST]);							//振れ角周波数2乗
+	if (st_com_work.target.pos[ID_HOIST] > st_com_work.pos[ID_HOIST]) {
+		st_com_work.T = pEnvironment->cal_T(st_com_work.target.pos[ID_HOIST]);								//振れ周期
+		st_com_work.w = pEnvironment->cal_w(st_com_work.target.pos[ID_HOIST]);								//振れ角周波数
+		st_com_work.w2 = pEnvironment->cal_w2(st_com_work.target.pos[ID_HOIST]);							//振れ角周波数2乗
 	}
 	else {
 		st_com_work.T = pCraneStat->T;															//振れ周期

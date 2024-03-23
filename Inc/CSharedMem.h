@@ -464,7 +464,8 @@ typedef struct stMotionSequence {				//動作シーケンス
 	//Agent set
 	int i_hot_step;								//実行中要素配列index -1で完了
 	int sequence_act_count;						//動作実行時間カウントカウント数
-	int fin_code;								//完了コード
+	int seq_status;									//
+	//int fin_code;								//完了コード
 
 }ST_MOTION_SEQ, * LPST_MOTION_SEQ;
 
@@ -489,16 +490,18 @@ typedef struct stMotionSequence {				//動作シーケンス
 #define STAT_TRIGED             0x0002      //起動済実行待ち
 #define STAT_ACTIVE             0x0004      //実行中報告
 #define STAT_SUSPENDED          0x0008      //一時停止報告
-#define STAT_ABOTED             0x0010      //中断
+
+#define STAT_ABOTED             0x0120      //キャンセル
 #define STAT_END				0x0020      //正常完了
+#define STAT_ABNORMAL_END       0x8020      //異常完了
+
 #define STAT_REQ_WAIT           0x0080      //要求待ち
 #define STAT_POSITIVE			0x1000		//OK
 #define STAT_SUCCEED			0x1000		//成功
 #define STAT_ACK				0x1001		//正常受付
 #define STAT_NAK				0x8000		//NG
-#define STAT_ABNORMAL			0x8000		//失敗
 #define STAT_TIME_OVER			0x8010		//タイムオーバー
-#define STAT_ABNORMAL_END       0x8020      //異常完了
+
 #define STAT_LOGICAL_ERROR		0x8004      //整合性異常
 #define STAT_CODE_ERROR			0x8008      //適合コード無し
 
@@ -527,8 +530,6 @@ typedef struct stCommandSet {
 	double option_d[COM_RECIPE_OPTION_N];
 
 	//AGENT SET
-	int seq_status[MOTION_ID_MAX];
-	int seq_counter[MOTION_ID_MAX];
 	int com_status;
 
 	SYSTEMTIME time_start;
@@ -551,37 +552,52 @@ typedef struct stCommandSet {
 /*   COMMAND:1つのJOBを、複数のコマンドで構成	PICK GRAND PARK						*/
 /* 　JOB	:From-Toの搬送作業													*/
 /************************************************************************************/
-#define JOB_REGIST_MAX				10			//　JOB登録最大数
+#define ID_JOBIO_COMTYPE_PAUSE				0
+#define ID_JOBIO_COMTYPE_PICK				1
+#define ID_JOBIO_COMTYPE_GRND				2
+#define ID_JOBIO_COMTYPE_PARK				3
 
 typedef struct stJobSet {
-	int list_id;								//登録されているJOB listのid
-	int id;										//登録されているJOB list内でのid
-	int n_com;									//JOB構成コマンド数
+	//CS 構成 JOBセット
+	int list_id;								//登録されているJOB list配列のインデックスid
+	int job_id;										//登録されているJOB list内job配列のインデックスid
 	int type;									//JOB種別（JOB,半自動,OPERATION））
-	ST_COMMAND_SET com_recipe[JOB_COMMAND_MAX];	//コマンドのレシピ
-	
+	int code;									//JOB識別コード
+	int n_com;
+	ST_POS_TARGETS targets[JOB_COMMAND_MAX];		//目標位置
+	int com_type[JOB_COMMAND_MAX];
+
+	//POLICY 構成コマンド
+	ST_COMMAND_SET com[JOB_COMMAND_MAX];	//コマンドのレシピ
 	int i_hot_com;
 	int status;									//JOBの状態
 	SYSTEMTIME time_start;
 	SYSTEMTIME time_end;
 }ST_JOB_SET, * LPST_JOB_SET;
 
+typedef struct stJobOrder {
+	int type;									//JOB種別（JOB,半自動,OPERATION））
+	int job_code;
+}ST_JOB_ORDER, * LPST_JOB_ORDER;
+
 //JOB LIST
-typedef struct _stJobList {
-	int id;
-	int type;									//JOB種別（JOB,半自動）
-	int n_job;								   //Job数
-	ST_JOB_SET job[JOB_REGIST_MAX];				//登録job
-
-	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
-	int status;									//JOB LISTの状態
-}ST_JOB_LIST, * LPST_JOB_LIST;
-
 #define N_JOB_LIST						2				//JOB LIST登録数
 #define ID_JOBTYPE_JOB					0				//JOB Type index番号
 #define ID_JOBTYPE_SEMI					1				//SEMIAUTO Type index番号
 #define ID_JOBTYPE_ANTISWAY				2				//FB ANTISWAY Type index番号
-#define JOB_HOLD_MAX					10				//保持可能JOB最大数
+#define JOB_REGIST_MAX					10			//　JOB登録最大数
+
+typedef struct _stJobList {
+	int id;
+	int type;									//JOB種別（JOB,半自動）
+	int n_job;								   //Job数
+	ST_JOB_SET	 job[JOB_REGIST_MAX];			//登録job
+	ST_JOB_ORDER order[JOB_REGIST_MAX];			//要求job
+
+	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
+	int status[JOB_REGIST_MAX];					//JOB LISTの状態
+}ST_JOB_LIST, * LPST_JOB_LIST;
+
 
 typedef struct stJobIO {
 	ST_JOB_LIST	job_list[N_JOB_LIST];
@@ -617,7 +633,7 @@ typedef struct stCSInfo {
 
 	int command_type;													//PARK,PICK,GRND
 	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値
-	int target_set_z = CS_SEMIAUTO_TG_SEL_FIXED, target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;		//Z座標目標位置確定
+	//int target_set_z = CS_SEMIAUTO_TG_SEL_FIXED, target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;		//Z座標目標位置確定
 	LPST_JOB_SET p_active_job;
 	int job_control_status;
 	
@@ -715,6 +731,7 @@ typedef struct stAgentInfo {
 	int command_count;								//コマンドレシピ作成呼び出し回数
 
 	LPST_COMMAND_SET    pCom_hot;					//実行中コマンドセット
+	LPST_JOB_SET		pJob_hot;
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

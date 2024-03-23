@@ -113,6 +113,7 @@ typedef struct OteXYZ {
 
 
 #define OTE_N_LOAD					2	//吊荷数
+#define OTE_N_PC_MSG_WCHAR			128	//PCからのメッセージテキスト数
 #define OTE_ID_LOAD_MH				0
 #define OTE_ID_LOAD_AH				1
 #define OTE_N_SWY_AXIS				4
@@ -132,6 +133,9 @@ typedef struct PcUBody {
 	double				auro_tg_pos[MOTION_ID_MAX];				//現在目標位置座標
 	INT32				auto_status[MOTION_ID_MAX];				//自動運転状態
 	INT32				swy_cam_pix[OTE_N_LOAD][MOTION_ID_MAX];	//振れセンサカメラ検出位置
+	INT32				message_count;							//メッセージを更新する毎にカウントアップ
+	INT32				message_id;								//固定メッセージのID
+	WCHAR				message[OTE_N_PC_MSG_WCHAR];			//メッセージIDが‐の時に表示するテキスト
 }ST_PC_U_BODY, * LPST_PC_U_BODY;
 typedef struct PcUMsg {
 	ST_OTE_HEAD     head;

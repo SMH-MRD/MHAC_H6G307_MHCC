@@ -304,6 +304,7 @@ static DWORD gmpad_POV_last[4];
 static INT auto_mode_last;
 static INT gpad_mode_last;
 static short dio_id;
+static BYTE grip_stat_last=0;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	HDC hdc;
@@ -553,6 +554,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					pCOte0->data.grip_stat.b[0] &= ~OTE_GRIP_ACTIVE;
 				}
 			}
+			
+			//グリップスイッチ握り切りで非常停止
+			if ((grip_stat_last != pCOte0->data.grip_stat.b[0]) && !(pCOte0->data.grip_stat.b[0] & 0x0002))
+				st_work_wnd.pb_stat[ID_OTE_PB_HIJYOU] = OTE0_PB_OFF_DELAY_COUNT;
+			grip_stat_last = pCOte0->data.grip_stat.b[0];
 		}
 		//リモート無効時
 		if (BST_CHECKED != SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_RMT], BM_GETCHECK, 0, 0)) {
@@ -875,7 +881,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 
 		//バイブレータ
-		if (st_work_wnd.pb_stat[ID_OTE_PB_HIJYOU])VibrateController();
+
+		if (st_work_wnd.pb_stat[ID_OTE_PB_HIJYOU])
+			VibrateController();
+
 
 		//前回値保持
 		for (int i = 0; i < 16; i++) gmpad_PB_last[i] = pad_data.rgbButtons[i];
@@ -889,6 +898,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_PB_TEISHI) && (wmId <= BASE_ID_OTE_PB + ID_OTE_PB_FUREDOME)) {
 			st_work_wnd.pb_stat[wmId - BASE_ID_OTE_PB] = OTE0_PB_OFF_DELAY_COUNT;
 		}
+
 
 		//半自動 PB 選択
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_CHK_S1) && (wmId <= BASE_ID_OTE_PB + ID_OTE_CHK_N3)) {

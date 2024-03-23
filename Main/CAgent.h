@@ -70,6 +70,7 @@ class CAgent:public CTaskObj
     LPST_PLC_IO         pPLC_IO;
     LPST_SWAY_IO        pSway_IO;
     LPST_JOB_IO         pJob_IO;
+    LPST_OTE_IO         pOTE_IO;
 
     ST_AGENT_INFO       AgentInf_workbuf;
     ST_AGENT_WORK       st_as_work;                         //振れ止めパターン作成用
@@ -77,13 +78,12 @@ class CAgent:public CTaskObj
     LPST_JOB_SET        pjob_active;                        //実行中JOB
     LPST_COMMAND_SET    pCom_hot;                           //実行中コマンド
  
-
-
     void input();                                           //外部データ取り込み
     void main_proc();                                       //処理内容
     void output();                                          //出力データ更新
 
-    int init_comset(LPST_COMMAND_SET pcom);               //コマンド初期化
+    int init_comset(LPST_COMMAND_SET pcom);                 //コマンド初期化
+    int comset_abot_end(LPST_COMMAND_SET pcom);           //コマンド強制終了
 
     LPST_COMMAND_SET    pCom_as;                            //振れ止め用コマンドセットポインタ（実態は共有メモリ上へ）
     void set_as_workbuf(int motion);                        //振れ止めパターン作成用データ取り込み

@@ -139,7 +139,23 @@ void CSCADA::output() {
 	wostrs << L"\nV_REF MH:" << pAgentInf->v_ref[ID_HOIST] << L" AH:" << pAgentInf->v_ref[ID_AHOIST] << L" BH:" << pAgentInf->v_ref[ID_BOOM_H] << L" SL:" << pAgentInf->v_ref[ID_SLEW];
 	wostrs << L"\n AUTO_SEL:" << std::bitset<8>(pAgentInf->pc_ctrl_mode) 
 		<< L" auto_active:" << std::hex << L" MH:" << pAgentInf->auto_active[ID_HOIST] << L" AH:" << pAgentInf->auto_active[ID_AHOIST] << L" BH:" << pAgentInf-> auto_active[ID_BOOM_H] << L" SL:" << pAgentInf->auto_active[ID_SLEW];;
-	wostrs << L"\npComHot:" << pAgentInf->pCom_hot;
+
+	
+	if (pCSInf->p_active_job != NULL) {
+		wostrs << L" \n\nCS->job id:" << pCSInf->p_active_job->job_id;
+	}
+	else {
+		wostrs << L" \n\nCS->pjob :" << L"NULL";
+	}
+
+	if (pAgentInf->pJob_hot != NULL) {
+		wostrs << L"       AG->job id:" << pAgentInf->pJob_hot->job_id;
+	}
+	else {
+		wostrs << L"       AG->pjob :" << L"NULL";
+	}
+	
+	wostrs << L"\nAG->pComHot:" << pAgentInf->pCom_hot;
 	if (pAgentInf->pCom_hot != NULL) {
 		wostrs << L" Comstatus:" << (pAgentInf->pCom_hot)->com_status;
 	}
