@@ -3,6 +3,7 @@
 #include "CEnvironment.h"
 #include "CClientService.h"
 #include "CHelper.h"
+#include <bitset>
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -457,7 +458,6 @@ void CAgent::output() {
 	memcpy_s(pAgentInf, sizeof(ST_AGENT_INFO), &AgentInf_workbuf, sizeof(ST_AGENT_INFO));
 
 	//タスクパネルへの表示出力
-#if 0
 	wostrs << L" #SL TG:" << fixed<<setprecision(3) << AgentInf_workbuf.auto_pos_target.pos[ID_SLEW];
 	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_SLEW,false);
 
@@ -465,14 +465,10 @@ void CAgent::output() {
 	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_BOOM_H, false);
 
 	wostrs << L",ActiveSet: " << dbg_mont[0];
-#endif	
 
-	wostrs.str(L"");
-	wostrs << L" pCom_hot:" << pCom_hot << L" pjob_active" << pjob_active;
-
-	wostrs <<  L" --Scan " << inf.period;;
-
+	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+
 	return;
 
 };

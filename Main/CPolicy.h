@@ -10,8 +10,6 @@
 #define PTN_NON_FBSWAY_2INCH        0x00000004
 #define PTN_FBSWAY_AS               0x00000008
 
-#define PTN_FBSWAY_AS               0x00000008
-
 #define POLICY_PTN_OK               1
 #define POLICY_PTN_NG               0
 
@@ -21,6 +19,9 @@
 #define FINE_POS_TIMELIMIT          50.0             //ファインポジショニング制限時間
 #define POL_TM_OVER_CHECK_COUNTms   120000
 
+#define POL_ID_START_POINT          0
+#define POL_ID_END_POINT            1
+
 
 typedef struct stPolicyWork {
     double T;	                                //振れ周期
@@ -28,7 +29,7 @@ typedef struct stPolicyWork {
     double w2;	                                //振れ角周波数2乗
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
-    double a_abs[MOTION_ID_MAX];	            //モータの加速度　絶対値
+    double a_abs[MOTION_ID_MAX][2];	            //モータの加速度　絶対値(スタート位置,目標位置）
     double a_hp_abs[MOTION_ID_MAX];	            //吊点の加速度　絶対値
     double vmax_abs[MOTION_ID_MAX];             //モータの最大速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
@@ -53,9 +54,10 @@ public:
    void init_task(void* pobj);
    void routine_work(void* param);
  
-  //AGENT
+  //AGENTアクセス関数
    LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);         //Agentからの要求に応じて実行コマンドをセットして返す
    int update_command_status(LPST_COMMAND_SET pcom, int code);  //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
+   
  
 private:
 

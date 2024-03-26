@@ -442,7 +442,9 @@ int CPLC_IF::parse_data_out() {
 
             plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] &= notch_ptn.bits[ID_BOOM_H][PLC_IF_INDEX_NOTCH_PTN_CLR];
             if (pCSInf->auto_status[ID_BOOM_H] != STAT_MANUAL) {
-                plc_if_workbuf.v_com_notch[ID_BOOM_H] = get_notch_from_spd(ID_BOOM_H, pAgentInf->v_ref[ID_BOOM_H]);
+                //!!!!!!!!!!!!!!!!!! AGENTの指令は半径方向　モータへの速度指令とは符号が逆になる
+                plc_if_workbuf.v_com_notch[ID_BOOM_H] = get_notch_from_spd(ID_BOOM_H, -pAgentInf->v_ref[ID_BOOM_H]);
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
                 ui_notch = plc_if_workbuf.v_com_notch[ID_BOOM_H] + NOTCH_4;//ノッチ配列設定は-4ノッチが0
                 plc_if_workbuf.output.wbuf.cab_di[cab_bout_map.notch_bh.x] |= notch_ptn.bits[ID_BOOM_H][ui_notch];
             }
@@ -1057,9 +1059,13 @@ INT16   CPLC_IF::get_notch_from_spd(int motion, double spd) {
 
     if (spd == 0.0) return 0;
 
-    double spd_check = 1.1 * spd;        //10%増しで評価　ノッチ速度よりも少し低くても切り上げる為
-    if (spd_check < 0.0) spd_check *= -1.0;//絶対値でチェック
-
+    double spd_check = 0.0;        //5%増しで評価　ノッチ速度よりも少し低くても切り上げる為
+    if (spd < 0.0)
+        spd_check = -1.05 * spd;
+    else
+        spd_check = 1.05 * spd;
+   
+    //絶対値でチェック
     double retio;
     double* ptable = def_spec.notch_spd_f[ID_HOIST];
     switch (motion) {
@@ -1093,6 +1099,15 @@ INT16   CPLC_IF::get_notch_from_spd(int motion, double spd) {
         }
     }
 
-    if (spd < 0.0) ans = -ans; 
+    if (spd < 0.0)ans = -ans;
+#if 0
+    //引込は半径方向速度正値とのちモータ速度は負になる
+    if (motion != ID_BOOM_H) {
+        if (spd < 0.0) ans = -ans;
+    }
+    else {
+        if (spd > 0.0) ans = -ans;
+    }
+#endif
     return ans;
 }

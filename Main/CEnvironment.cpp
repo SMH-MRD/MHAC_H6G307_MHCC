@@ -206,6 +206,32 @@ int CEnvironment::parse_notch_com() {
 	return 0;
 
 };
+
+/****************************************************************************/
+/*　　位置に応じた加速度計算（旋回は、旋回半径）				            */
+/****************************************************************************/
+double CEnvironment::cal_acc(int imotion, double R, double pos) {
+	double acc = 0.0;
+
+	switch (imotion) {
+	case ID_HOIST: {
+		acc = spec.accdec[ID_HOIST][FWD][ACC];
+	}break;
+	case ID_AHOIST: {
+		acc = spec.accdec[ID_AHOIST][FWD][ACC];
+	}break;
+	case ID_BOOM_H: {
+		acc = spec.accdec[ID_BOOM_H][FWD][ACC];
+	}break;
+	case ID_SLEW: {
+		acc = spec.accdec[ID_SLEW][FWD][ACC];
+	}break;
+	default:return 0.0;
+	}
+
+	return acc;
+}
+
 /****************************************************************************/
 /*　 振れ周期関連　　											            */
 /****************************************************************************/

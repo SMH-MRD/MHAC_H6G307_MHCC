@@ -576,8 +576,10 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 //クライアントへのフィードバック
 int CClientService::job_report2client(LPST_JOB_SET pjobset, int fb_code) {       //Jobの実行状況報告
 
+	if (pjobset == NULL)return 0;
+
 	//クライアントへ報告
-	wostrs.str(L"");
+	wostrs.clear(); wostrs.str(L"");
 	wostrs << L"コマンドNo.=" << pjobset->code << L":";
 
 	if (pjobset->list_id == ID_JOBTYPE_JOB) {
@@ -613,7 +615,7 @@ int CClientService::job_report2client(LPST_JOB_SET pjobset, int fb_code) {      
 		default:break;
 		}
 	}
-	//txout2msg_listbox(wostrs.str());
+	txout2msg_listbox(wostrs.str());
 
 	return STAT_SUCCEED;
 	return STAT_NA;

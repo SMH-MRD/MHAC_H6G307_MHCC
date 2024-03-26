@@ -40,8 +40,6 @@ CSCADA::CSCADA() {
 CSCADA::~CSCADA() {
 
 }
-
-
 /****************************************************************************/
 /*   タスク初期化処理                                                       */
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
@@ -57,6 +55,7 @@ void CSCADA::init_task(void* pobj) {
 	pCSInf = (LPST_CS_INFO)(pCSInfObj->get_pMap());
 	pPolicyInf = (LPST_POLICY_INFO)(pPolicyInfObj->get_pMap());
 	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
+	pJOB_IO = (LPST_JOB_IO)(pJobIO_Obj->get_pMap());
 	
 	//チャートデータバッファクリア
 	memset(&chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS], 0, sizeof(ST_CHART_PLOT));
@@ -96,6 +95,9 @@ void CSCADA::init_task(void* pobj) {
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
+
+	open_monitor_wnd(inf.hWnd_parent);
+
 	return;
 };
 
@@ -134,52 +136,33 @@ void CSCADA::main_proc() {
 void CSCADA::output() {
 
 	//デバッグモニタ
-	wostrs.str(L"");
-	wostrs << L"AGENT \nTARGET MH:" << pAgentInf->auto_pos_target.pos[ID_HOIST] << L" AH:" << pAgentInf->auto_pos_target.pos[ID_AHOIST] << L" BH:" << pAgentInf->auto_pos_target.pos[ID_BOOM_H] << L" SL:" << pAgentInf->auto_pos_target.pos[ID_SLEW];
-	wostrs << L"\nV_REF MH:" << pAgentInf->v_ref[ID_HOIST] << L" AH:" << pAgentInf->v_ref[ID_AHOIST] << L" BH:" << pAgentInf->v_ref[ID_BOOM_H] << L" SL:" << pAgentInf->v_ref[ID_SLEW];
-	wostrs << L"\n AUTO_SEL:" << std::bitset<8>(pAgentInf->pc_ctrl_mode) 
-		<< L" auto_active:" << std::hex << L" MH:" << pAgentInf->auto_active[ID_HOIST] << L" AH:" << pAgentInf->auto_active[ID_AHOIST] << L" BH:" << pAgentInf-> auto_active[ID_BOOM_H] << L" SL:" << pAgentInf->auto_active[ID_SLEW];;
-
-	
-	if (pCSInf->p_active_job != NULL) {
-		wostrs << L" \n\nCS->job id:" << pCSInf->p_active_job->job_id;
-	}
-	else {
-		wostrs << L" \n\nCS->pjob :" << L"NULL";
-	}
-
-	if (pAgentInf->pJob_hot != NULL) {
-		wostrs << L"       AG->job id:" << pAgentInf->pJob_hot->job_id;
-	}
-	else {
-		wostrs << L"       AG->pjob :" << L"NULL";
-	}
-	
-	wostrs << L"\nAG->pComHot:" << pAgentInf->pCom_hot;
-	if (pAgentInf->pCom_hot != NULL) {
-		wostrs << L" Comstatus:" << (pAgentInf->pCom_hot)->com_status;
-	}
-	else {
-		wostrs << L" Comstatus:" << L"pComはNULL";
-	}
-
-	LPST_JOB_IO pjob = (LPST_JOB_IO)pJobIO_Obj->get_pMap();
-
-//	wostrs << 
-
-
+		
 	if (st_mon_wnd.hmon_wnd != NULL) {
-		SetWindowText(st_mon_wnd.hinf_static, wostrs.str().c_str());
+
+		ST_JOB_SET job = pJOB_IO->job_list[ID_JOBTYPE_SEMI].job[pJOB_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot];
+		ST_COMMAND_SET com = job.com[job.i_hot_com];
+
+		wostrs.clear(); wostrs.str(L"");
+		wostrs << L"JOB MONINTOR\n"
+			<< L"JOB STATUS:" << job.status;
+
+		wostrs << L"COMMAND MONINTOR\n"
+			<<L"           MH            AH              BH            SL\n"
+			<<L"nStep       " << std::dec << com.seq[ID_HOIST].n_step<<L"              "<< com.seq[ID_AHOIST].n_step << L"               "<< com.seq[ID_BOOM_H].n_step << L"               " << com.seq[ID_SLEW].n_step << L"\n"
+			<< L"iStep        " << com.seq[ID_HOIST].i_hot_step << L"              " << com.seq[ID_AHOIST].i_hot_step << L"               " << com.seq[ID_BOOM_H].i_hot_step << L"               " << com.seq[ID_SLEW].i_hot_step << L"\n"
+			<< L"Step type   " << std::hex << com.seq[ID_HOIST].steps[com.seq[ID_HOIST].i_hot_step].type << L"              " << com.seq[ID_AHOIST].steps[com.seq[ID_AHOIST].i_hot_step].type << L"               " << com.seq[ID_BOOM_H].steps[com.seq[ID_BOOM_H].i_hot_step].type << L"               " << com.seq[ID_SLEW].steps[com.seq[ID_SLEW].i_hot_step].type << L"\n";
+	
+		if (st_mon_wnd.hmon_wnd != NULL) {
+			SetWindowText(st_mon_wnd.hinf_static, wostrs.str().c_str());
+		}
 	}
-#if 0
+
+	wostrs.clear(); wostrs.str(L"");
 	wostrs << L" V: mh " << ((LPST_PLC_IO)pPLCioObj->get_pMap())->v_fb[ID_HOIST];
 	wostrs << L" ph: slew " << pSway_IO->ph[SID_LOAD_MH][SID_CAM_X]*180/3.14;
-#endif
-
-	wostrs.str(L"");
-
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+
 	return;
 
 };
@@ -214,6 +197,14 @@ HWND CSCADA::open_monitor_wnd(HWND h_parent_wnd) {
 	return st_mon_wnd.hmon_wnd;
 };
 
+/// <summary>
+/// デバッグモニタ用ウィンドウコールバック
+/// </summary>
+/// <param name="hWnd"></param>
+/// <param name="message"></param>
+/// <param name="wParam"></param>
+/// <param name="lParam"></param>
+/// <returns></returns>
 LRESULT CALLBACK CSCADA::MonitorProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message)
 	{
@@ -222,8 +213,20 @@ LRESULT CALLBACK CSCADA::MonitorProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 		HINSTANCE hInst = (HINSTANCE)GetModuleHandle(0);
 		//ウィンドウにコントロール追加
 		st_mon_wnd.hinf_static = CreateWindowW(TEXT("STATIC"),L"SCAD INF", WS_CHILD | WS_VISIBLE | SS_LEFT,
-				0, 0, SCAD_MON_WND_W, SCAD_MON_WND_H,hWnd, (HMENU)(SCAD_ID_STATIC_MON_INF), hInst, NULL);
+				0, 30, SCAD_MON_WND_W, SCAD_MON_WND_H,hWnd, (HMENU)(SCAD_ID_STATIC_MON_INF), hInst, NULL);
+
+
+		st_mon_wnd.h_chk_ag_msg = CreateWindowW(TEXT("BUTTON"), L"AGENT", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			10,5,80,15,	hWnd, (HMENU)(SCAD_ID_CHK_AGENT), hInst, NULL);
+		st_mon_wnd.h_chk_pol_msg = CreateWindowW(TEXT("BUTTON"), L"POLICY", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			105, 5, 80, 15, hWnd, (HMENU)(SCAD_ID_CHK_POLICY), hInst, NULL);
+		st_mon_wnd.h_chk_cs_msg = CreateWindowW(TEXT("BUTTON"), L"CS", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			200, 5, 50, 15, hWnd, (HMENU)(SCAD_ID_CHK_CS), hInst, NULL);
+		st_mon_wnd.h_chk_env_msg= CreateWindowW(TEXT("BUTTON"), L"ENVIRONMENT", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			260, 5, 120, 15, hWnd, (HMENU)(SCAD_ID_CHK_ENVIRONMENT), hInst, NULL);
+	
 		break;
+
 	}
 	case WM_COMMAND: {
 		int wmId = LOWORD(wParam);

@@ -533,7 +533,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			else {//グリップスイッチ無効時
 				pCOte0->data.grip_stat.b[0] |= OTE_GRIP_DBG_ENABLE;//グリップスイッチ握り切りの時に緊急停止を判定する為にソフトビットをONにする　メインのCSで判定用
 
-				//緊急停止
+				//緊急停止(ノッチPB）
 
 				if (BST_UNCHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_ESTOP], BM_GETCHECK, 0, 0)) {//ノーマルクローズ
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] &= ~0x0001;
@@ -544,7 +544,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					pCOte0->data.grip_stat.b[0] |= OTE_GRIP_ESTP;
 				}
 
-				//グリップ入力
+				//グリップ入力(ノッチPB）
 				if ((BST_CHECKED == SendMessage(st_work_wnd.hctrl[ID_OTE_CTRL_NOTCH][ID_OTE_GRIP_NOTCH], BM_GETCHECK, 0, 0))) {
 					st_work_wnd.notch_pos[ID_OTE_NOTCH_POS_HOLD][ID_OTE_GRIP_SWITCH] |= 0x0002;
 					pCOte0->data.grip_stat.b[0] |= OTE_GRIP_ACTIVE;
@@ -556,8 +556,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			}
 			
 			//グリップスイッチ握り切りで非常停止
-			if ((grip_stat_last != pCOte0->data.grip_stat.b[0]) && !(pCOte0->data.grip_stat.b[0] & 0x0002))
-				st_work_wnd.pb_stat[ID_OTE_PB_HIJYOU] = OTE0_PB_OFF_DELAY_COUNT;
+//			if ((grip_stat_last != pCOte0->data.grip_stat.b[0]) && !(pCOte0->data.grip_stat.b[0] & 0x0002))
+			if ((grip_stat_last != pCOte0->data.grip_stat.b[0])&& !(pCOte0->data.grip_stat.b[0] & 0x0008) && (pCOte0->data.grip_stat.b[0] & 0x0004)) {
+						st_work_wnd.pb_stat[ID_OTE_PB_HIJYOU] = OTE0_PB_OFF_DELAY_COUNT;
+			}
 			grip_stat_last = pCOte0->data.grip_stat.b[0];
 		}
 		//リモート無効時
@@ -897,6 +899,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		//PB オフディレイカウントセット
 		if ((wmId >= BASE_ID_OTE_PB + ID_OTE_PB_TEISHI) && (wmId <= BASE_ID_OTE_PB + ID_OTE_PB_FUREDOME)) {
 			st_work_wnd.pb_stat[wmId - BASE_ID_OTE_PB] = OTE0_PB_OFF_DELAY_COUNT;
+
+			//非常停止ご検出チェックブレークポイント用
+			if (wmId == BASE_ID_OTE_PB + ID_OTE_PB_HIJYOU)
+				int check = 0;
 		}
 
 

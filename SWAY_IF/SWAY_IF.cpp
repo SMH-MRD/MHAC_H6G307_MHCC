@@ -199,8 +199,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             5, 28, 80, 25, hWnd, (HMENU)IDC_CHK_COMWIN, hInst, NULL);
         
         //IF Window起動
-        if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
-        if (pProcObj->hWorkWnd != NULL)SendMessage(stMainWnd.h_pb_comwin, BM_SETCHECK, BST_CHECKED, 0L);
+      //  if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
+        if (pProcObj->hWorkWnd != NULL)SendMessage(stMainWnd.h_pb_comwin, BM_SETCHECK, BST_UNCHECKED, 0L);
 
   //      SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
     }

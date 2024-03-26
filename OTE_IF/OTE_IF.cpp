@@ -139,6 +139,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    pProcObj = new COteIF(hWnd);                              // メイン処理クラスのインスタンス化
    psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
    pProcObj->init_proc();
+
+   pProcObj->hide_if_wnd();
+   pProcObj->set_if_disp_hold(false);
    
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
@@ -199,7 +202,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_chk_if = CreateWindow(L"BUTTON", L"IF CHK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             5, 30, 80, 30, hWnd, (HMENU)IDC_CHK_IFCHK, hInst, NULL);
-        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_CHECKED, 0L);
+        SendMessage(stMainWnd.h_chk_if, BM_SETCHECK, BST_UNCHECKED, 0L);
 
         stMainWnd.h_chk_local_ote = CreateWindow(L"BUTTON", L"OTE0", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
             90, 30, 80, 30, hWnd, (HMENU)IDC_CHK_OTE, hInst, NULL);

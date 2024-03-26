@@ -45,6 +45,9 @@ public:
 
     bool is_speed_0(int motion);                            // 0速チェック
 
+    double cal_acc(int imotion, double R, double pos);      // 位置に応じた加速度を計算
+    double cal_motion_retio(int imotion, double pos);       // 位置に応じた速度,加速度の比率
+
     double cal_T(double pos_hst);                            //振れ周期計算　ロープ長　指定
     double cal_w(double pos_hst);                            //振れ角周波数計算　ロープ長指定
     double cal_w2(double l);                                //振れ角周波数の2乗計算　ロープ長指定

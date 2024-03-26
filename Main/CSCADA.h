@@ -6,16 +6,57 @@
 #include "CSharedMem.h"
 #include "MKChart.h"
 
-#define SCAD_MON_WND_X          500
+#define SCAD_MON_WND_X          950
 #define SCAD_MON_WND_Y          0
 #define SCAD_MON_WND_W          640
-#define SCAD_MON_WND_H          480
+#define SCAD_MON_WND_H          600
+
+
+
+//-Main Windowの配置設定
+
+#define MAIN_WND_INIT_SIZE_W		220		//-Main Windowの初期サイズ　W
+#define MAIN_WND_INIT_SIZE_H		140		//-Main Windowの初期サイズ　H
+#define MAIN_WND_INIT_POS_X			648		//-Main Windowの初期位置設定　X
+#define MAIN_WND_INIT_POS_Y			424		//-Main Windowの初期位置設定　Y
+
+
+//-ID定義 Mainスレッド用　2000 + 100 +α
+#define ID_STATUS					2100
+#define IDC_STATIC_0				2101
+#define IDC_PB_EXIT					2102
+#define IDC_PB_ACTIVE				2103
+#define IDC_PB_PACKET_MODE			2104
+#define IDC_CHK_MON_WND				2105
+
+//メインウィンドウ管理構造体
+typedef struct stMainWndTag {
+    HWND hWnd_status_bar;								//ステータスバーのハンドル
+    HWND h_static0;										//スタティックオブジェクトのハンドル
+    HWND h_pb_exit;										//ボタンオブジェクトのハンドル
+    HWND h_pb_debug;									//ボタンオブジェクトのハンドル
+    HWND h_chk_packetout;								//振れセンサのパケットを送信する
+    HWND h_chk_monwnd;									//SIM状態モニタウィンドウ表示チェックボタン
+}ST_MAIN_WND, * LPST_MAIN_WND;
+
+
+
 
 //操作端末ウィンドウ構造体
 #define SCAD_ID_STATIC_MON_INF      100201
+#define SCAD_ID_CHK_AGENT           100202
+#define SCAD_ID_CHK_CS              100203
+#define SCAD_ID_CHK_POLICY          100204
+#define SCAD_ID_CHK_ENVIRONMENT     100205
+
 typedef struct _stScadMonWnd {
     HWND hinf_static;
     HWND hmon_wnd;
+
+    HWND h_chk_ag_msg;      //AGENT       Message checkbox handle
+    HWND h_chk_cs_msg;      //CS          Message checkbox handle
+    HWND h_chk_pol_msg;     //POLICY      Message checkbox handle
+    HWND h_chk_env_msg;     //ENVIRONMENT Message checkbox handle
 
 }ST_SCAD_MON_WND, *LPST_SCAD_MON_WND;
 
@@ -80,6 +121,7 @@ private:
     LPST_CS_INFO pCSInf;
     LPST_POLICY_INFO pPolicyInf;
     LPST_AGENT_INFO pAgentInf;
+    LPST_JOB_IO pJOB_IO;
 
     void input();               //外部データ取り込み
     void main_proc();           //処理内容
