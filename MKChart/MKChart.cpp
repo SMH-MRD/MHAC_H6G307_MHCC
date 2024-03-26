@@ -1096,5 +1096,6 @@ void CMKChart::draw_bg(int chartID_work) {
 
 	}
 	;
+
 	return;
 };
